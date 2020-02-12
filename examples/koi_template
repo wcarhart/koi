@@ -1,24 +1,24 @@
 #!/bin/bash
 
 : <<- COMMENT
-To use coy, you need to do three things:
-  1. source the coy script
-  2. override the 'coyname' variable with the name of your script
-  3. override the 'coydescription' variable with the description of your script
+To use koi, you need to do three things:
+  1. source the koi script
+  2. override the 'koiname' variable with the name of your script
+  3. override the 'koidescription' variable with the description of your script
 
-To run the script, use the __coyrun function at the very end of the script:
-  __coyrun "$@"
+To run the script, use the __koirun function at the very end of the script:
+  __koirun "$@"
 COMMENT
 
-source coy
-coyname=coy_template
-coydescription="Helpful template"
+source koi
+koiname=koi_template
+koidescription="Helpful template"
 
 # ============ CLI FUNCTIONS ============ #
 
 # put your functions here!
 
-# Here's a function that showcases the different options available with coy:
+# Here's a function that showcases the different options available with koi:
 function myfunction {
 	# help
 	__addarg "-h" "--help" "help" "optional" "" "A helpful documentation message about myfunction"
@@ -54,7 +54,7 @@ function myfunction {
 if declare -F -- "${1:-}" >/dev/null ; then
 	"$@"
 else
-	__errortext "$coyname: err: no such command '$1'"
+	__errortext "$koiname: err: no such command '$1'"
 	__errortext "Use 'help' for available commands"
 	exit 1
 fi

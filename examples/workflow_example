@@ -1,22 +1,22 @@
 #!/bin/bash
 
 : <<- COMMENT
-To use coy, you need to do three things:
-  1. source the coy script
-  2. override the 'coyname' variable
-  3. override the 'coydescription' variable
+To use koi, you need to do three things:
+  1. source the koi script
+  2. override the 'koiname' variable
+  3. override the 'koidescription' variable
 
-To run the script, use the __coyrun function at the very end of the script:
-  __coyrun "$@"
+To run the script, use the __koirun function at the very end of the script:
+  __koirun "$@"
 COMMENT
 
-source coy
-coyname=workflow_example
-coydescription="Examples of potential workflow-related commands you could make with coy"
+source koi
+koiname=workflow_example
+koidescription="Examples of potential workflow-related commands you could make with koi"
 
 # ============ CLI FUNCTIONS ============ #
 
-# Here's an example of of coy only using long options (starting with --)
+# Here's an example of of koi only using long options (starting with --)
 function start {
 	__addarg "-h" "--help" "help" "optional" "" "Start a workflow given a workflow script"
 	__addarg "" "--script" "filepath" "required" "" "The workflow script"
@@ -36,4 +36,4 @@ function checkstatus {
 }
 
 # ============ RUN LOGIC ============ #
-__coyrun "$@"
+__koirun "$@"

@@ -3,8 +3,8 @@ set -e
 
 # ============ STARTUP FUNCTIONALITY ============ #
 self="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-coyname=coy
-coydescription="Bashful argument parsing"
+koiname=koi
+koidescription="Bashful argument parsing"
 shortoptions=( )
 longoptions=( )
 actions=( )
@@ -23,17 +23,17 @@ function help {
 	__addarg "-h" "--help" "help" "optional" "" "Show this menu and exit"
 	__parseargs "$@"
 	cat <<- EndOfHelp
-	$coydescription
+	$koidescription
 
 	Usage:
-	  $coyname COMMAND
+	  $koiname COMMAND
 
 	Available commands:
 	$(__listfunctions | sed "s/^/  /")
 
 	$( \
 		for cmd in `__listfunctions` ; do \
-			echo "$(${self}/$coyname $cmd --help)" && \
+			echo "$(${self}/$koiname $cmd --help)" && \
 			echo ; \
 		done \
 	)
@@ -59,38 +59,38 @@ function __addarg {
 		$6 - the help text to print when -h is specified (optional)
 	COMMENT
 
-	if [[ $# -ne 6 ]] ; then __errortext "$coyname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
+	if [[ $# -ne 6 ]] ; then __errortext "$koiname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
 
 	# short option
 	if [[ "$1" != "" ]] ; then
 		if [[ "$1" != -* || "$1" == --* ]] ; then
-			__errortext "$coyname: __addarg err: short option must start with a single dash"
+			__errortext "$koiname: __addarg err: short option must start with a single dash"
 			return 1
 
 		fi
 	fi
 
 	# long option
-	if [[ "$2" == "" ]] ; then __errortext "$coyname: __addarg err: missing long option for argument" ; return 1 ; fi
-	if [[ "$2" != --* ]] ; then __errortext "$coyname: __addarg err: long option must start with a double dash" ; return 1 ; fi
+	if [[ "$2" == "" ]] ; then __errortext "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
+	if [[ "$2" != --* ]] ; then __errortext "$koiname: __addarg err: long option must start with a double dash" ; return 1 ; fi
 
 	# action
 	availableactions="help storevalue directorypath filepath flag exit"
-	if [[ "$3" == "" ]] ; then __errortext "$coyname: __addarg err: missing action for argument" ; return 1 ; fi
+	if [[ "$3" == "" ]] ; then __errortext "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	found=0
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
-	if [[ $found -eq 0 ]] ; then __errortext "$coyname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
+	if [[ $found -eq 0 ]] ; then __errortext "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
 
 	# required
-	if [[ "$4" == "" ]] ; then __errortext "$coyname: __addarg err: missing required for argument" ; return 1 ; fi
-	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext "$coyname: __addarg err: required must be one of: required optional" ; return 1 ; fi
+	if [[ "$4" == "" ]] ; then __errortext "$koiname: __addarg err: missing required for argument" ; return 1 ; fi
+	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext "$koiname: __addarg err: required must be one of: required optional" ; return 1 ; fi
 
 	# default
-	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$coyname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$coyname: __addarg err: flags cannot have default values" ; return 1 ; fi
+	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
 
 	# help
-	if [[ "$6" == "" ]] ; then __errortext "$coyname: __addarg err: missing help text for argument" ; return 1 ; fi
+	if [[ "$6" == "" ]] ; then __errortext "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
 
 	shortoptions=( "${shortoptions[@]}" "$1" )
 	longoptions=( "${longoptions[@]}" "$2" )
@@ -120,7 +120,7 @@ function __parseargs {
 				break
 			fi
 		done
-		if [[ "$option" == "" ]] ; then __errortext "$coyname: err: no such option '$key'" ; return 1 ; fi
+		if [[ "$option" == "" ]] ; then __errortext "$koiname: err: no such option '$key'" ; return 1 ; fi
 
 		# figure out what to do with option
 		varname="${longoptions[$index]#--}"
@@ -135,7 +135,7 @@ function __parseargs {
 
 			# iterate through options and build help output
 			output=
-			output="${output}>> ${coyname} ${FUNCNAME[1]}\n${helptexts[$index]}\n"
+			output="${output}>> ${koiname} ${FUNCNAME[1]}\n${helptexts[$index]}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
 					continue
@@ -189,13 +189,13 @@ function __parseargs {
 		# handle options with arguments that need to be validated
 		else
 			if [[ "$2" == "" ]] ; then
-				__errortext "$coyname: err: missing value for argument ${longoptions[$index]}"
+				__errortext "$koiname: err: missing value for argument ${longoptions[$index]}"
 				return 1
 			fi
 			if [[ "${actions[$index]}" == "directorypath" ]] ; then
-				if [[ ! -d "$2" ]] ; then __errortext "$coyname: err: value for argument '${longoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
+				if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
 			elif [[ "${actions[$index]}" == "filepath" ]] ; then
-				if [[ ! -f "$2" ]] ; then __errortext "$coyname: err: value for argument '${longoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
+				if [[ ! -f "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
 			elif [[ "${actions[$index]}" == "exit" ]] ; then
 				exit
 			fi
@@ -210,7 +210,7 @@ function __parseargs {
 		varname="${longoptions[$index]#--}"
 		if [[ "${requireds[$index]}" == "required" ]] ; then
 			if [[ "${!varname}" == "" ]] ; then
-				__errortext "$coyname: err: missing required argument ${longoptions[$index]}"
+				__errortext "$koiname: err: missing required argument ${longoptions[$index]}"
 				return 1
 			fi
 		else
@@ -221,11 +221,11 @@ function __parseargs {
 	done
 }
 
-function __coyrun {
+function __koirun {
 	if declare -F -- "${1:-}" >/dev/null ; then
 		"$@"
 	else
-		__errortext "$coyname: err: no such command '$1'"
+		__errortext "$koiname: err: no such command '$1'"
 		__errortext "Use 'help' for available commands"
 		exit 1
 	fi

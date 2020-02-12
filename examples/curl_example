@@ -1,18 +1,18 @@
 #!/bin/bash
 
 : <<- COMMENT
-To use coy, you need to do three things:
-  1. source the coy script
-  2. override the 'coyname' variable
-  3. override the 'coydescription' variable
+To use koi, you need to do three things:
+  1. source the koi script
+  2. override the 'koiname' variable
+  3. override the 'koidescription' variable
 
-To run the script, use the __coyrun function at the very end of the script:
-  __coyrun "$@"
+To run the script, use the __koirun function at the very end of the script:
+  __koirun "$@"
 COMMENT
 
-source coy
-coyname=curl_example
-coydescription="Examples of potential curl commands you could make with coy"
+source koi
+koiname=curl_example
+koidescription="Examples of potential curl commands you could make with koi"
 
 function createuser {
 	__addarg "-h" "--help" "help" "optional" "" "Create a new user"
@@ -50,4 +50,4 @@ function show {
 }
 
 # ============ RUN LOGIC ============ #
-__coyrun "$@"
+__koirun "$@"
