@@ -2,7 +2,6 @@
 set -e
 
 # ============ STARTUP FUNCTIONALITY ============ #
-self="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 koiname=koi
 koidescription="Bashful argument parsing"
 shortoptions=( )
@@ -26,14 +25,12 @@ function help {
 	$koidescription
 
 	Usage:
-	  $koiname COMMAND
+	  $koiname COMMAND [args]
 
 	Available commands:
-	$(__listfunctions | sed "s/^/  /")
-
 	$( \
 		for cmd in `__listfunctions` ; do \
-			echo "$(${self}/$koiname $cmd --help)" && \
+			echo "$(helptexts=( ) ; $cmd --help)" && \
 			echo ; \
 		done \
 	)

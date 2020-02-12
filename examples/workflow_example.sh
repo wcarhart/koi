@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 : <<- COMMENT
 To use koi, you need to do three things:
@@ -11,7 +12,7 @@ To run the script, use the __koirun function at the very end of the script:
 COMMENT
 
 source koi
-koiname=workflow_example
+koiname=workflow_example.sh
 koidescription="Examples of potential workflow-related commands you could make with koi"
 
 # ============ CLI FUNCTIONS ============ #

@@ -17,7 +17,7 @@ function send_request {
 See the full [Usage](#Usage) below.
 
 ## Installation
-Install via Homebrew:
+Install via Homebrew (coming soon):
 ```
 brew install koi
 ```
@@ -29,11 +29,11 @@ To start using `koi`, simply source it at the top of your Bash script.
 source koi
 ```
 
-Also at the top of your script, but below sourcing `koi`, you should override the `koiname` and `koidescription` variables. These get printed in error messages, help text, etc.:
+Also at the top of your script, but below sourcing `koi`, you should override the `koiname` and `koidescription` variables. The values of `koiname` and `koidescription` get printed in error messages and help text. `koi` ships with default values if they are not set.
 ```
 #!/bin/bash
 source koi
-koiname=nameofscript
+koiname=nameofyourscript.sh
 koidescription="A longer description of your script"
 ```
 
@@ -166,7 +166,7 @@ See the code for this example in [`examples/curl_examples`](https://github.com/w
 <summary><a id="list"><code>list</code></a></summary>
 
 ### `list`
-**Prints all of the available commands.** `list` will print all functions defined that do not start with a dash (`-`) or underscore (`-`). Functions that begin with dashes and underscores are interpreted as internal functions to `koi` and thus are not print as commands available at the command line. Although they are not printed in `list` and `help`, you can still call them from the command line if you like.
+**Prints all of the available commands.** `list` will print all functions defined that do not start with a dash (`-`) or underscore (`_`). Functions that begin with dashes and underscores are interpreted as internal functions to `koi` and thus are not printed as commands available at the command line. Although they are not printed in `list` and `help`, you can still call them from the command line if you like.
 
 **Here's an example of the output of `list`:**
 ```
@@ -182,14 +182,12 @@ See the code for this example in [`examples/curl_examples`](https://github.com/w
 </details>
 
 ## Examples
-A few examples are located in the [`examples/`](https://github.com/wcarhart/koi/tree/master/examples) folder. Within them is a template that shows all of the available argument options with `koi` (located in `examples/koi_template`).
+A few examples are located in the [`examples/`](https://github.com/wcarhart/koi/tree/master/examples) folder, with a template that shows all of the available argument options with `koi` (located in `examples/koi_template`).
 
 ## Caveats
 Due to the fact that `koi` is written in Bash, its implementation comes with a few gotchas:
- * When `koi` defines a variable, it is in the global scope. Thus, if two different functions add a `--user` option, the variable `$user` will be overwritten by whatever function is called most recently.
- * The variable `koiname` needs to match script name exactly for it to function properly.
- * Scripts that source `koi` cannot have a file ending (i.e. no `.sh`). Generally, if you writing in Bash, you shouldn't include the `.sh` ending anyways, but including it with `koi` causes `koi` to not be able to find source files.
+ * When `koi` defines a variable, **it is in the global scope.** Thus, if two different functions add a `--user` option and are called from one another, `koi` will malfunction. **You cannot have a function `f1` that calls function `f2` where both `f1` and `f2` parse command line inputs via `__addarg`.** *A better approach is to parse all command line arguments in `f1` and then have `f1` call `f2` (`f2` should not call `__addarg`).*
  * Because of the flexibility, and lack of protection, inherently built into Bash, the functions `koi` provides (`__addarg`, `__parseargs`, `__koirun`, `help`, and `list`) can all be overwritten if you don't like their implementation.
 
 ## Nomenclature
-You may ask yourself, why the name `koi`? Well, the original working name of the library was Bashful Arg Parser, which is a mouthful. This was shortened to Bashful, to which "coy" is a synonym. `koi` is a homophone of "coy" and thus was chosen as the name.
+You may ask, why the name `koi`? Well, the original working name of the library was Bashful Arg Parser, which is a mouthful. This was shortened to Bashful, to which "coy" is a synonym. `koi` is a homophone of "coy" and thus was chosen as the name.

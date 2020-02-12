@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 : <<- COMMENT
 To use koi, you need to do three things:
