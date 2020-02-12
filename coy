@@ -82,6 +82,7 @@ function __addarg {
 
 	# default
 	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$coyname: required arguments cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$coyname: flags cannot have default values" ; return 1 ; fi
 
 	# help
 	if [[ "$6" == "" ]] ; then __errortext "$coyname: missing help text for argument" ; return 1 ; fi

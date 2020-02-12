@@ -1,0 +1,15 @@
+#!/bin/bash
+source coy
+coyname=workflow_example
+coydescription="Examples of potential workflow-related commands you could make with coy"
+
+# ============ CLI FUNCTIONS ============ #
+
+# ============ RUN LOGIC ============ #
+if declare -F -- "${1:-}" >/dev/null ; then
+	"$@"
+else
+	__errortext "$coyname: err: no such command '$1'"
+	__errortext "Use 'help' for available commands"
+	exit 1
+fi

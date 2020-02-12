@@ -1,11 +1,5 @@
 #!/bin/bash
-# if which coy > /dev/null 2>&1 ; then
-# 	source ../coy
-# else
-# 	source coy
-# fi
-
-source ~/personal/coy/coy
+source coy
 coyname=curl_example
 coydescription="Examples of potential curl commands you could make with coy"
 

@@ -1,0 +1,49 @@
+#!/bin/bash
+source coy
+coyname=template
+coydescription="Helpful template"
+
+# ============ CLI FUNCTIONS ============ #
+
+# put your functions here!
+
+# Here's a function that showcases the different options available with coy:
+function myfunction {
+	# help
+	__addarg "-h" "--help" "help" "optional" "" "A helpful documentation message about myfunction"
+
+	# storing values
+	__addarg "-a" "--aaa" "storevalue" "required" "" "A required argument"
+	__addarg "-b" "--bbb" "storevalue" "optional" "" "An optional argument"
+	__addarg "-c" "--ccc" "storevalue" "optional" "default value" "An optional argument with a default value"
+
+	# paths to files
+	__addarg "-d" "--ddd" "filepath" "required" "" "A required path to a file"
+	__addarg "-e" "--eee" "filepath" "optional" "" "An optional path to a file"
+	__addarg "-f" "--fff" "filepath" "optional" "/path/to/default.txt" "An optional path to file with a default value"
+
+	# paths to directories
+	__addarg "-g" "--ggg" "directorypath" "required" "" "A required path to a directory"
+	__addarg "-h" "--hhh" "directorypath" "optional" "" "An optional path to a directory"
+	__addarg "-i" "--iii" "directorypath" "optional" "/path/to/defaultdir" "An optional path to directory with a default value"
+
+	# flags
+	__addarg "-j" "--jjj" "flag" "required" "" "A required flag, which will store 1 if present"
+	__addarg "-l" "--lll" "flag" "optional" "" "An optional flag, which will store 1 if present if included"
+
+	# exit
+	__addarg "-m" "--mmm" "exit" "required" "" "A required exit, which will exit"
+	__addarg "-n" "--nnn" "exit" "optional" "" "An optional exit, which will exit if included"
+
+	# you need to call __parseargs for arguments to be parsed!
+	__parseargs "$@"
+}
+
+# ============ RUN LOGIC ============ #
+if declare -F -- "${1:-}" >/dev/null ; then
+	"$@"
+else
+	__errortext "$coyname: err: no such command '$1'"
+	__errortext "Use 'help' for available commands"
+	exit 1
+fi
