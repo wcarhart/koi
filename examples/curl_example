@@ -1,10 +1,21 @@
 #!/bin/bash
+
+: <<- COMMENT
+To use coy, you need to do three things:
+  1. source the coy script
+  2. override the 'coyname' variable
+  3. override the 'coydescription' variable
+
+To run the script, use the __coyrun function at the very end of the script:
+  __coyrun "$@"
+COMMENT
+
 source coy
 coyname=curl_example
 coydescription="Examples of potential curl commands you could make with coy"
 
 function createuser {
-	__addarg "-h" "--help" "help" "optional" "" ">> $coyname $FUNCNAME\nCreate a new user"
+	__addarg "-h" "--help" "help" "optional" "" "Create a new user"
 	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "The name of the user to create"
 	__parseargs "$@"
@@ -14,7 +25,7 @@ function createuser {
 }
 
 function run {
-	__addarg "-h" "--help" "help" "optional" "" ">> $coyname $FUNCNAME\nRun a job/script on the server"
+	__addarg "-h" "--help" "help" "optional" "" "Run a job/script on the server"
 	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "Name of user"
 	__addarg "-f" "--folder" "storevalue" "required" "" "Name of folder where script is located"
@@ -29,7 +40,7 @@ function run {
 }
 
 function show {
-	__addarg "-h" "--help" "help" "optional" "" ">> $coyname $FUNCNAME\nList running jobs for a given user"
+	__addarg "-h" "--help" "help" "optional" "" "List running jobs for a given user"
 	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "Name of user"
 	__parseargs "$@"
@@ -39,10 +50,4 @@ function show {
 }
 
 # ============ RUN LOGIC ============ #
-if declare -F -- "${1:-}" >/dev/null ; then
-	"$@"
-else
-	__errortext "$coyname: err: no such command '$1'"
-	__errortext "Use 'help' for available commands"
-	exit 1
-fi
+__coyrun "$@"

@@ -1,6 +1,17 @@
 #!/bin/bash
+
+: <<- COMMENT
+To use coy, you need to do three things:
+  1. source the coy script
+  2. override the 'coyname' variable with the name of your script
+  3. override the 'coydescription' variable with the description of your script
+
+To run the script, use the __coyrun function at the very end of the script:
+  __coyrun "$@"
+COMMENT
+
 source coy
-coyname=template
+coyname=coy_template
 coydescription="Helpful template"
 
 # ============ CLI FUNCTIONS ============ #
