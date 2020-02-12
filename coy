@@ -1,0 +1,198 @@
+#!/bin/bash
+set -e
+
+# ============ STARTUP FUNCTIONALITY ============ #
+self="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+coyname=coy
+coydescription="Bashful argument parsing"
+shortoptions=( )
+longoptions=( )
+actions=( )
+requireds=( )
+defaults=( )
+helptexts=( )
+
+# ============ CLI FUNCTIONS ============ #
+function list {
+	__addarg "-h" "--help" "help" "optional" "" ">> $coyname $FUNCNAME\nList all available commands"
+	__parseargs "$@"
+	__listfunctions
+}
+
+function help {
+	__addarg "-h" "--help" "help" "optional" "" ">> $coyname $FUNCNAME\nShow this menu and exit"
+	__parseargs "$@"
+	cat <<- EndOfHelp
+	$coydescription
+
+	Usage:
+	  $coyname COMMAND
+
+	Available commands:
+	$(__listfunctions | sed "s/^/  /")
+
+	$( \
+		for cmd in `__listfunctions` ; do \
+			echo "$(${self}/$coyname $cmd --help)" && \
+			echo ; \
+		done \
+	)
+	EndOfHelp
+}
+
+# ============ META FUNCTIONS ============ #
+function __listfunctions {
+	functionlist=( `declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g'` )
+	for func in "${functionlist[@]}" ; do
+		echo "$func"
+	done
+}
+
+function __addarg {
+	: <<- COMMENT
+	Add an argument to parse for a function
+		$1 - short option (optional)
+		$2 - long option (required)
+		$3 - action to take with argument (required)
+		$4 - whether or not argument is required (required)
+		$5 - the default value for the argument (optional)
+		$6 - the help text to print when -h is specified (optional)
+	COMMENT
+
+	if [[ $# -ne 6 ]] ; then __errortext "$coyname: __addarg: incorrect usage, 6 arguments are required" ; return 1 ; fi
+
+	# short option
+	if [[ "$1" == "" ]] ; then __errortext "$coyname: missing short option for argument" ; return 1 ; fi
+	if [[ "$1" != -* || "$1" == --* ]] ; then __errortext "$coyname: short option must start with a single dash" ; return 1 ; fi
+
+	# long option
+	if [[ "$2" == "" ]] ; then __errortext "$coyname: missing long option for argument" ; return 1 ; fi
+	if [[ "$2" != --* ]] ; then __errortext "$coyname: long option must start with a double dash" ; return 1 ; fi
+
+	# action
+	availableactions="help storevalue directorypath filepath flag exit"
+	if [[ "$3" == "" ]] ; then __errortext "$coyname: missing action for argument" ; return 1 ; fi
+	found=0
+	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
+	if [[ $found -eq 0 ]] ; then __errortext "$coyname: action must be one of: $availableactions" ; return 1 ; fi
+
+	# required
+	if [[ "$4" == "" ]] ; then __errortext "$coyname: missing required for argument" ; return 1 ; fi
+	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext "$coyname: required must be one of: required optional" ; return 1 ; fi
+
+	# default
+	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$coyname: required arguments cannot have default values" ; return 1 ; fi
+
+	# help
+	if [[ "$6" == "" ]] ; then __errortext "$coyname: missing help text for argument" ; return 1 ; fi
+
+	shortoptions=( "${shortoptions[@]}" "$1" )
+	longoptions=( "${longoptions[@]}" "$2" )
+	actions=( "${actions[@]}" "$3" )
+	requireds=( "${requireds[@]}" "$4" )
+	defaults=( "${defaults[@]}" "$5" )
+	helptexts=( "${helptexts[@]}" "$6" )
+}
+
+function __parseargs {
+	# parse previously defined arguments
+
+	while [[ $# -gt 0 ]] ; do
+		key="$1"
+
+		# get name of option
+		option=
+		index=
+		for i in `seq 0 "${#shortoptions[@]}"` ; do
+			if [[ "${shortoptions[$i]}" == "$key" ]] ; then
+				option="${shortoptions[$i]}"
+				index=$i
+				break
+			elif [[ "${longoptions[$i]}" == "$key" ]] ; then
+				option="${longoptions[$i]}"
+				index=$i
+				break
+			fi
+		done
+		if [[ "$option" == "" ]] ; then __errortext "$coyname: err: no such option '$key'" ; return 1 ; fi
+
+		# figure out what to do with option
+		varname="${longoptions[$index]#--}"
+		if [[ "${actions[$index]}" == "help" ]] ; then
+			output=
+			output="${output}${helptexts[$index]}\n"
+			for i in "${!shortoptions[@]}" ; do
+				if [[ "${actions[$i]}" == "help" ]] ; then
+					continue
+				fi
+				varname="${longoptions[$i]#--}"
+				output="${output}  ${shortoptions[$i]}, ${longoptions[$i]} "
+				if [[ "${actions[$i]}" == "storevalue" || "${actions[$i]}" == "directorypath" || "${actions[$i]}" == "filepath" ]] ; then
+					output="${output}`echo "${varname}" | tr '[a-z]' '[A-Z]'` "
+				fi
+				output="${output}${helptexts[$i]} "
+				if [[ "${requireds[$i]}" == "optional" ]] ; then
+					output="${output}(optional) "
+					if [[ "${defaults[$i]}" != "" ]] ; then
+						output="${output}(default: ${defaults[$i]})\n"
+					else
+						output="${output}\n"
+					fi
+				else
+					output="${output}\n"
+				fi
+			done
+			__helptext "${output}"
+			exit
+		elif [[ "${actions[$index]}" == "flag" ]] ; then
+			read $varname <<< 1
+			shift
+		else
+			if [[ "$2" == "" ]] ; then
+				__errortext "$coyname: err: missing value for argument ${longoptions[$index]}"
+				return 1
+			fi
+			if [[ "${actions[$index]}" == "directorypath" ]] ; then
+				if [[ ! -d "$2" ]] ; then __errortext "$coyname: err: no such directory '$2'" ; return 1 ; fi
+			elif [[ "${actions[$index]}" == "filepath" ]] ; then
+				if [[ ! -f "$2" ]] ; then __errortext "$coyname: err: no such directory '$2'" ; return 1 ; fi
+			elif [[ "${actions[$index]}" == "exit" ]] ; then
+				exit
+			fi
+			read $varname <<< "$2"
+			shift
+			shift
+		fi
+	done
+
+	# deal with required options
+	for index in "${!requireds[@]}" ; do
+		varname="${longoptions[$index]#--}"
+		if [[ "${requireds[$index]}" == "required" ]] ; then
+			if [[ "${!varname}" == "" ]] ; then
+				__errortext "$coyname: missing required argument ${longoptions[$index]}"
+				return 1
+			fi
+		else
+			if [[ "${!varname}" == "" ]] ; then
+				read $varname <<< "${defaults[$index]}"
+			fi				
+		fi
+	done
+}
+
+function __helptext {
+	echo -e "$@" | fold -w 100 -s
+}
+
+function __errortext {
+	>&2 echo "$@"
+}
+
+function --help {
+	help "$@"
+}
+
+function -h {
+	help "$@"
+}
