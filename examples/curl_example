@@ -16,7 +16,7 @@ coydescription="Examples of potential curl commands you could make with coy"
 
 function createuser {
 	__addarg "-h" "--help" "help" "optional" "" "Create a new user"
-	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
+	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "The name of the user to create"
 	__parseargs "$@"
 	curl -X POST -H "Content-Type: application/json" -d "{\
@@ -26,7 +26,7 @@ function createuser {
 
 function run {
 	__addarg "-h" "--help" "help" "optional" "" "Run a job/script on the server"
-	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
+	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "Name of user"
 	__addarg "-f" "--folder" "storevalue" "required" "" "Name of folder where script is located"
 	__addarg "-s" "--script" "storevalue" "required" "" "Name of script to run"
@@ -41,7 +41,7 @@ function run {
 
 function show {
 	__addarg "-h" "--help" "help" "optional" "" "List running jobs for a given user"
-	__addarg "-p" "--port" "storevalue" "optional" "8000" "Port where server is running"
+	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
 	__addarg "-u" "--user" "storevalue" "required" "" "Name of user"
 	__parseargs "$@"
 	curl -X POST -H "Content-Type: application/json" -d "{\

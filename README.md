@@ -136,7 +136,7 @@ Available commands:
 
 >> curl_example createuser
 Create a new user
-  -p, --port PORT  Port where server is running (optional) (default: 8000)
+  -p, --port PORT  Port where server is running (optional) (default: 80)
   -u, --user USER  The name of the user to create 
 
 >> curl_example help
@@ -147,14 +147,14 @@ List all available commands
 
 >> curl_example run
 Run a job/script on the server
-  -p, --port PORT      Port where server is running (optional) (default: 8000)
+  -p, --port PORT      Port where server is running (optional) (default: 80)
   -u, --user USER      Name of user 
   -f, --folder FOLDER  Name of folder where script is located 
   -s, --script SCRIPT  Name of script to run 
 
 >> curl_example show
 List running jobs for a given user
-  -p, --port PORT  Port where server is running (optional) (default: 8000)
+  -p, --port PORT  Port where server is running (optional) (default: 80)
   -u, --user USER  Name of user
 ```
 
