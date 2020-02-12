@@ -1,5 +1,7 @@
-# koi
-Bashful argument parsing
+<p align="center"><img alt="koi logo" src="logo.png" /></p>
+
+<h1 align="center">koi</h1>
+<p align="center">Bashful argument parsing</p>
 
 ## Quick Examples
 Easily add command line arguments for Bash functions! Inspired by Python's [argparse](https://docs.python.org/3/library/argparse.html).
