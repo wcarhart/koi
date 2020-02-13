@@ -5,7 +5,7 @@
 
 ## Quick Examples
 Easily add command line arguments for Bash functions! Inspired by Python's [argparse](https://docs.python.org/3/library/argparse.html).
-```
+```bash
 function send_request {
     __addarg "-h" "--help" "help" "optional" "" "Send an HTTP request"
     __addarg "-m" "--method" "storevalue" "optional" "GET" "The HTTP method"
@@ -18,20 +18,20 @@ See the full [Usage](#Usage) below.
 
 ## Installation
 Install via Homebrew:
-```
+```bash
 brew tap wcarhart/tools
 brew install koi
 ```
 
 ## Setup
 To start using `koi`, simply source it at the top of your Bash script.
-```
+```bash
 #!/bin/bash
 source koi
 ```
 
 Also at the top of your script, but below sourcing `koi`, you should override the `koiname` and `koidescription` variables. The values of `koiname` and `koidescription` get printed in error messages and help text. `koi` ships with default values if they are not set.
-```
+```bash
 #!/bin/bash
 source koi
 koiname=nameofyourscript.sh
@@ -47,7 +47,7 @@ koidescription="A longer description of your script"
 ### `__addarg`
 **To add a parsable CLI argument to a Bash function, use the `__addarg` function. The `__addarg` function takes six arguments and sets up global variables based on validated command line inputs.**
 
-```
+```bash
 __addarg short_option long_option action is_required default_value help_text
 ```
  * `short_option` - The short option for the argument, denoted with a dash followed by a letter (i.e. `-h`, `-A`). The short option is usually the first letter of the long option.
@@ -64,7 +64,7 @@ __addarg short_option long_option action is_required default_value help_text
  * `help_text` - The help text that is printed when the `-h` option is used.
 
 **`__addarg` does not return anything, but rather sets up variables in the global scope that can be used. The name of the variable will match the argument's `long_option`, without the leading dashes.** Here's an example:
-```
+```bash
 function mycoolfunction {
     __addarg "-o" "--outputdir" "directorypath" "required" "" "Path to the output directory"
     __parseargs "$@"
@@ -78,7 +78,7 @@ function mycoolfunction {
 
 ### `__parseargs`
 **Once all arguments are added to a function with `__addarg`, `koi` parses the arguments with `__parseargs`. `__parseargs` takes in a list of command line arguments and parses them based on the arguments that have been added to the function with `__addarg`.**
-```
+```bash
 __parseargs "$@"
 ```
 Where `"$@"` is a list of arguments coming directly from the command line. `__parseargs` must be called after all `__addargs` statements and must include all of the command line arguments to be parsed.
@@ -89,11 +89,11 @@ Where `"$@"` is a list of arguments coming directly from the command line. `__pa
 
 ### `__koirun`
 **To actually run `koi`, use the `__koirun` function. Include `__koirun "$@"` as the last line in your script for `koi` to operate correctly.**
-```
+```bash
 __koirun "$@"
 ```
 All `__koirun` does is search for functions matching command line arguments and run them. This is the code for `__koirun`:
-```
+```bash
 if declare -F -- "${1:-}" >/dev/null ; then
     "$@"
 else
