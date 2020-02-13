@@ -17,8 +17,9 @@ function send_request {
 See the full [Usage](#Usage) below.
 
 ## Installation
-Install via Homebrew (coming soon):
+Install via Homebrew:
 ```
+brew tap wcarhart/tools
 brew install koi
 ```
 
