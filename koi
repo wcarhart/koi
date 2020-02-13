@@ -30,7 +30,7 @@ function help {
 	Available commands:
 	$( \
 		for cmd in `__listfunctions` ; do \
-			echo "$(helptexts=( ) ; $cmd --help)" && \
+			echo "$(__cleararglists ; $cmd --help)" && \
 			echo ; \
 		done \
 	)
@@ -216,6 +216,15 @@ function __parseargs {
 			fi				
 		fi
 	done
+}
+
+function __cleararglists {
+	shortoptions=( )
+	longoptions=( )
+	actions=( )
+	requireds=( )
+	defaults=( )
+	helptexts=( )
 }
 
 function __koirun {
