@@ -40,6 +40,23 @@ function run {
 	}" http://localhost:${port}/api/v1/run
 }
 
+function runmultiple {
+	__addarg "-h" "--help" "help" "optional" "" "Run multiple jobs/scripts on the server"
+	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
+	__addarg "-u" "--user" "storevalue" "required" "" "Name of user"
+	__addarg "-f" "--folder" "storevalue" "required" "" "Name of folder where script(s) is located"
+	__addarg "-s" "--scripts" "storearray" "required" "" "Name of script(s) to run"
+	__parseargs "$@"
+	for script in "${scripts[@]}" ; do
+		curl -X POST -H "Content-Type: application/json" -d "{\
+			\"user\": \"$user\",\
+			\"script\": \"$script\",\
+			\"folder\": \"$folder\",\
+			\"options\": []\
+		}" http://localhost:${port}/api/v1/run
+	done
+}
+
 function show {
 	__addarg "-h" "--help" "help" "optional" "" "List running jobs for a given user"
 	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"

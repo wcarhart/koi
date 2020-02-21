@@ -60,19 +60,17 @@ function __addarg {
 
 	# short option
 	if [[ "$1" != "" ]] ; then
-		if [[ "$1" != -* || "$1" == --* ]] ; then
-			__errortext "$koiname: __addarg err: short option must start with a single dash"
-			return 1
-
-		fi
+		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
+		if [[ "$1" == *" "* ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
 	fi
 
 	# long option
 	if [[ "$2" == "" ]] ; then __errortext "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
 	if [[ "$2" != --* ]] ; then __errortext "$koiname: __addarg err: long option must start with a double dash" ; return 1 ; fi
+	if [[ "$2" == *" "* ]] ; then __errortext "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
 
 	# action
-	availableactions="help storevalue directorypath filepath flag exit"
+	availableactions="help storevalue storearray directorypath filepath flag exit"
 	if [[ "$3" == "" ]] ; then __errortext "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	found=0
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
@@ -85,6 +83,7 @@ function __addarg {
 	# default
 	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
 	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "storearray" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
 
 	# help
 	if [[ "$6" == "" ]] ; then __errortext "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
@@ -101,11 +100,11 @@ function __parseargs {
 	# parse previously defined arguments
 
 	while [[ $# -gt 0 ]] ; do
-		key="$1"
+		local key="$1"
 
 		# get name of option
-		option=
-		index=
+		local option=
+		local index=
 		for i in `seq 0 "${#shortoptions[@]}"` ; do
 			if [[ "${shortoptions[$i]}" == "$key" ]] ; then
 				option="${shortoptions[$i]}"
@@ -120,18 +119,21 @@ function __parseargs {
 		if [[ "$option" == "" ]] ; then __errortext "$koiname: err: no such option '$key'" ; return 1 ; fi
 
 		# figure out what to do with option
-		varname="${longoptions[$index]#--}"
+		# get variable from longoption
+		local varname="${longoptions[$index]#--}"
+
+		# if action is help
 		if [[ "${actions[$index]}" == "help" ]] ; then
 
 			# determine max indent size
-			maxindent=0
+			local maxindent=0
 			for i in "${!longoptions[@]}" ; do
-				indent=$(( 6 + ${#longoptions[$i]} + ${#longoptions[$i]} ))
+				local indent=$(( 6 + ${#longoptions[$i]} + ${#longoptions[$i]} ))
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
 			done
 
 			# iterate through options and build help output
-			output=
+			local output=
 			output="${output}>> ${koiname} ${FUNCNAME[1]}\n${helptexts[$index]}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
@@ -143,25 +145,29 @@ function __parseargs {
 
 				# append to output if short option exists
 				if [[ "${shortoptions[$i]}" == "" ]] ; then
-					shortoptionstr=
+					local shortoptionstr=
 				else
-					shortoptionstr="${shortoptions[$i]}, "
+					local shortoptionstr="${shortoptions[$i]}, "
 				fi
 
 				# capitalize variable name
-				outputlength=$(( ${#shortoptionstr} + 2 + ${#longoptions[$i]} ))
+				local outputlength=$(( ${#shortoptionstr} + 2 + ${#longoptions[$i]} ))
 				output="${output}  ${shortoptionstr}${longoptions[$i]} "
-				if [[ "${actions[$i]}" == "storevalue" || "${actions[$i]}" == "directorypath" || "${actions[$i]}" == "filepath" ]] ; then
+				if [[ "${actions[$i]}" == "storevalue" || "${actions[$i]}" == "storearray" || "${actions[$i]}" == "directorypath" || "${actions[$i]}" == "filepath" ]] ; then
 					output="${output}`echo "${varname}" | tr '[a-z]' '[A-Z]'` "
 					outputlength=$(( ${outputlength} + ${#longoptions[$i]} - 1 ))
 				fi
 
 				# calculate indent size
-				indentsize=$(( $maxindent - $outputlength ))
-				indent="`printf "%0.s " $(seq 1 $indentsize)`"
+				local indentsize=$(( $maxindent - $outputlength ))
+				local indent="`printf "%0.s " $(seq 1 $indentsize)`"
 
 				# append help texts
-				output="${output}${indent}${helptexts[$i]} "
+				output="${output}${indent} "
+				if [[ "${actions[$i]}" == "storearray" ]] ; then
+					output="${output}(+) "
+				fi
+				output="${output}${helptexts[$i]} "
 				if [[ "${requireds[$i]}" == "optional" ]] ; then
 					output="${output}(optional) "
 					if [[ "${defaults[$i]}" != "" ]] ; then
@@ -178,7 +184,7 @@ function __parseargs {
 			__helptext "${output}"
 			exit
 
-		# handle flags
+		# if action is flag
 		elif [[ "${actions[$index]}" == "flag" ]] ; then
 			read $varname <<< 1
 			shift
@@ -189,16 +195,29 @@ function __parseargs {
 				__errortext "$koiname: err: missing value for argument ${longoptions[$index]}"
 				return 1
 			fi
-			if [[ "${actions[$index]}" == "directorypath" ]] ; then
-				if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
-			elif [[ "${actions[$index]}" == "filepath" ]] ; then
-				if [[ ! -f "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
-			elif [[ "${actions[$index]}" == "exit" ]] ; then
-				exit
+
+			# if action is storearray
+			if [[ "${actions[$index]}" == "storearray" ]] ; then
+				if [[ "${!varname}" == "" ]] ; then
+					eval "${varname}=( )"
+				fi
+				eval "${varname}+=( \"$2\" )"
+				shift
+				shift
+
+			# if action is storevalue, directorypath, filepath, or exit
+			else
+				if [[ "${actions[$index]}" == "directorypath" ]] ; then
+					if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
+				elif [[ "${actions[$index]}" == "filepath" ]] ; then
+					if [[ ! -f "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
+				elif [[ "${actions[$index]}" == "exit" ]] ; then
+					exit
+				fi
+				read $varname <<< "$2"
+				shift
+				shift
 			fi
-			read $varname <<< "$2"
-			shift
-			shift
 		fi
 	done
 
