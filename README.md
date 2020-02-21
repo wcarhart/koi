@@ -49,6 +49,7 @@ To use `koi`, follow these steps:
 </ol>
 
 ## Documentation
+### Required Functions
 `koi` uses three main functions for parsing command line arguments: `__addarg`, `__parseargs`, `__koirun`
 
 <details>
@@ -116,6 +117,7 @@ fi
 ```
 </details>
 
+### Available CLI commands
 There are also two helpful CLI commands that are generated automatically: `help`, `list`
 
 <details>
@@ -204,7 +206,8 @@ show
 See the code for this example in [`examples/curl_examples`](https://github.com/wcarhart/koi/blob/master/examples/curl_example).
 </details>
 
-In addition, `koi` provides a few hidden functions, if you want even more granular control. Using these functions is not recommended except in advanced cases:: `__listfunctions`, `__cleararglists`, `__helptext`, `__errortext`
+### Additional Functions
+In addition, `koi` provides a few hidden functions, if you want even more granular control. Using these functions is *not recommended*, except in advanced cases: `__cleararglists`, `__helptext`, `__errortext`, `__listfunctions`
 
 <details>
 <summary><a id="__cleararglists"><code>__cleararglists</code></a></summary>
@@ -217,7 +220,7 @@ In addition, `koi` provides a few hidden functions, if you want even more granul
 <summary><a id="__helptext"><code>__helptext</code></a></summary>
 
 ### `__helptext`
-`koi` autoformats the help text for each argument with a soft word wrap using the `__helptext` function. The code for the function:
+`koi` autoformats the help text for each argument with a soft word wrap using the `__helptext` function. This is the code for `__helptext`:
 ```bash
 echo -e "$@" | fold -w 100 -s
 ```
@@ -227,7 +230,7 @@ echo -e "$@" | fold -w 100 -s
 <summary><a id="__errortext"><code>__errortext</code></a></summary>
 
 ### `__errortext`
-`koi` prints error messages to `stderr` using the `__errortext` function. The code for the function is:
+`koi` prints error messages to `stderr` using the `__errortext` function. This is the code for `__errortext`:
 ```bash
 >&2 echo "$@"
 ```
@@ -237,7 +240,7 @@ echo -e "$@" | fold -w 100 -s
 <summary><a id="__listfunctions"><code>__listfunctions</code></a></summary>
 
 ### `__listfunctions`
-`koi` lists the available commands via the `__listfunctions` function. The `__listfunctions` function lists all functions defined in the global context whose names do not begin with a dash (`-`) or an underscore (`_`). The code for the function is:
+`koi` lists the available commands via the `__listfunctions` function. The `__listfunctions` function lists all functions defined in the global context whose names do not begin with a dash (`-`) or an underscore (`_`). This is the code for `__listfunctions`:
 ```bash
 functionlist=( `declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g'` )
 for func in "${functionlist[@]}" ; do
@@ -252,7 +255,7 @@ A few examples are located in the [`examples/`](https://github.com/wcarhart/koi/
 ## Caveats
 Due to the fact that `koi` is written in Bash, its implementation comes with a few gotchas:
  * When `koi` defines a variable, **it is in the global scope.** Thus, if two different functions add a `--user` option and are called from one another, `koi` will malfunction. **You cannot have a function `f1` that calls function `f2` where both `f1` and `f2` parse command line inputs via `__addarg`.** *A better approach is to parse all command line arguments in `f1` and then have `f1` call `f2` (`f2` should not call `__addarg`).*
- * Because of the flexibility, and lack of protection, inherently built into Bash, the functions `koi` provides (`__addarg`, `__parseargs`, `__koirun`, `help`, and `list`) can all be overwritten if you don't like their implementation.
+ * Because of the flexibility, and lack of protection, inherently built into Bash, the functions `koi` provides can all be overwritten if you don't like their implementation.
 
 ## Nomenclature
 You may ask, why the name `koi`? Well, the original working name of the library was Bashful Arg Parser, which is a mouthful. This was shortened to Bashful, to which "coy" is a synonym. `koi` is a homophone of "coy" and thus was chosen as the name.
