@@ -13,7 +13,7 @@ COMMENT
 
 source koi
 koiname=koi_template
-koidescription="Helpful template"
+koidescription="Helpful template to demonstrate what argument options are available with koi"
 
 # ============ CLI FUNCTIONS ============ #
 
@@ -29,33 +29,31 @@ function myfunction {
 	__addarg "-b" "--bbb" "storevalue" "optional" "" "An optional argument"
 	__addarg "-c" "--ccc" "storevalue" "optional" "default value" "An optional argument with a default value"
 
+	# store arrays
+	__addarg "-d" "--ddd" "storearray" "required" "" "An array where at least one value is required"
+	__addarg "-e" "--eee" "storearray" "optional" "" "An optional array"
+
 	# paths to files
-	__addarg "-d" "--ddd" "filepath" "required" "" "A required path to a file"
-	__addarg "-e" "--eee" "filepath" "optional" "" "An optional path to a file"
-	__addarg "-f" "--fff" "filepath" "optional" "/path/to/default.txt" "An optional path to file with a default value"
+	__addarg "-f" "--fff" "filepath" "required" "" "A required path to a file"
+	__addarg "-g" "--ggg" "filepath" "optional" "" "An optional path to a file"
+	__addarg "-h" "--hhh" "filepath" "optional" "/path/to/default.txt" "An optional path to file with a default value"
 
 	# paths to directories
-	__addarg "-g" "--ggg" "directorypath" "required" "" "A required path to a directory"
-	__addarg "-h" "--hhh" "directorypath" "optional" "" "An optional path to a directory"
-	__addarg "-i" "--iii" "directorypath" "optional" "/path/to/defaultdir" "An optional path to directory with a default value"
+	__addarg "-i" "--iii" "directorypath" "required" "" "A required path to a directory"
+	__addarg "-j" "--jjj" "directorypath" "optional" "" "An optional path to a directory"
+	__addarg "-l" "--lll" "directorypath" "optional" "/path/to/defaultdir" "An optional path to directory with a default value"
 
 	# flags
-	__addarg "-j" "--jjj" "flag" "required" "" "A required flag, which will store 1 if present"
-	__addarg "-l" "--lll" "flag" "optional" "" "An optional flag, which will store 1 if present if included"
+	__addarg "-m" "--mmm" "flag" "required" "" "A required flag, which will store 1 if present"
+	__addarg "-n" "--nnn" "flag" "optional" "" "An optional flag, which will store 1 if present if included"
 
 	# exit
-	__addarg "-m" "--mmm" "exit" "required" "" "A required exit, which will exit"
-	__addarg "-n" "--nnn" "exit" "optional" "" "An optional exit, which will exit if included"
+	__addarg "-o" "--ooo" "exit" "required" "" "A required exit, which will exit"
+	__addarg "-p" "--ppp" "exit" "optional" "" "An optional exit, which will exit if included"
 
 	# you need to call __parseargs for arguments to be parsed!
 	__parseargs "$@"
 }
 
 # ============ RUN LOGIC ============ #
-if declare -F -- "${1:-}" >/dev/null ; then
-	"$@"
-else
-	__errortext "$koiname: err: no such command '$1'"
-	__errortext "Use 'help' for available commands"
-	exit 1
-fi
+__koirun "$@"
