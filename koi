@@ -30,7 +30,7 @@ function help {
 	Available commands:
 	$( \
 		for cmd in `__listfunctions` ; do \
-			echo "  $cmd" ; 
+			echo "  $cmd" ; \
 		done \
 	)
 
