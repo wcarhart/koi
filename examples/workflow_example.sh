@@ -14,6 +14,7 @@ COMMENT
 source koi
 koiname=workflow_example.sh
 koidescription="Examples of potential workflow-related commands you could make with koi"
+koicolors=0
 
 # ============ CLI FUNCTIONS ============ #
 
