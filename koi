@@ -30,6 +30,13 @@ function help {
 	Available commands:
 	$( \
 		for cmd in `__listfunctions` ; do \
+			echo "  $cmd" ; \
+		done \
+	)
+
+	Command documentation:
+	$( \
+		for cmd in `__listfunctions` ; do \
 			echo "$(__cleararglists ; $cmd --help)" && \
 			echo ; \
 		done \
