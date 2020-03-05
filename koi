@@ -4,6 +4,7 @@ set -e
 # ============ STARTUP FUNCTIONALITY ============ #
 koiname=koi
 koidescription="Bashful argument parsing"
+koicolors=1
 shortoptions=( )
 longoptions=( )
 actions=( )
@@ -20,28 +21,58 @@ function list {
 
 function help {
 	__addarg "-h" "--help" "help" "optional" "" "Show this menu and exit"
+	__addarg "-v" "--verbose" "flag" "optional" "" "Print verbose command documentation"
 	__parseargs "$@"
-	cat <<- EndOfHelp
-	$koidescription
 
-	Usage:
+	local colorteal=
+	local coloryellow=
+	local colorreset=
+	if [[ "$koicolors" -eq 1 ]] ; then
+		colorteal='\033[96m'
+		coloryellow='\033[93m'
+		colorreset='\033[0m'
+	fi
+
+	local helpoutput=$(cat <<- EndOfHelp
+	${coloryellow}${koidescription}${colorreset}
+
+	${colorteal}Usage:${colorreset}
 	  $koiname COMMAND [args]
 
-	Available commands:
+	${colorteal}Available commands:${colorreset}
 	$( \
 		for cmd in `__listfunctions` ; do \
 			echo "  $cmd" ; \
 		done \
 	)
-
-	Command documentation:
-	$( \
-		for cmd in `__listfunctions` ; do \
-			echo "$(__cleararglists ; $cmd --help)" && \
-			echo ; \
-		done \
-	)
 	EndOfHelp
+	)
+	echo -e "$helpoutput"
+	echo
+
+	if [[ "$verbose" -eq 1 ]] ; then
+		helpoutput=$(cat <<- EndOfHelp
+		${colorteal}Command documentation:${colorreset}
+		$( \
+			for cmd in `__listfunctions` ; do \
+				echo "$(__cleararglists ; $cmd --help)" && \
+				echo ; \
+			done \
+		)
+
+		EndOfHelp
+		)
+	else
+		helpoutput=$(cat <<- EndOfHelp
+		${colorteal}Hints:${colorreset}
+		  $koiname help --verbose    Show complete command documentation
+		  $koiname COMMAND --help    Show individual command documentation
+
+		EndOfHelp
+		)
+	fi
+	echo -e "$helpoutput"
+	echo
 }
 
 # ============ META FUNCTIONS ============ #
@@ -68,6 +99,7 @@ function __addarg {
 	# short option
 	if [[ "$1" != "" ]] ; then
 		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
+		if [[ "${#1}" -gt 2 ]] ; then __errortext "$koiname: __addarg err: short options must be a single dash followed by a single letter" ; return 1 ; fi
 		if [[ "$1" == *" "* ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
 	fi
 
@@ -106,6 +138,15 @@ function __addarg {
 function __parseargs {
 	# parse previously defined arguments
 
+	local colorteal=
+	local coloryellow=
+	local colorreset=
+	if [[ "$koicolors" -eq 1 ]] ; then
+		colorteal='\033[96m'
+		coloryellow='\033[93m'
+		colorreset='\033[0m'
+	fi
+
 	while [[ $# -gt 0 ]] ; do
 		local key="$1"
 
@@ -141,7 +182,7 @@ function __parseargs {
 
 			# iterate through options and build help output
 			local output=
-			output="${output}>> ${koiname} ${FUNCNAME[1]}\n${helptexts[$index]}\n"
+			output="${output}>> ${coloryellow}${koiname} ${FUNCNAME[1]}${colorreset}\n${helptexts[$index]}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
 					continue

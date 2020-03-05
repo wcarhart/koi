@@ -39,6 +39,12 @@ koiname=nameofyourscript.sh
 koidescription="A longer description of your script"
 ```
 
+In addition, if you don't want auto-generated help menu to contain colors, you can disable them with `koicolors`.
+```bash
+#!/bin/bash
+koicolors=0
+```
+
 ## Usage
 To use `koi`, follow these steps:
 <ol start="0">
@@ -124,7 +130,7 @@ There are also two helpful CLI commands that are generated automatically: `help`
 <summary><a id="help"><code>help</code></a></summary>
 
 ### `help`
-**Prints a help message for your script. The help message is populated automatically based on the `-h` arguments that you add to your functions with `__addarg`.** You can call `help` three different ways:
+**Prints a help menu for your script. The help menu is populated automatically based on the `-h` arguments that you add to your functions with `__addarg`.** You can call `help` three different ways:
 ```
 $ ./nameofscript help
 $ ./nameofscript -h
@@ -132,7 +138,7 @@ $ ./nameofscript --help
 ```
 Functions whose names start with dashes (`-`) and underscores (`_`) will not appear in the help menu. You can name functions something like `__functionname` if you want to use the function in your script and don't want it to have any parsable arguments or appear in the help menu.
 
-**If you do not include a `-h`/`--help` option with every valid function you write (functions that do not begin with a dash (`-`) or an underscore (`_`)), then the `help` command will not function properly.**
+**If you do not include a `-h`/`--help` option with every *externally visible* function you write (functions that do not begin with a dash (`-`) or an underscore (`_`)), then the `help` command will not function properly.**
 
 In the help messages, `(+)` means that the associated option is an array, meaning that you can specify multiple of the option (i.e. `myscript mycommand -a arg1 -a arg2 -a arg3`)
 
@@ -145,6 +151,43 @@ Usage:
   curl_example COMMAND [args]
 
 Available commands:
+  createuser
+  help
+  list
+  run
+  runmultiple
+  show
+
+Hints:
+  curl_example help --verbose    Show complete command documentation
+  curl_example COMMAND --help    Show individual command documentation
+
+```
+As the above hint mentions, you can view an individual command's documentation with `COMMAND --help`:
+```
+$ ./examples/curl_examples createuser --help
+>> curl_example createuser
+Create a new user
+  -p, --port PORT   Port where server is running (optional) (default: 80)
+  -u, --user USER   The name of the user to create 
+```
+Or, you can view the complete command documentation with `help --verbose`:
+```
+$ ./examples/curl_examples help --verbose
+Examples of potential curl commands you could make with koi
+
+Usage:
+  curl_example COMMAND [args]
+
+Available commands:
+  createuser
+  help
+  list
+  run
+  runmultiple
+  show
+
+Command documentation:
 >> curl_example createuser
 Create a new user
   -p, --port PORT   Port where server is running (optional) (default: 80)
