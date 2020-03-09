@@ -14,7 +14,9 @@ function send_request {
     curl -X "$method" "$url"
 }
 ```
-See the full [Usage](#Usage) below.
+For more examples, check the [`examples/`](https://github.com/wcarhart/koi/blob/master/examples/) folder.
+
+For full documentation, see [Usage](#Usage) below.
 
 ## Installation
 Install via Homebrew:
@@ -39,7 +41,7 @@ koiname=nameofyourscript.sh
 koidescription="A longer description of your script"
 ```
 
-In addition, if you don't want auto-generated help menu to contain colors, you can disable them with `koicolors`.
+In addition, if you don't want the auto-generated help menu to contain colors, you can disable them with `koicolors`.
 ```bash
 #!/bin/bash
 koicolors=0
