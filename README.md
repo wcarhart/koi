@@ -25,7 +25,6 @@ function checkstockprice {
     # check the stock price
 }
 ```
-See the full [Usage](#Usage) below.
 For more examples, check the [`examples/`](https://github.com/wcarhart/koi/blob/master/examples/) folder.
 
 For full documentation, see [Usage](#Usage) below.
