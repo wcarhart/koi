@@ -164,8 +164,8 @@ function __addarg {
 	local positionalarrays=0
 	local positionalvalues=0
 	for action in "${actions[@]}" ; do
-		if [[ "$action" == "positionalvalue" ]] ; then ((positionalvalues++)) ; fi
-		if [[ "$action" == "positionalarray" ]] ; then ((positionalarrays++)) ; fi
+		if [[ "$action" == "positionalvalue" ]] ; then positionalvalues=$(( positionalvalues + 1 )) ; fi
+		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
 	done
 	if [[ $positionalarrays -gt 1 ]] ; then
 		__errortext "$koiname: __addarg err: there cannot be multiple positional array actions because they cannot be parsed unambiguously"
@@ -181,9 +181,9 @@ function __addarg {
 		local requiredpositionalvalues=0
 		for index in "${!actions[@]}" ; do
 			if [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "optional" ]] ; then
-				((optionalpositionalvalues++))
+				optionalpositionalvalues=$(( optionalpositionalvalues + 1 ))
 			elif [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "required" ]] ; then
-				((requiredpositionalvalues++))
+				requiredpositionalvalues=$(( requiredpositionalvalues + 1 ))
 			fi
 		done
 		if [[ $optionalpositionalvalues -gt 1 ]] ; then
