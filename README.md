@@ -67,9 +67,11 @@ To use `koi`, follow these steps:
 ```bash
 __addarg short_option long_option action is_required default_value help_text
 ```
- * `short_option` - The short option for the argument, denoted with a dash followed by a letter (i.e. `-h`, `-A`). The short option is usually the first letter of the long option.
- * `long_option` - The long option for the argument, denoted with two dashes followed by a string of alphanumeric characters (i.e. `--help`, `--dir`, `--user`).
- * `action` - The action to take with this option. The supported actions are:
+ * `short_option` - The short option for the argument, denoted with a dash followed by a letter (i.e. `-h`, `-A`). The short option is usually the first letter of the long option (can be blank).
+ * `long_option` - The long option for the argument, denoted with two dashes followed by a string of alphanumeric characters (i.e. `--help`, `--dir`, `--user`) (cannot be blank).
+ * `action` - The action to take with this option (cannot be blank). The supported actions are:
+   * `positionalvalue` - store the value of a positional argument in a variable
+   * `positionalarray` - store the value of a positional argument in an array (and append to the array if there are multiple values)
    * `storevalue` - store the value of the argument in a variable
    * `storearray` - store the value of the argument in an array (and append to the array if there are multiple values)
    * `filepath` - store the value of the argument in a variable and check that the value is a path to an existing file
@@ -77,9 +79,9 @@ __addarg short_option long_option action is_required default_value help_text
    * `flag` - store 1 (true) in a variable
    * `help` - display the help text
    * `exit` - exit the script
- * `is_required` - Whether or not the argument is required, must be either `required` or `optional`.
- * `default_value` - The default value for the argument, if the argument is optional.
- * `help_text` - The help text that is printed when the `-h` option is used.
+ * `is_required` - Whether or not the argument is required, must be either `required` or `optional` (cannot be blank).
+ * `default_value` - The default value for the argument, if the argument is optional (can be blank).
+ * `help_text` - The help text that is printed when the `-h` option is used (can be blank).
 
 **`__addarg` does not return anything, but rather sets up variables in the global scope that can be used. The name of the variable will match the argument's `long_option`, without the leading dashes.** Here's an example:
 ```bash
@@ -88,6 +90,19 @@ function mycoolfunction {
     __parseargs "$@"
     echo "$outputdir"
 }
+```
+**You can also use positional arguments with options/flags:**
+```bash
+function getstockprice {
+    __addarg "" "tickersymbols" "positionalarray" "required" "" "List of stock tickers to look up"
+    __addarg "-q" "--quiet" "flag" "optional" "" "If included, run in quiet mode"
+    __parseargs "$@"
+    echo "${tickersymbols[@]}"
+}
+```
+Which you would could use like:
+```bash
+./stockutils.sh getstockprice AAPL GOOG COST -q
 ```
 A more comprehensive example of all arguments available with `koi` can be found in [`examples/koi_template`](https://github.com/wcarhart/koi/blob/master/examples/koi_template).
 </details>

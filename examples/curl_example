@@ -22,7 +22,7 @@ koidescription="Examples of potential curl commands you could make with koi"
 function createuser {
 	__addarg "-h" "--help" "help" "optional" "" "Create a new user"
 	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
-	__addarg "-u" "--user" "storevalue" "required" "" "The name of the user to create"
+	__addarg "" "user" "positionalvalue" "required" "" "The name of the user to create"
 	__parseargs "$@"
 	curl -X POST -H "Content-Type: application/json" -d "{\
 		\"user\": \"$user\"\
