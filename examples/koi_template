@@ -53,6 +53,27 @@ function myfunction {
 
 	# you need to call __parseargs for arguments to be parsed!
 	__parseargs "$@"
+
+	# how to use the arguments you've defined
+	echo "storevalue, required: $aaa"
+	echo "storeavlue, optional: $bbb"
+	echo "storevalue, optional with default value: $ccc"
+
+	echo "storearray, required: ${ddd[@]}"
+	echo "storearray, optional: ${eee[@]}"
+
+	echo "filepath, required: $fff"
+	echo "filepath, optional: $ggg"
+	echo "filepath: optional with default value: $hhh"
+
+	echo "directorypath, required: $iii"
+	echo "directorypath, optional: $jjj"
+	echo "directorypath, optional with default value: $lll"
+
+	echo "flag, required: $mmm"
+	echo "flag, optional: $nnn"
+
+	# TODO: update with positional arguments
 }
 
 # ============ RUN LOGIC ============ #

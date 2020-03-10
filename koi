@@ -176,6 +176,8 @@ function __addarg {
 			return 1
 		fi
 	fi
+
+	# TODO: check for duplicates in long options
 }
 
 function __parseargs {
@@ -232,9 +234,18 @@ function __parseargs {
 		done
 
 		# check for positional arguments
+		local positionaloption=
+		local ispositional=0
 		if [[ "$option" == "" ]] ; then
 			if [[ "$positionalarguments" != "" ]] ; then
-				:
+				option="null"
+				ispositional=1
+				if [[ $usepositionalarray -eq 1 ]] ; then
+					positionaloption="$positionalarguments"
+				else
+					positionaloption="${positionalarguments[0]}"
+					positionalarguments=( "${positionalarguments[@]:1}" )
+				fi
 			fi
 		fi
 
@@ -245,8 +256,21 @@ function __parseargs {
 		# get variable from longoption
 		local varname="${longoptions[$index]#--}"
 
+		# if action is positionalvalue or positionalarray
+		if [[ $ispositional -eq 1 ]] ; then
+			if [[ $usepositionalarray == 0 ]] ; then
+				read $positionaloption <<< "$1"
+				shift
+			else
+				if [[ "${!positionaloption}" == "" ]] ; then
+					eval "${positionaloption}=( )"
+				fi
+				eval "${positionaloption}+=( \"$1\" )"
+				shift
+			fi
+
 		# if action is help
-		if [[ "${actions[$index]}" == "help" ]] ; then
+		elif [[ "${actions[$index]}" == "help" ]] ; then
 
 			# determine max indent size
 			local maxindent=0
@@ -332,22 +356,6 @@ function __parseargs {
 			read $varname <<< 1
 			shift
 
-		# if action is positionalvalue or positionalarray
-		# TODO: finish and validate this
-		elif [[ "${actions[$index]}" == "positionalvalue" || "${actions[$index]}" == "positionalarray" ]] ; then
-			if [[ "${actions[$index]}" == "positionalvalue" ]] ; then
-				read $varname <<< "$2"
-				shift
-				shift
-			else
-				if [[ "${!varname}" == "" ]] ; then
-					eval "${varname}=( )"
-				fi
-				eval "${varname}+=( \"$2\" )"
-				shift
-				shift
-			fi
-
 		# handle options with arguments that need to be validated
 		else
 			if [[ "$2" == "" ]] ; then
@@ -390,7 +398,11 @@ function __parseargs {
 			fi
 		else
 			if [[ "${!varname}" == "" ]] ; then
-				read $varname <<< "${defaults[$index]}"
+				if [[ "${actions[$index]}" == "flag" ]] ; then
+					read $varname <<< 0
+				else
+					read $varname <<< "${defaults[$index]}"
+				fi
 			fi				
 		fi
 	done
