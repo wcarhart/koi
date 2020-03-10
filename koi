@@ -182,11 +182,26 @@ function __addarg {
 	# TODO: check for duplicates in long options
 }
 
-# TODO: resolve joint flags like '-hv'
-
 function __parseargs {
 	# parse previously defined arguments
 
+	# resolve joint arguments
+	local resolvedargs=
+	for arg in "$@" ; do
+		if [[ "${#arg}" -gt 2 && "${arg:0:1}" == "-" && "${arg:0:2}" != "--" ]] ; then
+			while read -n1 char ; do
+				if [[ "$char" == "-" ]] ; then continue ; fi
+				if [[ "$char" == " " ]] ; then continue ; fi
+				if [[ "$char" == "" ]] ; then continue ; fi
+				resolvedargs="${resolvedargs}-${char} "
+			done < <(echo "$arg")
+		else
+			resolvedargs="${resolvedargs}${arg} "
+		fi
+	done
+	set -- $resolvedargs
+
+	# configure colors
 	local colorteal=
 	local coloryellow=
 	local colorreset=
