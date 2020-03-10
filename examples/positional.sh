@@ -8,7 +8,7 @@ koidescription="test of positional arguments"
 function test {
 	__addarg "-h" "--help" "help" "optional" "" "test a positional argument"
 	__addarg "" "symbol" "positionalarray" "required" "" "ticker symbols"
-	__addarg "-u" "--user" "storevalue" "optional" "wcarhart" "user to use"
+	__addarg "-u" "--user" "storearray" "optional" "" "users to use"
 	__addarg "-p" "--port" "storevalue" "required" "" "port to use"
 	__addarg "-q" "--quiet" "flag" "optional" "" "run in quiet mode"
 	__parseargs "$@"
