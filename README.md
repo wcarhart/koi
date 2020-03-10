@@ -6,12 +6,23 @@
 ## Quick Examples
 Easily add command line arguments for Bash functions! Inspired by Python's [argparse](https://docs.python.org/3/library/argparse.html).
 ```bash
-function send_request {
+function sendrequest {
     __addarg "-h" "--help" "help" "optional" "" "Send an HTTP request"
     __addarg "-m" "--method" "storevalue" "optional" "GET" "The HTTP method"
     __addarg "-u" "--url" "storevalue" "required" "" "The url of the HTTP request"
     __parseargs "$@"
     curl -X "$method" "$url"
+}
+```
+```bash
+function checkstockprice {
+    __addarg "-h" "--help" "help" "optional" "" "Check a stock's price"
+    __addarg "" "symbol" "positionalarray" "required" "" "The ticker symbol(s) to check"
+    __addarg "-e" "--exchange" "storevalue" "optional" "NYSE" "The exchange to use"
+    __addarg "-p" "--port" "storevalue" "required" "" "The port to use"
+    __addarg "-q" "--quiet" "flag" "optional" "" "If included, run in quiet mode"
+    __parseargs "$@"
+    # check the stock price
 }
 ```
 For more examples, check the [`examples/`](https://github.com/wcarhart/koi/blob/master/examples/) folder.
@@ -69,9 +80,11 @@ To use `koi`, follow these steps:
 ```bash
 __addarg short_option long_option action is_required default_value help_text
 ```
- * `short_option` - The short option for the argument, denoted with a dash followed by a letter (i.e. `-h`, `-A`). The short option is usually the first letter of the long option.
- * `long_option` - The long option for the argument, denoted with two dashes followed by a string of alphanumeric characters (i.e. `--help`, `--dir`, `--user`).
- * `action` - The action to take with this option. The supported actions are:
+ * `short_option` - The short option for the argument, denoted with a dash followed by a letter (i.e. `-h`, `-A`). The short option is usually the first letter of the long option (can be blank).
+ * `long_option` - The long option for the argument, denoted with two dashes followed by a string of alphanumeric characters (i.e. `--help`, `--dir`, `--user`) (cannot be blank).
+ * `action` - The action to take with this option (cannot be blank). The supported actions are:
+   * `positionalvalue` - store the value of a positional argument in a variable
+   * `positionalarray` - store the value of a positional argument in an array (and append to the array if there are multiple values)
    * `storevalue` - store the value of the argument in a variable
    * `storearray` - store the value of the argument in an array (and append to the array if there are multiple values)
    * `filepath` - store the value of the argument in a variable and check that the value is a path to an existing file
@@ -79,9 +92,9 @@ __addarg short_option long_option action is_required default_value help_text
    * `flag` - store 1 (true) in a variable
    * `help` - display the help text
    * `exit` - exit the script
- * `is_required` - Whether or not the argument is required, must be either `required` or `optional`.
- * `default_value` - The default value for the argument, if the argument is optional.
- * `help_text` - The help text that is printed when the `-h` option is used.
+ * `is_required` - Whether or not the argument is required, must be either `required` or `optional` (cannot be blank).
+ * `default_value` - The default value for the argument, if the argument is optional (can be blank).
+ * `help_text` - The help text that is printed when the `-h` option is used (can be blank).
 
 **`__addarg` does not return anything, but rather sets up variables in the global scope that can be used. The name of the variable will match the argument's `long_option`, without the leading dashes.** Here's an example:
 ```bash
@@ -90,6 +103,19 @@ function mycoolfunction {
     __parseargs "$@"
     echo "$outputdir"
 }
+```
+**You can also use positional arguments with options/flags:**
+```bash
+function getstockprice {
+    __addarg "" "tickersymbols" "positionalarray" "required" "" "List of stock tickers to look up"
+    __addarg "-q" "--quiet" "flag" "optional" "" "If included, run in quiet mode"
+    __parseargs "$@"
+    echo "${tickersymbols[@]}"
+}
+```
+Which you would could use like:
+```bash
+./stockutils.sh getstockprice AAPL GOOG COST -q
 ```
 A more comprehensive example of all arguments available with `koi` can be found in [`examples/koi_template`](https://github.com/wcarhart/koi/blob/master/examples/koi_template).
 </details>
@@ -142,7 +168,7 @@ Functions whose names start with dashes (`-`) and underscores (`_`) will not app
 
 **If you do not include a `-h`/`--help` option with every *externally visible* function you write (functions that do not begin with a dash (`-`) or an underscore (`_`)), then the `help` command will not function properly.**
 
-In the help messages, `(+)` means that the associated option is an array, meaning that you can specify multiple of the option (i.e. `myscript mycommand -a arg1 -a arg2 -a arg3`)
+In the help messages, `(+)` means that the associated option is an array, meaning that you can specify multiple of the option (i.e. `myscript mycommand -a arg1 -a arg2 -a arg3` or `./myscript mycommand arg1 arg2 arg3`).
 
 **Here's a sample menu generated by `koi`:**
 ```
@@ -168,10 +194,10 @@ Hints:
 As the above hint mentions, you can view an individual command's documentation with `COMMAND --help`:
 ```
 $ ./examples/curl_examples createuser --help
->> curl_example createuser
+>> curl_example createuser [-h] [-p PORT] USER 
 Create a new user
   -p, --port PORT   Port where server is running (optional) (default: 80)
-  -u, --user USER   The name of the user to create 
+  user              The name of the user to create
 ```
 Or, you can view the complete command documentation with `help --verbose`:
 ```
@@ -190,32 +216,33 @@ Available commands:
   show
 
 Command documentation:
->> curl_example createuser
+>> curl_example createuser [-h] [-p PORT] USER 
 Create a new user
   -p, --port PORT   Port where server is running (optional) (default: 80)
-  -u, --user USER   The name of the user to create 
+  user              The name of the user to create 
 
->> curl_example help
+>> curl_example help [-h] [-v] 
 Show this menu and exit
+  -v, --verbose           Print verbose command documentation (optional) 
 
->> curl_example list
+>> curl_example list [-h] 
 List all available commands
 
->> curl_example run
+>> curl_example run [-h] [-p PORT] -u USER -f FOLDER -s SCRIPT 
 Run a job/script on the server
   -p, --port PORT       Port where server is running (optional) (default: 80)
   -u, --user USER       Name of user 
   -f, --folder FOLDER   Name of folder where script is located 
   -s, --script SCRIPT   Name of script to run 
 
->> curl_example runmultiple
+>> curl_example runmultiple [-h] [-p PORT] -u USER -f FOLDER -s SCRIPTS+ 
 Run multiple jobs/scripts on the server
   -p, --port PORT         Port where server is running (optional) (default: 80)
   -u, --user USER         Name of user 
   -f, --folder FOLDER     Name of folder where script(s) is located 
   -s, --scripts SCRIPTS   (+) Name of script(s) to run 
 
->> curl_example show
+>> curl_example show [-h] [-p PORT] -u USER 
 List running jobs for a given user
   -p, --port PORT   Port where server is running (optional) (default: 80)
   -u, --user USER   Name of user

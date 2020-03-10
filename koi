@@ -24,6 +24,16 @@ function help {
 	__addarg "-v" "--verbose" "flag" "optional" "" "Print verbose command documentation"
 	__parseargs "$@"
 
+	# check for __addarg errors
+	for cmd in `__listfunctions` ; do
+		exec 3>&1
+		local stderr="$(__cleararglists ; $cmd --help </dev/stdin 2>&1 1>&3 1> /dev/null)"
+		if [[ "$stderr" != "" ]] ; then
+			__errortext "$stderr"
+			return 1
+		fi
+	done
+
 	local colorteal=
 	local coloryellow=
 	local colorreset=
@@ -101,28 +111,43 @@ function __addarg {
 		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
 		if [[ "${#1}" -gt 2 ]] ; then __errortext "$koiname: __addarg err: short options must be a single dash followed by a single letter" ; return 1 ; fi
 		if [[ "$1" == *" "* ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
+		if [[ "$1" =~ [0-9] ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a number" ; return 1 ; fi
 	fi
 
 	# long option
 	if [[ "$2" == "" ]] ; then __errortext "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
-	if [[ "$2" != --* ]] ; then __errortext "$koiname: __addarg err: long option must start with a double dash" ; return 1 ; fi
+	if [[ "$2" != --* ]] ; then
+		if [[ "$3" != "positionalvalue" && "$3" != "positionalarray" ]] ; then
+			__errortext "$koiname: __addarg err: long option must start with a double dash"
+			return 1
+		fi
+	fi
 	if [[ "$2" == *" "* ]] ; then __errortext "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
+	if [[ "$2" =~ [0-9] ]] ; then __errortext "$koiname: __addarg err: long option cannot contain a number" ; return 1 ; fi
 
 	# action
-	availableactions="help storevalue storearray directorypath filepath flag exit"
+	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
 	if [[ "$3" == "" ]] ; then __errortext "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	found=0
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
 	if [[ $found -eq 0 ]] ; then __errortext "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
+	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
+		if [[ "$1" != "" ]] ; then __errortext "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
+		if [[ "$2" == -* ]] ; then __errortext "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
+	fi
 
 	# required
 	if [[ "$4" == "" ]] ; then __errortext "$koiname: __addarg err: missing required for argument" ; return 1 ; fi
 	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext "$koiname: __addarg err: required must be one of: required optional" ; return 1 ; fi
+	if [[ "$3" == "help" && "$4" == "required" ]] ; then __errortext "$koiname: __addarg err: help option cannot be required" ; return 1 ; fi
 
 	# default
 	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "help" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: help action cannot have a default value" ; return 1 ; fi
 	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
 	if [[ "$3" == "storearray" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "positionalvalue" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: positional values cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "positionalarray" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: positional arrays cannot have default values" ; return 1 ; fi
 
 	# help
 	if [[ "$6" == "" ]] ; then __errortext "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
@@ -133,11 +158,83 @@ function __addarg {
 	requireds=( "${requireds[@]}" "$4" )
 	defaults=( "${defaults[@]}" "$5" )
 	helptexts=( "${helptexts[@]}" "$6" )
+
+	# verify nonambiguity
+	# only one positional array allowed
+	local positionalarrays=0
+	local positionalvalues=0
+	for action in "${actions[@]}" ; do
+		if [[ "$action" == "positionalvalue" ]] ; then ((positionalvalues++)) ; fi
+		if [[ "$action" == "positionalarray" ]] ; then ((positionalarrays++)) ; fi
+	done
+	if [[ $positionalarrays -gt 1 ]] ; then
+		__errortext "$koiname: __addarg err: there cannot be multiple positional array actions because they cannot be parsed unambiguously"
+		return 1
+	elif [[ $positionalarrays -eq 1 && $positionalvalues -gt 0 ]] ; then
+		__errortext "$koiname: __addarg err: there cannot be combinations of positional arrays and positional values because they cannot be parsed unambiguously"
+		return 1
+	fi
+
+	# only one optional positional value allowed
+	if [[ $positionalvalues -gt 1 ]] ; then
+		local optionalpositionalvalues=0
+		local requiredpositionalvalues=0
+		for index in "${!actions[@]}" ; do
+			if [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "optional" ]] ; then
+				((optionalpositionalvalues++))
+			elif [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "required" ]] ; then
+				((requiredpositionalvalues++))
+			fi
+		done
+		if [[ $optionalpositionalvalues -gt 1 ]] ; then
+			__errortext "$koiname: __addarg err: there cannot be multiple optional positional values because they cannot be parsed unambiguously"
+			return 1
+		elif [[ $optionalpositionalvalues -eq 1 && $requiredpositionalvalues -gt 0 ]] ; then
+			__errortext "$koiname: __addarg err: there cannot be combinations of optional and required positional values because they cannot be parsed unambiguously"
+			return 1
+		fi
+	fi
+
+	# long options must be unique
+	local compareshort=( )
+	for short in "${shortoptions[@]}" ; do
+		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
+	done
+	local comparelong=( "${longoptions[@]}" )
+	local shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	local longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
+		__errortext "$koiname: __addarg err: short option names must be unique"
+		return 1
+	fi
+	if [[ "$longunique" != "${#comparelong[@]}" ]] ; then
+		__errortext "$koiname: __addarg err: long option names must be unique"
+		return 1
+	fi
 }
 
 function __parseargs {
-	# parse previously defined arguments
+	: <<- COMMENT
+	Parse previously defined arguments and options
+	COMMENT
 
+	# resolve joint arguments
+	local resolvedargs=
+	for arg in "$@" ; do
+		if [[ "${#arg}" -gt 2 && "${arg:0:1}" == "-" && "${arg:0:2}" != "--" ]] ; then
+			while read -n1 char ; do
+				if [[ "$char" == "-" ]] ; then continue ; fi
+				if [[ "$char" == " " ]] ; then continue ; fi
+				if [[ "$char" == "" ]] ; then continue ; fi
+				resolvedargs="${resolvedargs}-${char} "
+			done < <(echo "$arg")
+		else
+			resolvedargs="${resolvedargs}${arg} "
+		fi
+	done
+	set -- $resolvedargs
+
+	# configure colors
 	local colorteal=
 	local coloryellow=
 	local colorreset=
@@ -147,10 +244,32 @@ function __parseargs {
 		colorreset='\033[0m'
 	fi
 
+	# determine positional arguments
+	local positionalargindex=0
+	local positionalarguments=()
+	local positionalrequireds=()
+	local usepositionalarray=0
+	for argindex in "${!actions[@]}" ; do
+		if [[ "${actions[$argindex]}" == "positionalarray" ]] ; then
+			usepositionalarray=1
+			positionalarguments="${longoptions[$argindex]}"
+			if [[ "${requireds[$argindex]}" == "required" ]] ; then
+				positionalrequireds=required
+			else
+				positionalrequireds=optional
+			fi
+			break
+		elif [[ "${actions[$argindex]}" == "positionalvalue" ]] ; then
+			positionalarguments=( "${positionalarguments[@]}" "${longoptions[$argindex]}" )
+			positionalrequireds=( "${positionalrequireds[@]}" "${requireds[$argindex]}" )
+		fi
+	done
+
 	while [[ $# -gt 0 ]] ; do
 		local key="$1"
 
-		# get name of option
+		# get name of option/argument
+		# check for flags/options first
 		local option=
 		local index=
 		for i in `seq 0 "${#shortoptions[@]}"` ; do
@@ -164,14 +283,45 @@ function __parseargs {
 				break
 			fi
 		done
+
+		# check for positional arguments
+		local positionaloption=
+		local ispositional=0
+		if [[ "$option" == "" ]] ; then
+			if [[ "$positionalarguments" != "" ]] ; then
+				option="null"
+				ispositional=1
+				if [[ $usepositionalarray -eq 1 ]] ; then
+					positionaloption="$positionalarguments"
+				else
+					positionaloption="${positionalarguments[0]}"
+					positionalarguments=( "${positionalarguments[@]:1}" )
+				fi
+			fi
+		fi
+
+		# check if we're still missing the option
 		if [[ "$option" == "" ]] ; then __errortext "$koiname: err: no such option '$key'" ; return 1 ; fi
 
 		# figure out what to do with option
 		# get variable from longoption
 		local varname="${longoptions[$index]#--}"
 
+		# if action is positionalvalue or positionalarray
+		if [[ $ispositional -eq 1 ]] ; then
+			if [[ $usepositionalarray == 0 ]] ; then
+				read $positionaloption <<< "$1"
+				shift
+			else
+				if [[ "${!positionaloption}" == "" ]] ; then
+					eval "${positionaloption}=( )"
+				fi
+				eval "${positionaloption}+=( \"$1\" )"
+				shift
+			fi
+
 		# if action is help
-		if [[ "${actions[$index]}" == "help" ]] ; then
+		elif [[ "${actions[$index]}" == "help" ]] ; then
 
 			# determine max indent size
 			local maxindent=0
@@ -180,9 +330,65 @@ function __parseargs {
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
 			done
 
+			# build help text for positional arguments
+			local positionalhelptext=
+			if [[ $usepositionalarray -eq 1 ]] ; then
+				# if we're using a positional array
+				if [[ "$positionalrequireds" == "required" ]] ; then
+					positionalhelptext="${positionalhelptext}`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`... "
+				else
+					positionalhelptext="${positionalhelptext}[`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`...] "
+				fi
+			else
+				# if we're using positional values
+				for argindex in "${!positionalarguments[@]}" ; do
+					if [[ "${positionalrequireds[$argindex]}" == "required" ]] ; then
+						positionalhelptext="${positionalhelptext}`echo "${positionalarguments[$argindex]}" | tr '[a-z]' '[A-Z]'` "
+					else
+						positionalhelptext="${positionalhelptext}[`echo "${positionalarguments[$argindex]}" | tr '[a-z]' '[A-Z]'`] "
+					fi
+				done
+			fi
+
+			# build help text for options
+			local argumentshelptext=
+			for i in "${!actions[@]}" ; do
+
+				local argumentname=
+				local startrequiredtext=
+				local endrequiredtext=
+				local argcaps=
+
+				if [[ "${shortoptions[$i]}" != "" ]] ; then
+					argumentname="${shortoptions[$i]}"
+				else
+					argumentname="${longoptions[$i]}"
+				fi
+				argcaps=`echo "${longoptions[$i]}" | sed 's/^-*//g' | tr '[a-z]' '[A-Z]'`
+				if [[ "${requireds[$i]}" == "optional" ]] ; then
+					startrequiredtext='['
+					endrequiredtext=']'
+				fi
+
+				case "${actions[$i]}" in
+					help|flag|exit )
+						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
+						;;
+					storevalue|directorypath|filepath )
+						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname} ${argcaps}${endrequiredtext} "
+						;;
+					storearray )
+						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname} ${argcaps}+${endrequiredtext} "
+						;;
+					* )
+						continue
+						;;
+				esac
+			done
+
 			# iterate through options and build help output
 			local output=
-			output="${output}>> ${coloryellow}${koiname} ${FUNCNAME[1]}${colorreset}\n${helptexts[$index]}\n"
+			output="${output}>> ${coloryellow}${koiname} ${FUNCNAME[1]} ${argumentshelptext}${positionalhelptext}${colorreset}\n${helptexts[$index]}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
 					continue
@@ -212,7 +418,7 @@ function __parseargs {
 
 				# append help texts
 				output="${output}${indent} "
-				if [[ "${actions[$i]}" == "storearray" ]] ; then
+				if [[ "${actions[$i]}" == "storearray" || "${actions[$i]}" == "positionalarray" ]] ; then
 					output="${output}(+) "
 				fi
 				output="${output}${helptexts[$i]} "
@@ -279,7 +485,11 @@ function __parseargs {
 			fi
 		else
 			if [[ "${!varname}" == "" ]] ; then
-				read $varname <<< "${defaults[$index]}"
+				if [[ "${actions[$index]}" == "flag" ]] ; then
+					read $varname <<< 0
+				else
+					read $varname <<< "${defaults[$index]}"
+				fi
 			fi				
 		fi
 	done
@@ -318,4 +528,8 @@ function --help {
 
 function -h {
 	help "$@"
+}
+
+function -hv {
+	help -v "$@"
 }

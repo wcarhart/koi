@@ -2,10 +2,14 @@
 set -e
 
 : <<- COMMENT
-To use koi, you need to do three things:
+To use koi:
   1. source the koi script
-  2. override the 'koiname' variable
-  3. override the 'koidescription' variable
+  2. override the 'koiname' variable with the name of your script
+  3. override the 'koidescription' variable with the description of your script
+
+To add arguments:
+  1. add arguments to each function with __addarg
+  2. parse the arguments with __parseargs "$@"
 
 To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
@@ -18,7 +22,7 @@ koidescription="Examples of potential curl commands you could make with koi"
 function createuser {
 	__addarg "-h" "--help" "help" "optional" "" "Create a new user"
 	__addarg "-p" "--port" "storevalue" "optional" "80" "Port where server is running"
-	__addarg "-u" "--user" "storevalue" "required" "" "The name of the user to create"
+	__addarg "" "user" "positionalvalue" "required" "" "The name of the user to create"
 	__parseargs "$@"
 	curl -X POST -H "Content-Type: application/json" -d "{\
 		\"user\": \"$user\"\
@@ -67,5 +71,4 @@ function show {
 	}" http://localhost:${port}/api/v1/list
 }
 
-# ============ RUN LOGIC ============ #
 __koirun "$@"
