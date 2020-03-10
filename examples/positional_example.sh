@@ -5,6 +5,13 @@ source ../koi
 koiname=positional.sh
 koidescription="test of positional arguments"
 
+function test2 {
+	__addarg "-h" "--help" "help" "optional" "" "help text"
+	__addarg "-t" "--temp" "storevalue" "optional" "" "abc"
+	__addarg "-s" "--semp" "storevalue" "optional" "" "def"
+	__parseargs "$@"
+}
+
 function test {
 	__addarg "-h" "--help" "help" "optional" "" "test a positional argument"
 	__addarg "" "symbol" "positionalarray" "required" "" "ticker symbols"

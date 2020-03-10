@@ -179,11 +179,23 @@ function __addarg {
 		fi
 	fi
 
-	# TODO: check for duplicates in long options
+	# long options must be unique
+	shortunique=$(printf '%s\n' "${shortoptions[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	longunique=$(printf '%s\n' "${longoptions[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	if [[ "$shortunique" != "${#shortoptions[@]}" ]] ; then
+		__errortext "$koiname: __addarg err: short option names must be unique"
+		return 1
+	fi
+	if [[ "$longunique" != "${#longoptions[@]}" ]] ; then
+		__errortext "$koiname: __addarg err: long option names must be unique"
+		return 1
+	fi
 }
 
 function __parseargs {
-	# parse previously defined arguments
+	: <<- COMMENT
+	Parse previously defined arguments and options
+	COMMENT
 
 	# resolve joint arguments
 	local resolvedargs=
@@ -302,9 +314,9 @@ function __parseargs {
 			if [[ $usepositionalarray -eq 1 ]] ; then
 				# if we're using a positional array
 				if [[ "$positionalrequireds" == "required" ]] ; then
-					positionalhelptext="${positionalhelptext}`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'` ... "
+					positionalhelptext="${positionalhelptext}`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`... "
 				else
-					positionalhelptext="${positionalhelptext}[`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'` ...] "
+					positionalhelptext="${positionalhelptext}[`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`...] "
 				fi
 			else
 				# if we're using positional values
@@ -495,4 +507,8 @@ function --help {
 
 function -h {
 	help "$@"
+}
+
+function -hv {
+	help -v "$@"
 }

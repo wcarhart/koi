@@ -2,10 +2,14 @@
 set -e
 
 : <<- COMMENT
-To use koi, you need to do three things:
+To use koi:
   1. source the koi script
-  2. override the 'koiname' variable
-  3. override the 'koidescription' variable
+  2. override the 'koiname' variable with the name of your script
+  3. override the 'koidescription' variable with the description of your script
+
+To add arguments:
+  1. add arguments to each function with __addarg
+  2. parse the arguments with __parseargs "$@"
 
 To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
@@ -15,8 +19,6 @@ source koi
 koiname=workflow_example.sh
 koidescription="Examples of potential workflow-related commands you could make with koi"
 koicolors=0
-
-# ============ CLI FUNCTIONS ============ #
 
 # Here's an example of of koi only using long options (starting with --)
 function start {
@@ -37,5 +39,4 @@ function checkstatus {
 	# check your workflow
 }
 
-# ============ RUN LOGIC ============ #
 __koirun "$@"
