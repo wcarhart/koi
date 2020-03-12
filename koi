@@ -15,8 +15,14 @@ helptexts=( )
 # ============ CLI FUNCTIONS ============ #
 function list {
 	__addarg "-h" "--help" "help" "optional" "" "List all available commands"
+	__addarg "-d" "--docs" "flag" "optional" "" "If included, print command documentation"
 	__parseargs "$@"
-	__listfunctions
+	
+	if [[ "$docs" -eq 1 ]] ; then
+		__commanddocs
+	else
+		__listfunctions
+	fi
 }
 
 function help {
@@ -61,17 +67,7 @@ function help {
 	echo
 
 	if [[ "$verbose" -eq 1 ]] ; then
-		helpoutput=$(cat <<- EndOfHelp
-		${colorteal}Command documentation:${colorreset}
-		$( \
-			for cmd in `__listfunctions` ; do \
-				echo "$(__cleararglists ; $cmd --help)" && \
-				echo ; \
-			done \
-		)
-
-		EndOfHelp
-		)
+		__commanddocs
 	else
 		helpoutput=$(cat <<- EndOfHelp
 		${colorteal}Hints:${colorreset}
@@ -80,12 +76,36 @@ function help {
 
 		EndOfHelp
 		)
+		echo -e "$helpoutput"
+		echo
 	fi
+}
+
+# ============ META FUNCTIONS ============ #
+function __commanddocs {
+	local colorteal=
+	local coloryellow=
+	local colorreset=
+	if [[ "$koicolors" -eq 1 ]] ; then
+		colorteal='\033[96m'
+		coloryellow='\033[93m'
+		colorreset='\033[0m'
+	fi
+	local helpoutput=$(cat <<- EndOfHelp
+	${colorteal}Command documentation:${colorreset}
+	$( \
+		for cmd in `__listfunctions` ; do \
+			echo "$(__cleararglists ; $cmd --help)" && \
+			echo ; \
+		done \
+	)
+
+	EndOfHelp
+	)
 	echo -e "$helpoutput"
 	echo
 }
 
-# ============ META FUNCTIONS ============ #
 function __listfunctions {
 	functionlist=( `declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g'` )
 	for func in "${functionlist[@]}" ; do

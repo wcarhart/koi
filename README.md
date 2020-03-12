@@ -306,7 +306,7 @@ See the code for this example in [`examples/curl_examples`](https://github.com/w
 </details>
 
 ### Additional Functions
-In addition, `koi` provides a few hidden functions, if you want even more granular control. Using these functions is *not recommended*, except in advanced cases: `__cleararglists`, `__helptext`, `__errortext`, `__listfunctions`
+In addition, `koi` provides a few hidden functions, if you want even more granular control. Using these functions is *not recommended*, except in advanced cases: `__cleararglists`, `__helptext`, `__errortext`, `__listfunctions`, `__commanddocs`
 
 <details>
 <summary><a id="__cleararglists"><code>__cleararglists</code></a></summary>
@@ -346,6 +346,13 @@ for func in "${functionlist[@]}" ; do
     echo "$func"
 done
 ```
+</details>
+
+<details>
+<summary><a id="__commanddocs"><code>__commanddocs</code></a></summary>
+
+### `__commanddocs`
+`koi` shows full command documentation via the `__commanddocs` function.
 </details>
 
 ## Caveats
