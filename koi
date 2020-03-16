@@ -5,13 +5,13 @@ set -e
 koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
-koisubcommands=1
-shortoptions=( )
-longoptions=( )
-actions=( )
-requireds=( )
-defaults=( )
-helptexts=( )
+__koisubcommands=1
+__koishortoptions=( )
+__koilongoptions=( )
+__koiactions=( )
+__koirequireds=( )
+__koidefaults=( )
+__koihelptexts=( )
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -175,18 +175,18 @@ function __addarg {
 	# help
 	if [[ "$6" == "" ]] ; then __errortext "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
 
-	shortoptions=( "${shortoptions[@]}" "$1" )
-	longoptions=( "${longoptions[@]}" "$2" )
-	actions=( "${actions[@]}" "$3" )
-	requireds=( "${requireds[@]}" "$4" )
-	defaults=( "${defaults[@]}" "$5" )
-	helptexts=( "${helptexts[@]}" "$6" )
+	__koishortoptions=( "${__koishortoptions[@]}" "$1" )
+	__koilongoptions=( "${__koilongoptions[@]}" "$2" )
+	__koiactions=( "${__koiactions[@]}" "$3" )
+	__koirequireds=( "${__koirequireds[@]}" "$4" )
+	__koidefaults=( "${__koidefaults[@]}" "$5" )
+	__koihelptexts=( "${__koihelptexts[@]}" "$6" )
 
 	# verify nonambiguity
 	# only one positional array allowed
 	local positionalarrays=0
 	local positionalvalues=0
-	for action in "${actions[@]}" ; do
+	for action in "${__koiactions[@]}" ; do
 		if [[ "$action" == "positionalvalue" ]] ; then positionalvalues=$(( positionalvalues + 1 )) ; fi
 		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
 	done
@@ -202,10 +202,10 @@ function __addarg {
 	if [[ $positionalvalues -gt 1 ]] ; then
 		local optionalpositionalvalues=0
 		local requiredpositionalvalues=0
-		for index in "${!actions[@]}" ; do
-			if [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "optional" ]] ; then
+		for index in "${!__koiactions[@]}" ; do
+			if [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "optional" ]] ; then
 				optionalpositionalvalues=$(( optionalpositionalvalues + 1 ))
-			elif [[ "${actions[$index]}" == "positionalvalue" && "${requireds[$index]}" == "required" ]] ; then
+			elif [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "required" ]] ; then
 				requiredpositionalvalues=$(( requiredpositionalvalues + 1 ))
 			fi
 		done
@@ -220,10 +220,10 @@ function __addarg {
 
 	# long options must be unique
 	local compareshort=( )
-	for short in "${shortoptions[@]}" ; do
+	for short in "${__koishortoptions[@]}" ; do
 		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
 	done
-	local comparelong=( "${longoptions[@]}" )
+	local comparelong=( "${__koilongoptions[@]}" )
 	local shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	local longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
@@ -276,19 +276,19 @@ function __parseargs {
 	local positionalarguments=()
 	local positionalrequireds=()
 	local usepositionalarray=0
-	for argindex in "${!actions[@]}" ; do
-		if [[ "${actions[$argindex]}" == "positionalarray" ]] ; then
+	for argindex in "${!__koiactions[@]}" ; do
+		if [[ "${__koiactions[$argindex]}" == "positionalarray" ]] ; then
 			usepositionalarray=1
-			positionalarguments="${longoptions[$argindex]}"
-			if [[ "${requireds[$argindex]}" == "required" ]] ; then
+			positionalarguments="${__koilongoptions[$argindex]}"
+			if [[ "${__koirequireds[$argindex]}" == "required" ]] ; then
 				positionalrequireds=required
 			else
 				positionalrequireds=optional
 			fi
 			break
-		elif [[ "${actions[$argindex]}" == "positionalvalue" ]] ; then
-			positionalarguments=( "${positionalarguments[@]}" "${longoptions[$argindex]}" )
-			positionalrequireds=( "${positionalrequireds[@]}" "${requireds[$argindex]}" )
+		elif [[ "${__koiactions[$argindex]}" == "positionalvalue" ]] ; then
+			positionalarguments=( "${positionalarguments[@]}" "${__koilongoptions[$argindex]}" )
+			positionalrequireds=( "${positionalrequireds[@]}" "${__koirequireds[$argindex]}" )
 		fi
 	done
 
@@ -299,13 +299,13 @@ function __parseargs {
 		# check for flags/options first
 		local option=
 		local index=
-		for i in `seq 0 "${#shortoptions[@]}"` ; do
-			if [[ "${shortoptions[$i]}" == "$key" ]] ; then
-				option="${shortoptions[$i]}"
+		for i in `seq 0 "${#__koishortoptions[@]}"` ; do
+			if [[ "${__koishortoptions[$i]}" == "$key" ]] ; then
+				option="${__koishortoptions[$i]}"
 				index=$i
 				break
-			elif [[ "${longoptions[$i]}" == "$key" ]] ; then
-				option="${longoptions[$i]}"
+			elif [[ "${__koilongoptions[$i]}" == "$key" ]] ; then
+				option="${__koilongoptions[$i]}"
 				index=$i
 				break
 			fi
@@ -332,7 +332,7 @@ function __parseargs {
 
 		# figure out what to do with option
 		# get variable from longoption
-		local varname="${longoptions[$index]#--}"
+		local varname="${__koilongoptions[$index]#--}"
 
 		# if action is positionalvalue or positionalarray
 		if [[ $ispositional -eq 1 ]] ; then
@@ -348,12 +348,12 @@ function __parseargs {
 			fi
 
 		# if action is help
-		elif [[ "${actions[$index]}" == "help" ]] ; then
+		elif [[ "${__koiactions[$index]}" == "help" ]] ; then
 
 			# determine max indent size
 			local maxindent=0
-			for i in "${!longoptions[@]}" ; do
-				local indent=$(( 6 + ${#longoptions[$i]} + ${#longoptions[$i]} ))
+			for i in "${!__koilongoptions[@]}" ; do
+				local indent=$(( 6 + ${#__koilongoptions[$i]} + ${#__koilongoptions[$i]} ))
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
 			done
 
@@ -379,25 +379,25 @@ function __parseargs {
 
 			# build help text for options
 			local argumentshelptext=
-			for i in "${!actions[@]}" ; do
+			for i in "${!__koiactions[@]}" ; do
 
 				local argumentname=
 				local startrequiredtext=
 				local endrequiredtext=
 				local argcaps=
 
-				if [[ "${shortoptions[$i]}" != "" ]] ; then
-					argumentname="${shortoptions[$i]}"
+				if [[ "${__koishortoptions[$i]}" != "" ]] ; then
+					argumentname="${__koishortoptions[$i]}"
 				else
-					argumentname="${longoptions[$i]}"
+					argumentname="${__koilongoptions[$i]}"
 				fi
-				argcaps=`echo "${longoptions[$i]}" | sed 's/^-*//g' | tr '[a-z]' '[A-Z]'`
-				if [[ "${requireds[$i]}" == "optional" ]] ; then
+				argcaps=`echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[a-z]' '[A-Z]'`
+				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
 					startrequiredtext='['
 					endrequiredtext=']'
 				fi
 
-				case "${actions[$i]}" in
+				case "${__koiactions[$i]}" in
 					help|flag|exit )
 						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
 						;;
@@ -417,35 +417,35 @@ function __parseargs {
 			local output=
 
 			# if using __koimain
-			if [[ $koisubcommands -eq 0 ]] ; then
+			__if [[ $koisubcommands -eq 0 ]] ; then
 				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
 			else
 				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
-				local subcommandhelptext="\n${helptexts[$index]}"
+				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
 			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
-			for i in "${!shortoptions[@]}" ; do
-				if [[ "${actions[$i]}" == "help" ]] ; then
+			for i in "${!__koishortoptions[@]}" ; do
+				if [[ "${__koiactions[$i]}" == "help" ]] ; then
 					continue
 				fi
 
 				# get variable name from long option
-				varname="${longoptions[$i]#--}"
+				varname="${__koilongoptions[$i]#--}"
 
 				# append to output if short option exists
-				if [[ "${shortoptions[$i]}" == "" ]] ; then
+				if [[ "${__koishortoptions[$i]}" == "" ]] ; then
 					local shortoptionstr=
 				else
-					local shortoptionstr="${shortoptions[$i]}, "
+					local shortoptionstr="${__koishortoptions[$i]}, "
 				fi
 
 				# capitalize variable name
-				local outputlength=$(( ${#shortoptionstr} + 2 + ${#longoptions[$i]} ))
-				output="${output}  ${shortoptionstr}${longoptions[$i]} "
-				if [[ "${actions[$i]}" == "storevalue" || "${actions[$i]}" == "storearray" || "${actions[$i]}" == "directorypath" || "${actions[$i]}" == "filepath" ]] ; then
+				local outputlength=$(( ${#shortoptionstr} + 2 + ${#__koilongoptions[$i]} ))
+				output="${output}  ${shortoptionstr}${__koilongoptions[$i]} "
+				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "directorypath" || "${__koiactions[$i]}" == "filepath" ]] ; then
 					output="${output}`echo "${varname}" | tr '[a-z]' '[A-Z]'` "
-					outputlength=$(( ${outputlength} + ${#longoptions[$i]} - 1 ))
+					outputlength=$(( ${outputlength} + ${#__koilongoptions[$i]} - 1 ))
 				fi
 
 				# calculate indent size
@@ -454,14 +454,14 @@ function __parseargs {
 
 				# append help texts
 				output="${output}${indent} "
-				if [[ "${actions[$i]}" == "storearray" || "${actions[$i]}" == "positionalarray" ]] ; then
+				if [[ "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "positionalarray" ]] ; then
 					output="${output}(+) "
 				fi
-				output="${output}${helptexts[$i]} "
-				if [[ "${requireds[$i]}" == "optional" ]] ; then
+				output="${output}${__koihelptexts[$i]} "
+				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
 					output="${output}(optional) "
-					if [[ "${defaults[$i]}" != "" ]] ; then
-						output="${output}(default: ${defaults[$i]})\n"
+					if [[ "${__koidefaults[$i]}" != "" ]] ; then
+						output="${output}(default: ${__koidefaults[$i]})\n"
 					else
 						output="${output}\n"
 					fi
@@ -475,19 +475,19 @@ function __parseargs {
 			exit
 
 		# if action is flag
-		elif [[ "${actions[$index]}" == "flag" ]] ; then
+		elif [[ "${__koiactions[$index]}" == "flag" ]] ; then
 			read $varname <<< 1
 			shift
 
 		# handle options with arguments that need to be validated
 		else
 			if [[ "$2" == "" ]] ; then
-				__errortext "$koiname: err: missing value for argument ${longoptions[$index]}"
+				__errortext "$koiname: err: missing value for argument ${__koilongoptions[$index]}"
 				return 1
 			fi
 
 			# if action is storearray
-			if [[ "${actions[$index]}" == "storearray" ]] ; then
+			if [[ "${__koiactions[$index]}" == "storearray" ]] ; then
 				if [[ "${!varname}" == "" ]] ; then
 					eval "${varname}=( )"
 				fi
@@ -497,11 +497,11 @@ function __parseargs {
 
 			# if action is storevalue, directorypath, filepath, or exit
 			else
-				if [[ "${actions[$index]}" == "directorypath" ]] ; then
-					if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
-				elif [[ "${actions[$index]}" == "filepath" ]] ; then
-					if [[ ! -f "$2" ]] ; then __errortext "$koiname: err: value for argument '${longoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
-				elif [[ "${actions[$index]}" == "exit" ]] ; then
+				if [[ "${__koiactions[$index]}" == "directorypath" ]] ; then
+					if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${__koilongoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
+				elif [[ "${__koiactions[$index]}" == "filepath" ]] ; then
+					if [[ ! -f "$2" ]] ; then __errortext "$koiname: err: value for argument '${__koilongoptions[$index]}' needs to be a file, no such file '$2'" ; return 1 ; fi
+				elif [[ "${__koiactions[$index]}" == "exit" ]] ; then
 					exit
 				fi
 				read $varname <<< "$2"
@@ -512,19 +512,19 @@ function __parseargs {
 	done
 
 	# deal with required options
-	for index in "${!requireds[@]}" ; do
-		varname="${longoptions[$index]#--}"
-		if [[ "${requireds[$index]}" == "required" ]] ; then
+	for index in "${!__koirequireds[@]}" ; do
+		varname="${__koilongoptions[$index]#--}"
+		if [[ "${__koirequireds[$index]}" == "required" ]] ; then
 			if [[ "${!varname}" == "" ]] ; then
-				__errortext "$koiname: err: missing required argument ${longoptions[$index]}"
+				__errortext "$koiname: err: missing required argument ${__koilongoptions[$index]}"
 				return 1
 			fi
 		else
 			if [[ "${!varname}" == "" ]] ; then
-				if [[ "${actions[$index]}" == "flag" ]] ; then
+				if [[ "${__koiactions[$index]}" == "flag" ]] ; then
 					read $varname <<< 0
 				else
-					read $varname <<< "${defaults[$index]}"
+					read $varname <<< "${__koidefaults[$index]}"
 				fi
 			fi				
 		fi
@@ -532,17 +532,17 @@ function __parseargs {
 }
 
 function __cleararglists {
-	shortoptions=( )
-	longoptions=( )
-	actions=( )
-	requireds=( )
-	defaults=( )
-	helptexts=( )
+	__koishortoptions=( )
+	__koilongoptions=( )
+	__koiactions=( )
+	__koirequireds=( )
+	__koidefaults=( )
+	__koihelptexts=( )
 }
 
 function __koirun {
 	if declare -F -- "__koimain" >/dev/null ; then
-		koisubcommands=0
+		__koisubcommands=0
 		__koimain "$@"
 	elif declare -F -- "${1:-}" >/dev/null ; then
 		"$@"
