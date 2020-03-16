@@ -424,7 +424,7 @@ function __parseargs {
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${helptexts[$index]}"
 			fi
-			output="${output}${subcommandindent}${coloryellow}${koiname}${subcommandcmd} ${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
+			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
 					continue
