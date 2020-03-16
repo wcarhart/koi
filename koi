@@ -5,6 +5,7 @@ set -e
 koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
+koisubcommands=1
 shortoptions=( )
 longoptions=( )
 actions=( )
@@ -40,6 +41,7 @@ function help {
 		fi
 	done
 
+	# setup colors
 	local colorteal=
 	local coloryellow=
 	local colorreset=
@@ -49,6 +51,7 @@ function help {
 		colorreset='\033[0m'
 	fi
 
+	# build help menu
 	local helpoutput=$(cat <<- EndOfHelp
 	${coloryellow}${koidescription}${colorreset}
 
@@ -412,7 +415,16 @@ function __parseargs {
 
 			# iterate through options and build help output
 			local output=
-			output="${output}>> ${coloryellow}${koiname} ${FUNCNAME[1]} ${argumentshelptext}${positionalhelptext}${colorreset}\n${helptexts[$index]}\n"
+
+			# if using __koimain
+			if [[ $koisubcommands -eq 0 ]] ; then
+				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+			else
+				local subcommandindent=">> "
+				local subcommandcmd="${FUNCNAME[1]} "
+				local subcommandhelptext="\n${helptexts[$index]}"
+			fi
+			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
 			for i in "${!shortoptions[@]}" ; do
 				if [[ "${actions[$i]}" == "help" ]] ; then
 					continue
@@ -529,7 +541,10 @@ function __cleararglists {
 }
 
 function __koirun {
-	if declare -F -- "${1:-}" >/dev/null ; then
+	if declare -F -- "__koimain" >/dev/null ; then
+		koisubcommands=0
+		__koimain "$@"
+	elif declare -F -- "${1:-}" >/dev/null ; then
 		"$@"
 	else
 		__errortext "$koiname: err: no such command '$1'"
