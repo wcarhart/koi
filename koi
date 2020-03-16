@@ -417,7 +417,7 @@ function __parseargs {
 			local output=
 
 			# if using __koimain
-			__if [[ $koisubcommands -eq 0 ]] ; then
+			if [[ $__koisubcommands -eq 0 ]] ; then
 				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
 			else
 				local subcommandindent=">> "
