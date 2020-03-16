@@ -52,22 +52,6 @@ function help {
 	fi
 
 	# build help menu
-	local helpoutput=
-
-	# if using __koimain
-	if declare -F -- "__koimain" >/dev/null ; then
-		helpoutput=$(cat <<- EndOfHelp
-		${coloryellow}${koidescription}${colorreset}
-
-		${colorteal}Usage:${colorreset}
-		`__cleararglists ; __koimain --help`
-		EndOfHelp
-		)
-	fi
-	echo -e "$helpoutput"
-	echo
-	exit
-
 	local helpoutput=$(cat <<- EndOfHelp
 	${coloryellow}${koidescription}${colorreset}
 
@@ -434,6 +418,8 @@ function __parseargs {
 
 			# if using __koimain
 			if [[ $koisubcommands -eq 0 ]] ; then
+				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+			else
 				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${helptexts[$index]}"
@@ -556,7 +542,7 @@ function __cleararglists {
 
 function __koirun {
 	if declare -F -- "__koimain" >/dev/null ; then
-		koisubcommands=
+		koisubcommands=0
 		__koimain "$@"
 	elif declare -F -- "${1:-}" >/dev/null ; then
 		"$@"
