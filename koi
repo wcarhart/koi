@@ -32,6 +32,7 @@ function help {
 	__parseargs "$@"
 
 	# check for __addarg errors
+	local cmd
 	for cmd in `__listfunctions` ; do
 		exec 3>&1
 		local stderr="$(__cleararglists ; $cmd --help </dev/stdin 2>&1 1>&3 1> /dev/null)"
@@ -60,6 +61,7 @@ function help {
 
 	${colorteal}Available commands:${colorreset}
 	$( \
+		local cmd ; \
 		for cmd in `__listfunctions` ; do \
 			echo "  $cmd" ; \
 		done \
@@ -97,6 +99,7 @@ function __commanddocs {
 	local helpoutput=$(cat <<- EndOfHelp
 	${colorteal}Command documentation:${colorreset}
 	$( \
+		local cmd ; \
 		for cmd in `__listfunctions` ; do \
 			echo "$(__cleararglists ; $cmd --help)" && \
 			echo ; \
@@ -111,6 +114,7 @@ function __commanddocs {
 
 function __listfunctions {
 	functionlist=( `declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g'` )
+	local func
 	for func in "${functionlist[@]}" ; do
 		echo "$func"
 	done
@@ -152,6 +156,7 @@ function __addarg {
 	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
 	if [[ "$3" == "" ]] ; then __errortext "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	found=0
+	local action
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
 	if [[ $found -eq 0 ]] ; then __errortext "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
 	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
@@ -186,6 +191,7 @@ function __addarg {
 	# only one positional array allowed
 	local positionalarrays=0
 	local positionalvalues=0
+	local action
 	for action in "${__koiactions[@]}" ; do
 		if [[ "$action" == "positionalvalue" ]] ; then positionalvalues=$(( positionalvalues + 1 )) ; fi
 		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
@@ -202,6 +208,7 @@ function __addarg {
 	if [[ $positionalvalues -gt 1 ]] ; then
 		local optionalpositionalvalues=0
 		local requiredpositionalvalues=0
+		local index
 		for index in "${!__koiactions[@]}" ; do
 			if [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "optional" ]] ; then
 				optionalpositionalvalues=$(( optionalpositionalvalues + 1 ))
@@ -220,6 +227,7 @@ function __addarg {
 
 	# long options must be unique
 	local compareshort=( )
+	local short
 	for short in "${__koishortoptions[@]}" ; do
 		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
 	done
@@ -243,6 +251,7 @@ function __parseargs {
 
 	# resolve joint arguments
 	local resolvedargs=( )
+	local arg
 	for arg in "$@" ; do
 		if [[ "${arg:0:1}" == "-" ]] ; then
 			if [[ "${#arg}" -gt 2 && "${arg:1:1}" != "-" ]] ; then
@@ -276,6 +285,7 @@ function __parseargs {
 	local positionalarguments=()
 	local positionalrequireds=()
 	local usepositionalarray=0
+	local argindex
 	for argindex in "${!__koiactions[@]}" ; do
 		if [[ "${__koiactions[$argindex]}" == "positionalarray" ]] ; then
 			usepositionalarray=1
@@ -299,6 +309,7 @@ function __parseargs {
 		# check for flags/options first
 		local option=
 		local index=
+		local i
 		for i in `seq 0 "${#__koishortoptions[@]}"` ; do
 			if [[ "${__koishortoptions[$i]}" == "$key" ]] ; then
 				option="${__koishortoptions[$i]}"
@@ -347,11 +358,13 @@ function __parseargs {
 				shift
 			fi
 
+
 		# if action is help
 		elif [[ "${__koiactions[$index]}" == "help" ]] ; then
 
 			# determine max indent size
 			local maxindent=0
+			local i
 			for i in "${!__koilongoptions[@]}" ; do
 				local indent=$(( 6 + ${#__koilongoptions[$i]} + ${#__koilongoptions[$i]} ))
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
@@ -368,6 +381,7 @@ function __parseargs {
 				fi
 			else
 				# if we're using positional values
+				local argindex
 				for argindex in "${!positionalarguments[@]}" ; do
 					if [[ "${positionalrequireds[$argindex]}" == "required" ]] ; then
 						positionalhelptext="${positionalhelptext}`echo "${positionalarguments[$argindex]}" | tr '[a-z]' '[A-Z]'` "
@@ -379,6 +393,7 @@ function __parseargs {
 
 			# build help text for options
 			local argumentshelptext=
+			local i
 			for i in "${!__koiactions[@]}" ; do
 
 				local argumentname=
@@ -425,6 +440,7 @@ function __parseargs {
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
 			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
+			local i
 			for i in "${!__koishortoptions[@]}" ; do
 				if [[ "${__koiactions[$i]}" == "help" ]] ; then
 					continue
@@ -512,6 +528,7 @@ function __parseargs {
 	done
 
 	# deal with required options
+	local index
 	for index in "${!__koirequireds[@]}" ; do
 		varname="${__koilongoptions[$index]#--}"
 		if [[ "${__koirequireds[$index]}" == "required" ]] ; then
