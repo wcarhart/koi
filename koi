@@ -429,19 +429,22 @@ function __parseargs {
 			done
 
 			# iterate through options and build help output
-			local output=
+			local finaloutput=
 
 			# if using __koimain
 			if [[ $__koisubcommands -eq 0 ]] ; then
-				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+				finaloutput="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
 			else
 				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
+			finaloutput="`__helptext clitext 0 "${finaloutput}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
+
+				local output=
+
 				if [[ "${__koiactions[$i]}" == "help" ]] ; then
 					continue
 				fi
@@ -484,10 +487,12 @@ function __parseargs {
 				else
 					output="${output}\n"
 				fi
+
+				finaloutput="$finaloutput`__helptext argtext "$indentsize" "\n$output"`"
 			done
 
 			# print help output
-			__helptext "${output}"
+			echo -e "$finaloutput"
 			exit
 
 		# if action is flag
@@ -573,8 +578,61 @@ function __koirun {
 	fi
 }
 
+# function __helptext {
+# 	: <<- COMMENT
+# 	Print text for the help menu
+# 	$1 is whether to indent subsequent word-wrapped lines, either 0 or 1
+# 	if $1 is 1, then $2 is the indent size
+# 	otherwise, $2+ is the text to print
+# 	COMMENT
+# 	local useindent=$1
+# 	shift
+# 	if [[ $useindent -eq 1 ]] ; then
+# 		local indentsize=$(( $1 * 2 ))
+# 		shift
+# 		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+# 		local foldsize=$(( 100 - $indentsize ))
+# 		echo -e "$@" | fold -w $foldsize -s | sed -e '2,$s`^`'"$indent"'`g'
+# 	else
+# 		echo -e "$@" | fold -w 100 -s
+# 	fi
+# }
+
 function __helptext {
-	echo -e "$@" | fold -w 100 -s
+	: <<- COMMENT
+	Print text for the help menu
+	$1 is which type of help text to print, can be:
+	  - clitext
+	  - helptext
+	  - argtext
+	$2 is the indent size to use, in spaces
+	$3+ is the text to print
+	COMMENT
+	local texttype="$1"
+	local indentsize=$(( 2 * $2 ))
+	shift 2
+	local toprint="$@"
+	if [[ "$texttype" == "clitext" ]] ; then
+		echo -e "$@" | fold -w 100 -s
+	elif [[ "$texttype" == "helptext" ]] ; then
+		echo -e "$@" | fold -w 100 -s
+	elif [[ "$texttype" == "argtext" ]] ; then
+		local foldsize=100
+		local stringindex=0
+		local output="$@"
+		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+		if [[ "${#output}" -gt $foldsize ]] ; then
+			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
+				local chunk="${output:$stringindex:(( $stringindex + $foldsize ))}"
+				output="${output:0:$stringindex}${chunk}\n${indent}${output:(( $stringindex + $foldsize ))}"
+				stringindex=$(( $stringindex + $foldsize ))
+			done
+		fi
+		echo -e "$output"
+	else
+		__errortext "$koiname: __helptext err: provided text type is not one of: clitext, helptext, argtext"
+		return 1
+	fi
 }
 
 function __errortext {
