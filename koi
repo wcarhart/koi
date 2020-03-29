@@ -538,7 +538,10 @@ function __parseargs {
 			fi
 		else
 			if [[ "${!varname}" == "" ]] ; then
-				if [[ "${__koiactions[$index]}" == "flag" ]] ; then
+				local action="${__koiactions[$index]}"
+				if [[ "$action" == "help" || "$action" == "positionalvalue" || "$action" == "positionalarray" ]] ; then
+					continue
+				elif [[ "$action" == "flag" ]] ; then
 					read $varname <<< 0
 				else
 					read $varname <<< "${__koidefaults[$index]}"
