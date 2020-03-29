@@ -605,29 +605,14 @@ function __helptext {
 	elif [[ "$texttype" == "helptext" ]] ; then
 		echo -e "$@" | fold -w 100 -s
 	elif [[ "$texttype" == "argtext" ]] ; then
-		# local foldsize=$(( 100 - $indentsize ))
 		local foldsize=100
 		local stringindex=0
 		local output="$@"
 		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
 		if [[ "${#output}" -gt $foldsize ]] ; then
 			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
-				# local tokens=( )
-				# read -ra tokens -d '' <<< "${output:$stringindex}"
-
-				# local chunk=
-				# local tokenindex=0
-				# while [[ "${#chunk}" -lt "$foldsize" ]] ; do
-				# 	local token="${tokens[$tokenindex]}"
-				# 	chunk="${chunk}${token} "
-				# 	tokenindex=$(( $tokenindex + 1 ))
-				# 	# stringindex=$(( $stringindex + ${#token} + 1 ))
-				# 	# echo "stringindex: $stringindex"
-				# done
-
-				local chunk="${output:$stringindex:(( $stringindex + $foldsize ))}"
-				output="${output:0:$stringindex}${chunk}\n${indent}${output:(( $stringindex + $foldsize ))}"
-				stringindex=$(( $stringindex + ${#chunk} ))
+				stringindex=$(( $stringindex + $foldsize ))
+				output="${output:0:$stringindex}\n${indent}${output:$stringindex}"
 			done
 		fi
 		echo -e "$output"
