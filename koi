@@ -131,54 +131,54 @@ function __addarg {
 		$6 - the help text to print when -h is specified (optional)
 	COMMENT
 
-	if [[ $# -ne 6 ]] ; then __errortext "$koiname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
+	if [[ $# -ne 6 ]] ; then __errortext -c "$koiname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
 
 	# short option
 	if [[ "$1" != "" ]] ; then
-		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
-		if [[ "${#1}" -gt 2 ]] ; then __errortext "$koiname: __addarg err: short options must be a single dash followed by a single letter" ; return 1 ; fi
-		if [[ "$1" == *" "* ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
-		if [[ "$1" =~ [0-9] ]] ; then __errortext "$koiname: __addarg err: short option cannot contain a number" ; return 1 ; fi
+		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext -c "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
+		if [[ "${#1}" -gt 2 ]] ; then __errortext -c "$koiname: __addarg err: short options must be a single dash followed by a single letter" ; return 1 ; fi
+		if [[ "$1" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
+		if [[ "$1" =~ [0-9] ]] ; then __errortext -c "$koiname: __addarg err: short option cannot contain a number" ; return 1 ; fi
 	fi
 
 	# long option
-	if [[ "$2" == "" ]] ; then __errortext "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
+	if [[ "$2" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
 	if [[ "$2" != --* ]] ; then
 		if [[ "$3" != "positionalvalue" && "$3" != "positionalarray" ]] ; then
-			__errortext "$koiname: __addarg err: long option must start with a double dash"
+			__errortext -c "$koiname: __addarg err: long option must start with a double dash"
 			return 1
 		fi
 	fi
-	if [[ "$2" == *" "* ]] ; then __errortext "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
-	if [[ "$2" =~ [0-9] ]] ; then __errortext "$koiname: __addarg err: long option cannot contain a number" ; return 1 ; fi
+	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
+	if [[ "$2" =~ [0-9] ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a number" ; return 1 ; fi
 
 	# action
 	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
-	if [[ "$3" == "" ]] ; then __errortext "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
+	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	found=0
 	local action
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
-	if [[ $found -eq 0 ]] ; then __errortext "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
+	if [[ $found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
 	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
-		if [[ "$1" != "" ]] ; then __errortext "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
-		if [[ "$2" == -* ]] ; then __errortext "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
+		if [[ "$1" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
+		if [[ "$2" == -* ]] ; then __errortext -c "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
 	fi
 
 	# required
-	if [[ "$4" == "" ]] ; then __errortext "$koiname: __addarg err: missing required for argument" ; return 1 ; fi
-	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext "$koiname: __addarg err: required must be one of: required optional" ; return 1 ; fi
-	if [[ "$3" == "help" && "$4" == "required" ]] ; then __errortext "$koiname: __addarg err: help option cannot be required" ; return 1 ; fi
+	if [[ "$4" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing required for argument" ; return 1 ; fi
+	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext -c "$koiname: __addarg err: required must be one of: required optional" ; return 1 ; fi
+	if [[ "$3" == "help" && "$4" == "required" ]] ; then __errortext -c "$koiname: __addarg err: help option cannot be required" ; return 1 ; fi
 
 	# default
-	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "help" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: help action cannot have a default value" ; return 1 ; fi
-	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "storearray" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "positionalvalue" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: positional values cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "positionalarray" && "$5" != "" ]] ; then __errortext "$koiname: __addarg err: positional arrays cannot have default values" ; return 1 ; fi
+	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "help" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: help action cannot have a default value" ; return 1 ; fi
+	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "storearray" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "positionalvalue" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional values cannot have default values" ; return 1 ; fi
+	if [[ "$3" == "positionalarray" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arrays cannot have default values" ; return 1 ; fi
 
 	# help
-	if [[ "$6" == "" ]] ; then __errortext "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
+	if [[ "$6" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
 
 	__koishortoptions=( "${__koishortoptions[@]}" "$1" )
 	__koilongoptions=( "${__koilongoptions[@]}" "$2" )
@@ -197,10 +197,10 @@ function __addarg {
 		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
 	done
 	if [[ $positionalarrays -gt 1 ]] ; then
-		__errortext "$koiname: __addarg err: there cannot be multiple positional array actions because they cannot be parsed unambiguously"
+		__errortext -c "$koiname: __addarg err: there cannot be multiple positional array actions because they cannot be parsed unambiguously"
 		return 1
 	elif [[ $positionalarrays -eq 1 && $positionalvalues -gt 0 ]] ; then
-		__errortext "$koiname: __addarg err: there cannot be combinations of positional arrays and positional values because they cannot be parsed unambiguously"
+		__errortext -c "$koiname: __addarg err: there cannot be combinations of positional arrays and positional values because they cannot be parsed unambiguously"
 		return 1
 	fi
 
@@ -217,10 +217,10 @@ function __addarg {
 			fi
 		done
 		if [[ $optionalpositionalvalues -gt 1 ]] ; then
-			__errortext "$koiname: __addarg err: there cannot be multiple optional positional values because they cannot be parsed unambiguously"
+			__errortext -c "$koiname: __addarg err: there cannot be multiple optional positional values because they cannot be parsed unambiguously"
 			return 1
 		elif [[ $optionalpositionalvalues -eq 1 && $requiredpositionalvalues -gt 0 ]] ; then
-			__errortext "$koiname: __addarg err: there cannot be combinations of optional and required positional values because they cannot be parsed unambiguously"
+			__errortext -c "$koiname: __addarg err: there cannot be combinations of optional and required positional values because they cannot be parsed unambiguously"
 			return 1
 		fi
 	fi
@@ -235,11 +235,11 @@ function __addarg {
 	local shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	local longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
-		__errortext "$koiname: __addarg err: short option names must be unique"
+		__errortext -c "$koiname: __addarg err: short option names must be unique"
 		return 1
 	fi
 	if [[ "$longunique" != "${#comparelong[@]}" ]] ; then
-		__errortext "$koiname: __addarg err: long option names must be unique"
+		__errortext -c "$koiname: __addarg err: long option names must be unique"
 		return 1
 	fi
 }
@@ -578,9 +578,18 @@ function __koirun {
 	elif declare -F -- "${1:-}" >/dev/null ; then
 		"$@"
 	else
-		__errortext "$koiname: err: no such command '$1'"
-		__errortext "Use 'help' for available commands"
-		exit 1
+		if [[ $# -eq 0 ]] ; then
+			__errortext -c "$koiname: err: a subcommand is required, but one was not provided"
+			local funcs=( `__listfunctions` )
+			local cmds=$(printf ", %s" "${funcs[@]}")
+			__errortext "  available subcommands:${cmds:1}"
+			__errortext "  use '$koiname help --verbose' for full documentation"
+			exit 1
+		else
+			__errortext -c "$koiname: err: no such command '$1'"
+			__errortext "  Use '$koiname help' for available commands"
+			exit 1
+		fi
 	fi
 }
 
@@ -635,13 +644,20 @@ function __helptext {
 		fi
 		echo -e "$output"
 	else
-		__errortext "$koiname: __helptext err: provided text type is not one of: clitext, helptext, argtext"
+		__errortext -c "$koiname: __helptext err: provided text type is not one of: clitext, helptext, argtext"
 		return 1
 	fi
 }
 
 function __errortext {
-	>&2 echo "$@"
+	if [[ "$1" == "-c" || "$1" == "--color" ]] ; then
+		shift
+		local colorred='\033[91m'
+		local colorreset='\033[0m'
+		>&2 echo -e "${colorred}$@${colorreset}"
+	else
+		>&2 echo -e "$@"
+	fi
 }
 
 function --help {
