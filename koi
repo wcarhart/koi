@@ -138,7 +138,7 @@ function __addarg {
 		if [[ "$1" != -* || "$1" == --* ]] ; then __errortext -c "$koiname: __addarg err: short option must start with a single dash" ; return 1 ; fi
 		if [[ "${#1}" -gt 2 ]] ; then __errortext -c "$koiname: __addarg err: short options must be a single dash followed by a single letter" ; return 1 ; fi
 		if [[ "$1" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: short option cannot contain a space" ; return 1 ; fi
-		if [[ "$1" =~ [0-9] ]] ; then __errortext -c "$koiname: __addarg err: short option cannot contain a number" ; return 1 ; fi
+		if ! [[ "$1" =~ ^-[a-zA-Z] ]] ; then __errortext -c "$koiname: __addarg err: short option must be a letter" ; return 1 ; fi
 	fi
 
 	# long option
@@ -150,7 +150,7 @@ function __addarg {
 		fi
 	fi
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
-	if [[ "$2" =~ [0-9] ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a number" ; return 1 ; fi
+	if ! [[ "$2" =~ ^--[a-zA-Z]+[0-9]* ]] ; then __errortext -c "$koiname: __addarg err: long option must be alphanumeric and cannot start with a number" ; return 1 ; fi
 
 	# action
 	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
