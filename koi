@@ -478,7 +478,6 @@ function __parseargs {
 				local indent="`printf "%0.s " $(seq 1 $indentsize)`"
 
 				# append help texts
-				# finaloutput="${finaloutput}\n`__helptext clitext 0 "${output}${indent}"`"
 				output="${output}${indent}"
 				if [[ "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "positionalarray" ]] ; then
 					output="${output}(+) "
@@ -607,12 +606,43 @@ function __helptext {
 	elif [[ "$texttype" == "argtext" ]] ; then
 		local foldsize=100
 		local stringindex=0
+		local oldstringindex=
 		local output="$@"
 		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+		>&2 echo "processing output: $output"
 		if [[ "${#output}" -gt $foldsize ]] ; then
 			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
-				stringindex=$(( $stringindex + $foldsize ))
-				output="${output:0:$stringindex}\n${indent}${output:$stringindex}"
+				>&2 echo "str i @ start: $stringindex"
+				oldstringindex=$stringindex
+				stringindex=$(( $oldstringindex + $foldsize ))
+				local splitchar="${output:$stringindex:1}"
+
+				>&2 echo "str i @ mid 1: $stringindex"
+
+				while [[ "$splitchar" != " " ]] ; do
+					# >&2 echo "using char: '$splitchar'"
+					stringindex=$(( $stringindex - 1 ))
+					# >&2 echo "str i @ loop: $stringindex"
+					if [[ $stringindex -le $oldstringindex ]] ; then
+						>&2 echo "reached limit, reseting str i and moving on with char: '$splitchar'"
+						stringindex=$(( $oldstringindex + $foldsize ))
+						break
+					fi
+					splitchar="${output:$stringindex:1}"
+					>&2 echo "${output:0:$stringindex}"
+					# >&2 echo "splitchar @ end of loop: '$splitchar'"
+				done
+
+				>&2 echo "str i @ mid 2: $stringindex"
+				# >&2 echo "using char: '$splitchar'"
+
+				local tailstring="${output:$stringindex}"
+				while [[ "${tailstring:0:1}" == " " ]] ; do
+					tailstring="${tailstring:1}"
+				done
+				output="${output:0:$stringindex}\n${indent}${tailstring}"
+				>&2 echo "str i @ end: $stringindex"
+				>&2 echo
 			done
 		fi
 		echo -e "$output"
