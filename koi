@@ -364,9 +364,16 @@ function __parseargs {
 
 			# determine max indent size
 			local maxindent=0
+			local willuselongerindent=0
 			local i
 			for i in "${!__koilongoptions[@]}" ; do
-				local indent=$(( 6 + ${#__koilongoptions[$i]} + ${#__koilongoptions[$i]} ))
+				local indent="${#__koilongoptions[$i]}"
+				local action="${__koiactions[$i]}"
+				if [[ "$action" == "storevalue" || "$action" == "storearray" || "$action" == "filepath" || "$action" == "directorypath" ]] ; then
+					indent=$(( $indent + ${#__koilongoptions[$i]} + 9 ))
+				elif [[ "$action" != "positionalvalue" && "$action" != "positionalarray" ]] ; then
+					local indent=$(( $indent + 10 ))
+				fi
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
 			done
 
@@ -429,19 +436,22 @@ function __parseargs {
 			done
 
 			# iterate through options and build help output
-			local output=
+			local finaloutput=
 
 			# if using __koimain
 			if [[ $__koisubcommands -eq 0 ]] ; then
-				output="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+				finaloutput="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
 			else
 				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			output="${output}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"
+			finaloutput="`__helptext clitext 0 "${finaloutput}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
+
+				local output=
+
 				if [[ "${__koiactions[$i]}" == "help" ]] ; then
 					continue
 				fi
@@ -457,19 +467,18 @@ function __parseargs {
 				fi
 
 				# capitalize variable name
-				local outputlength=$(( ${#shortoptionstr} + 2 + ${#__koilongoptions[$i]} ))
-				output="${output}  ${shortoptionstr}${__koilongoptions[$i]} "
+				output="  ${shortoptionstr}${__koilongoptions[$i]}"
 				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "directorypath" || "${__koiactions[$i]}" == "filepath" ]] ; then
-					output="${output}`echo "${varname}" | tr '[a-z]' '[A-Z]'` "
-					outputlength=$(( ${outputlength} + ${#__koilongoptions[$i]} - 1 ))
+					output="${output} `echo "${varname}" | tr '[a-z]' '[A-Z]'` "
 				fi
 
 				# calculate indent size
+				local outputlength="${#output}"
 				local indentsize=$(( $maxindent - $outputlength ))
 				local indent="`printf "%0.s " $(seq 1 $indentsize)`"
 
 				# append help texts
-				output="${output}${indent} "
+				output="${output}${indent}"
 				if [[ "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "positionalarray" ]] ; then
 					output="${output}(+) "
 				fi
@@ -484,10 +493,12 @@ function __parseargs {
 				else
 					output="${output}\n"
 				fi
+
+				finaloutput="$finaloutput`__helptext argtext "$maxindent" "\n$output"`"
 			done
 
 			# print help output
-			__helptext "${output}"
+			echo -e "$finaloutput"
 			exit
 
 		# if action is flag
@@ -574,7 +585,59 @@ function __koirun {
 }
 
 function __helptext {
-	echo -e "$@" | fold -w 100 -s
+	: <<- COMMENT
+	Print text for the help menu
+	$1 is which type of help text to print, can be:
+	  - clitext
+	  - helptext
+	  - argtext
+	$2 is the indent size to use, in spaces
+	$3+ is the text to print
+	COMMENT
+
+	local texttype="$1"
+	local indentsize=$2
+	shift 2
+	local toprint="$@"
+	if [[ "$texttype" == "clitext" ]] ; then
+		echo -ne "$@"
+	elif [[ "$texttype" == "helptext" ]] ; then
+		echo -e "$@" | fold -w 100 -s
+	elif [[ "$texttype" == "argtext" ]] ; then
+		local foldsize=100
+		local stringindex=0
+		local oldstringindex=
+		local output="$@"
+		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+		if [[ "${#output}" -gt $foldsize ]] ; then
+			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
+				oldstringindex=$stringindex
+				stringindex=$(( $oldstringindex + $foldsize ))
+				local splitchar="${output:$stringindex:1}"
+
+				local linecount=0
+				while [[ "$splitchar" != " " ]] ; do
+					linecount=$(( $linecount + 1 ))
+					stringindex=$(( $stringindex - 1 ))
+					if [[ $(( $linecount )) -ge $(( $foldsize - $indentsize - 1 )) ]] ; then
+						stringindex=$(( $oldstringindex + $foldsize ))
+						break
+					fi
+					splitchar="${output:$stringindex:1}"
+				done
+
+				local tailstring="${output:$stringindex}"
+				while [[ "${tailstring:0:1}" == " " ]] ; do
+					tailstring="${tailstring:1}"
+				done
+				output="${output:0:$stringindex}\n${indent}${tailstring}"
+			done
+		fi
+		echo -e "$output"
+	else
+		__errortext "$koiname: __helptext err: provided text type is not one of: clitext, helptext, argtext"
+		return 1
+	fi
 }
 
 function __errortext {
