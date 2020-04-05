@@ -133,7 +133,7 @@ function __addarg {
 		$7 - the function used to verify the argument (optional)
 	COMMENT
 
-	if [[ $# -ne 6 ]] ; then __errortext -c "$koiname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
+	if [[ $# -ne 6 && $# -ne 7 ]] ; then __errortext -c "$koiname: __addarg err: incorrect usage, either 6 or 7 arguments are required" ; return 1 ; fi
 
 	# short option
 	if [[ "$1" != "" ]] ; then
@@ -159,9 +159,9 @@ function __addarg {
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
 
 	# action
-	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
+	local availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
-	found=0
+	local found=0
 	local action
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
 	if [[ $found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
@@ -176,18 +176,25 @@ function __addarg {
 	if [[ "$3" == "help" && "$4" == "required" ]] ; then __errortext -c "$koiname: __addarg err: help option cannot be required" ; return 1 ; fi
 
 	# default
-	if [[ "$4" == "required" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "help" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: help action cannot have a default value" ; return 1 ; fi
-	if [[ "$3" == "flag" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "storearray" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "positionalvalue" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional values cannot have default values" ; return 1 ; fi
-	if [[ "$3" == "positionalarray" && "$5" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arrays cannot have default values" ; return 1 ; fi
+	if [[ "$5" != "" ]] ; then
+		if [[ "$4" == "required" ]] ; then __errortext -c "$koiname: __addarg err: required arguments cannot have default values" ; return 1 ; fi
+		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname: __addarg err: help action cannot have a default value" ; return 1 ; fi
+		if [[ "$3" == "flag" ]] ; then __errortext -c "$koiname: __addarg err: flags cannot have default values" ; return 1 ; fi
+		if [[ "$3" == "storearray" ]] ; then __errortext -c "$koiname: __addarg err: arrays cannot have default values" ; return 1 ; fi
+		if [[ "$3" == "positionalvalue" ]] ; then __errortext -c "$koiname: __addarg err: positional values cannot have default values" ; return 1 ; fi
+		if [[ "$3" == "positionalarray" ]] ; then __errortext -c "$koiname: __addarg err: positional arrays cannot have default values" ; return 1 ; fi
+	fi
 
 	# help
 	if [[ "$6" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
 
 	# verifyingfunction
-	if ! declare -F -- "$7" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
+	if [[ "$7" != "" ]] ; then
+		if ! declare -F -- "$7" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
+		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname __addarg err: help options cannot have a verifyingfunction" ; return 1 ; fi
+		if [[ "$3" == "flag" ]] ; then __errortext -c "$koiname __addarg err: flag options cannot have a verifyingfunction" ; return 1 ; fi
+		if [[ "$3" == "exit" ]] ; then __errortext -c "$koiname __addarg err: exit options cannot have a verifyingfunction" ; return 1 ; fi
+	fi
 
 	__koishortoptions=( "${__koishortoptions[@]}" "$1" )
 	__koilongoptions=( "${__koilongoptions[@]}" "$2" )
@@ -359,15 +366,20 @@ function __parseargs {
 		if [[ $ispositional -eq 1 ]] ; then
 			if [[ $usepositionalarray == 0 ]] ; then
 				read $positionaloption <<< "$1"
-				shift
 			else
 				if [[ "${!positionaloption}" == "" ]] ; then
 					eval "${positionaloption}=( )"
 				fi
 				eval "${positionaloption}+=( \"$1\" )"
-				shift
 			fi
 
+			# run verifyingfunction, if one is registered
+			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
+				${__koiverifyingfunctions[$index]} "$2"
+			fi
+
+			# move to the next argument
+			shift
 
 		# if action is help
 		elif [[ "${__koiactions[$index]}" == "help" ]] ; then
@@ -529,8 +541,6 @@ function __parseargs {
 					eval "${varname}=( )"
 				fi
 				eval "${varname}+=( \"$2\" )"
-				shift
-				shift
 
 			# if action is storevalue, directorypath, filepath, or exit
 			else
@@ -542,9 +552,16 @@ function __parseargs {
 					exit
 				fi
 				read $varname <<< "$2"
-				shift
-				shift
 			fi
+
+			# run verifyingfunction, if one is registered
+			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
+				${__koiverifyingfunctions[$index]} "$2"
+			fi
+
+			# move to the next argument
+			shift
+			shift
 		fi
 	done
 
