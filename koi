@@ -148,9 +148,13 @@ function __addarg {
 			__errortext -c "$koiname: __addarg err: long option must start with a double dash"
 			return 1
 		fi
+	else
+		if ! [[ "$2" =~ ^--[a-zA-Z]+[0-9]* ]] ; then
+			__errortext -c "$koiname: __addarg err: long option must be alphanumeric and cannot start with a number"
+			return 1
+		fi
 	fi
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
-	# if ! [[ "$2" =~ ^--[a-zA-Z]+[0-9]* ]] ; then __errortext -c "$koiname: __addarg err: long option must be alphanumeric and cannot start with a number" ; return 1 ; fi
 
 	# action
 	availableactions="help storevalue storearray filepath directorypath positionalvalue positionalarray flag exit"

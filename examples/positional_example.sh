@@ -16,7 +16,7 @@ To run the script, use the __koirun function at the very end of the script:
 COMMENT
 
 source koi
-koiname=positional.sh
+koiname=positional_example.sh
 koidescription="Examples of how to use positional arguments with koi"
 
 function fetchtweets {
