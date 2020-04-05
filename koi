@@ -12,6 +12,7 @@ __koiactions=( )
 __koirequireds=( )
 __koidefaults=( )
 __koihelptexts=( )
+__koiverifyingfunctions=( )
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -123,12 +124,13 @@ function __listfunctions {
 function __addarg {
 	: <<- COMMENT
 	Add an argument to parse for a function
-		$1 - short option (optional)
+		$1 - short option (required, can be blank)
 		$2 - long option (required)
 		$3 - action to take with argument (required)
 		$4 - whether or not argument is required (required)
-		$5 - the default value for the argument (optional)
-		$6 - the help text to print when -h is specified (optional)
+		$5 - the default value for the argument (required, can be blank)
+		$6 - the help text to print when -h is specified (required)
+		$7 - the function used to verify the argument (optional)
 	COMMENT
 
 	if [[ $# -ne 6 ]] ; then __errortext -c "$koiname: __addarg err: incorrect usage, 6 arguments are required" ; return 1 ; fi
@@ -180,12 +182,16 @@ function __addarg {
 	# help
 	if [[ "$6" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing help text for argument" ; return 1 ; fi
 
+	# verifyingfunction
+	if ! declare -F -- "$7" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
+
 	__koishortoptions=( "${__koishortoptions[@]}" "$1" )
 	__koilongoptions=( "${__koilongoptions[@]}" "$2" )
 	__koiactions=( "${__koiactions[@]}" "$3" )
 	__koirequireds=( "${__koirequireds[@]}" "$4" )
 	__koidefaults=( "${__koidefaults[@]}" "$5" )
 	__koihelptexts=( "${__koihelptexts[@]}" "$6" )
+	__koiverifyingfunctions=( "${__koiverifyingfunctions[@]}" "$7" )
 
 	# verify nonambiguity
 	# only one positional array allowed
