@@ -90,6 +90,7 @@ function help {
 # ============ VERIFYING FUNCTIONS ============ #
 function __verifyfile {
 	# verify that a file exists
+	# $1 is the file to verify
 	if [[ ! -f "$1" ]] ; then
 		__errortext "$koiname: err: no such file '$1'"
 		return 1
@@ -98,8 +99,35 @@ function __verifyfile {
 
 function __verifydirectory {
 	# verify that a directory exists
+	# $1 is the directory to verify
 	if [[ ! -d "$1" ]] ; then
 		__errortext "$koiname: err: no such directory '$1'"
+		return 1
+	fi
+}
+
+function __verifyfiletype {
+	# verify that a file is of a specific file type
+	# $1 is the filetype to enforce
+	# $2 is the file to verify
+	if [[ $# -ne 2 ]] ; then
+		__errortext -c "$koiname: __verifyfiletype err: incorrect number of arguments (should be 2, filetype and file)"
+		return 1
+	fi
+
+	local filetype="$1"
+	if [[ "${filetype:0:1}" == "." ]] ; then
+		filetype="${filetype:1}"
+	fi
+	local file="$2"
+
+	if [[ ! -f "$file" ]] ; then
+		__errortext "$koiname: err: no such file '$file'"
+		return 1
+	fi
+
+	if [[ "$file" != *".${filetype}" ]] ; then
+		__errortext "$koiname: err: argument '$file' must be a $filetype file"
 		return 1
 	fi
 }
@@ -210,7 +238,9 @@ function __addarg {
 
 	# verifyingfunction
 	if [[ "$7" != "" ]] ; then
-		if ! declare -F -- "$7" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
+		local verifyingcmd=`cut -d' ' -f1 <<< "$7"`
+		local verifyingargs="${7##$verifyingcmd}"
+		if ! declare -F -- "$verifyingcmd" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
 		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname __addarg err: help options cannot have a verifyingfunction" ; return 1 ; fi
 		if [[ "$3" == "flag" ]] ; then __errortext -c "$koiname __addarg err: flag options cannot have a verifyingfunction" ; return 1 ; fi
 	fi
@@ -410,7 +440,9 @@ function __parseargs {
 
 			# run verifyingfunction, if one is registered
 			if [[ "$positionalverifyingfunction" != "" ]] ; then
-				$positionalverifyingfunction "$1"
+				local verifyingcmd=`cut -d' ' -f1 <<< "$positionalverifyingfunction"`
+				local verifyingargs="${positionalverifyingfunction##$verifyingcmd}"
+				$verifyingcmd $verifyingargs "$1"
 			fi
 
 			# move to the next argument
@@ -584,7 +616,9 @@ function __parseargs {
 
 			# run verifyingfunction, if one is registered
 			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
-				${__koiverifyingfunctions[$index]} "$2"
+				local verifyingcmd=`cut -d' ' -f1 <<< "${__koiverifyingfunctions[$index]}"`
+				local verifyingargs="${__koiverifyingfunctions[$index]##$verifyingcmd}"
+				$verifyingcmd $verifyingargs "$2"
 			fi
 
 			# move to the next argument
