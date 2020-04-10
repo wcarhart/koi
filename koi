@@ -7,6 +7,7 @@ koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
 koihelpmenuprefix=
+koiwordwraplength=100
 
 # internal variables
 __koisubcommands=1
@@ -705,23 +706,22 @@ function __helptext {
 	elif [[ "$texttype" == "helptext" ]] ; then
 		echo -e "$@" | fold -w 100 -s
 	elif [[ "$texttype" == "argtext" ]] ; then
-		local foldsize=100
 		local stringindex=0
 		local oldstringindex=
 		local output="$@"
 		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
-		if [[ "${#output}" -gt $foldsize ]] ; then
-			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
+		if [[ "${#output}" -gt $koiwordwraplength ]] ; then
+			while [[ $(( $stringindex + $koiwordwraplength )) -lt "${#output}" ]] ; do
 				oldstringindex=$stringindex
-				stringindex=$(( $oldstringindex + $foldsize ))
+				stringindex=$(( $oldstringindex + $koiwordwraplength ))
 				local splitchar="${output:$stringindex:1}"
 
 				local linecount=0
 				while [[ "$splitchar" != " " ]] ; do
 					linecount=$(( $linecount + 1 ))
 					stringindex=$(( $stringindex - 1 ))
-					if [[ $(( $linecount )) -ge $(( $foldsize - $indentsize - 1 )) ]] ; then
-						stringindex=$(( $oldstringindex + $foldsize ))
+					if [[ $(( $linecount )) -ge $(( $koiwordwraplength - $indentsize - 1 )) ]] ; then
+						stringindex=$(( $oldstringindex + $koiwordwraplength ))
 						break
 					fi
 					splitchar="${output:$stringindex:1}"
