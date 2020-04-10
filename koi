@@ -440,7 +440,7 @@ function __parseargs {
 
 			# run verifyingfunction, if one is registered
 			if [[ "$positionalverifyingfunction" != "" ]] ; then
-				local verifyingcmd=`cut -d' ' -f1 <<< "$positionalverifyingfunction"`
+				local verifyingcmd="${positionalverifyingfunction%% *}"
 				local verifyingargs="${positionalverifyingfunction##$verifyingcmd}"
 				$verifyingcmd $verifyingargs "$1"
 			fi
@@ -616,7 +616,7 @@ function __parseargs {
 
 			# run verifyingfunction, if one is registered
 			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
-				local verifyingcmd=`cut -d' ' -f1 <<< "${__koiverifyingfunctions[$index]}"`
+				local verifyingcmd="${__koiverifyingfunctions[$index]%% *}"
 				local verifyingargs="${__koiverifyingfunctions[$index]##$verifyingcmd}"
 				$verifyingcmd $verifyingargs "$2"
 			fi
