@@ -87,6 +87,23 @@ function help {
 	fi
 }
 
+# ============ VERIFYING FUNCTIONS ============ #
+function __verifyfile {
+	# verify that a file exists
+	if [[ ! -f "$1" ]] ; then
+		__errortext "$koiname: err: no such file '$1'"
+		return 1
+	fi
+}
+
+function __verifydirectory {
+	# verify that a directory exists
+	if [[ ! -d "$1" ]] ; then
+		__errortext "$koiname: err: no such directory '$1'"
+		return 1
+	fi
+}
+
 # ============ META FUNCTIONS ============ #
 function __commanddocs {
 	local colorteal=

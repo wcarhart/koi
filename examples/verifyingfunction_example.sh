@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-source koi
+source ../koi
 koiname=verifyingfunction_example.sh
 koidescription="Examples of verifying functions"
 
@@ -13,13 +13,6 @@ function run {
 	for f in "${file[@]}" ; do
 		echo "File: $f"
 	done
-}
-
-function __verifyfile {
-	if [[ ! -f "$1" ]] ; then
-		__errortext "$koiname: err: no such file '$1'"
-		return 1
-	fi
 }
 
 __koirun "$@"
