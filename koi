@@ -2,9 +2,13 @@
 set -e
 
 # ============ STARTUP FUNCTIONALITY ============ #
+# configurable options
 koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
+koihelpmenuprefix=
+
+# internal variables
 __koisubcommands=1
 __koishortoptions=( )
 __koilongoptions=( )
@@ -531,11 +535,10 @@ function __parseargs {
 			if [[ $__koisubcommands -eq 0 ]] ; then
 				finaloutput="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
 			else
-				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			finaloutput="`__helptext clitext 0 "${finaloutput}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
+			finaloutput="`__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
 
