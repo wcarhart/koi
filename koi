@@ -2,12 +2,27 @@
 set -e
 
 # ============ STARTUP FUNCTIONALITY ============ #
+# colors and style
+__reset='\033[0m'
+__bold='\033[1m'
+__lightgrey='\033[90m'
+__red='\033[91m'
+__green='\033[92m'
+__yellow='\033[93m'
+__blue='\033[94m'
+__pink='\033[95m'
+__teal='\033[96m'
+__white='\033[97m'
+
 # configurable options
 koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
 koihelpmenuprefix=
 koiwordwraplength=100
+koishowhints=1
+koicolorprimary="$__teal"
+koicolorsecondary="$__yellow"
 
 # internal variables
 __koisubcommands=1
@@ -48,24 +63,14 @@ function help {
 		fi
 	done
 
-	# setup colors
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
-
 	# build help menu
 	local helpoutput=$(cat <<- EndOfHelp
-	${coloryellow}${koidescription}${colorreset}
+	${koicolorsecondary}${koidescription}${__reset}
 
-	${colorteal}Usage:${colorreset}
+	${koicolorprimary}Usage:${__reset}
 	  $koiname COMMAND [args]
 
-	${colorteal}Available commands:${colorreset}
+	${koicolorprimary}Available commands:${__reset}
 	$( \
 		local cmd ; \
 		for cmd in `__listfunctions` ; do \
@@ -80,15 +85,17 @@ function help {
 	if [[ "$verbose" -eq 1 ]] ; then
 		__commanddocs
 	else
-		helpoutput=$(cat <<- EndOfHelp
-		${colorteal}Hints:${colorreset}
-		  $koiname help --verbose    Show complete command documentation
-		  $koiname COMMAND --help    Show individual command documentation
+		if [[ "$koishowhints" -eq 1 ]] ; then
+			helpoutput=$(cat <<- EndOfHelp
+			${koicolorprimary}Hints:${__reset}
+			  $koiname help --verbose    Show complete command documentation
+			  $koiname COMMAND --help    Show individual command documentation
 
-		EndOfHelp
-		)
-		echo -e "$helpoutput"
-		echo
+			EndOfHelp
+			)
+			echo -e "$helpoutput"
+			echo
+		fi
 	fi
 }
 
@@ -139,16 +146,8 @@ function __verifyfiletype {
 
 # ============ META FUNCTIONS ============ #
 function __commanddocs {
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
 	local helpoutput=$(cat <<- EndOfHelp
-	${colorteal}Command documentation:${colorreset}
+	${koicolorprimary}Command documentation:${__reset}
 	$( \
 		local cmd ; \
 		for cmd in `__listfunctions` ; do \
@@ -347,16 +346,6 @@ function __parseargs {
 	done
 	set -- "${resolvedargs[@]}"
 
-	# configure colors
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
-
 	# determine positional arguments
 	local positionalargindex=0
 	local positionalarguments=()
@@ -534,12 +523,12 @@ function __parseargs {
 
 			# if using __koimain
 			if [[ $__koisubcommands -eq 0 ]] ; then
-				finaloutput="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+				finaloutput="${koicolorsecondary}${koidescription}${__reset}\n\n${koicolorprimary}Usage:${__reset}\n"
 			else
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			finaloutput="`__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
+			finaloutput="`__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n"`"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
 
@@ -744,9 +733,7 @@ function __helptext {
 function __errortext {
 	if [[ "$1" == "-c" || "$1" == "--color" ]] ; then
 		shift
-		local colorred='\033[91m'
-		local colorreset='\033[0m'
-		>&2 echo -e "${colorred}$@${colorreset}"
+		>&2 echo -e "${__red}$@${__reset}"
 	else
 		>&2 echo -e "$@"
 	fi
