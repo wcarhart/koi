@@ -145,13 +145,16 @@ function __addarg {
 
 	# long option
 	if [[ "$2" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing long option for argument" ; return 1 ; fi
-	if [[ "$2" != --* ]] ; then
-		if [[ "$3" != "positionalvalue" && "$3" != "positionalarray" ]] ; then
+	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
+		if ! [[ "$2" =~ ^[a-zA-Z]+[a-zA-Z0-9]*$ ]] ; then
+			__errortext -c "$koiname: __addarg err: positional arguments must be alphanumeric and cannot start with a number"
+		fi
+	else
+		if [[ "$2" != --* ]] ; then
 			__errortext -c "$koiname: __addarg err: long option must start with a double dash"
 			return 1
 		fi
-	else
-		if ! [[ "$2" =~ ^--[a-zA-Z]+[0-9]* ]] ; then
+		if ! [[ "$2" =~ ^--[a-zA-Z]+[a-zA-Z0-9]* ]] ; then
 			__errortext -c "$koiname: __addarg err: long option must be alphanumeric and cannot start with a number"
 			return 1
 		fi
@@ -264,6 +267,11 @@ function __addarg {
 function __parseargs {
 	: <<- COMMENT
 	Parse previously defined arguments and options
+	Runs the following steps:
+	 - resolve joint arguments
+	 - configure options
+	 - resolve positional arguments
+	 - parse arguments (based on action defined by __addarg)
 	COMMENT
 
 	# resolve joint arguments
@@ -301,12 +309,14 @@ function __parseargs {
 	local positionalargindex=0
 	local positionalarguments=()
 	local positionalrequireds=()
+	local positionalverifyingfunctions=()
 	local usepositionalarray=0
 	local argindex
 	for argindex in "${!__koiactions[@]}" ; do
 		if [[ "${__koiactions[$argindex]}" == "positionalarray" ]] ; then
 			usepositionalarray=1
 			positionalarguments="${__koilongoptions[$argindex]}"
+			positionalverifyingfunctions="${__koiverifyingfunctions[$argindex]}"
 			if [[ "${__koirequireds[$argindex]}" == "required" ]] ; then
 				positionalrequireds=required
 			else
@@ -316,6 +326,7 @@ function __parseargs {
 		elif [[ "${__koiactions[$argindex]}" == "positionalvalue" ]] ; then
 			positionalarguments=( "${positionalarguments[@]}" "${__koilongoptions[$argindex]}" )
 			positionalrequireds=( "${positionalrequireds[@]}" "${__koirequireds[$argindex]}" )
+			positionalverifyingfunctions=( "${positionalverifyingfunctions[@]}" "${__koiverifyingfunctions[$argindex]}" )
 		fi
 	done
 
@@ -341,6 +352,7 @@ function __parseargs {
 
 		# check for positional arguments
 		local positionaloption=
+		local positionalverifyingfunction=
 		local ispositional=0
 		if [[ "$option" == "" ]] ; then
 			if [[ "$positionalarguments" != "" ]] ; then
@@ -348,9 +360,15 @@ function __parseargs {
 				ispositional=1
 				if [[ $usepositionalarray -eq 1 ]] ; then
 					positionaloption="$positionalarguments"
+					positionalverifyingfunction="$positionalverifyingfunctions"
 				else
+					# handle option
 					positionaloption="${positionalarguments[0]}"
 					positionalarguments=( "${positionalarguments[@]:1}" )
+
+					# handle verifyingfunction
+					positionalverifyingfunction="${positionalverifyingfunctions[0]}"
+					positionalverifyingfunctions=( "${positionalverifyingfunctions[@]:1}" )
 				fi
 			fi
 		fi
@@ -374,8 +392,8 @@ function __parseargs {
 			fi
 
 			# run verifyingfunction, if one is registered
-			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
-				${__koiverifyingfunctions[$index]} "$2"
+			if [[ "$positionalverifyingfunction" != "" ]] ; then
+				$positionalverifyingfunction "$1"
 			fi
 
 			# move to the next argument
