@@ -238,7 +238,7 @@ function __addarg {
 
 	# verifyingfunction
 	if [[ "$7" != "" ]] ; then
-		local verifyingcmd=`cut -d' ' -f1 <<< "$7"`
+		local verifyingcmd="${7%% *}"
 		local verifyingargs="${7##$verifyingcmd}"
 		if ! declare -F -- "$verifyingcmd" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
 		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname __addarg err: help options cannot have a verifyingfunction" ; return 1 ; fi
