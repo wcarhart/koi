@@ -179,7 +179,7 @@ function __addarg {
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
 
 	# action
-	local availableactions="help storevalue storearray positionalvalue positionalarray flag exit"
+	local availableactions="help storevalue storearray positionalvalue positionalarray flag"
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	local found=0
 	local action
@@ -213,9 +213,9 @@ function __addarg {
 		if ! declare -F -- "$7" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
 		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname __addarg err: help options cannot have a verifyingfunction" ; return 1 ; fi
 		if [[ "$3" == "flag" ]] ; then __errortext -c "$koiname __addarg err: flag options cannot have a verifyingfunction" ; return 1 ; fi
-		if [[ "$3" == "exit" ]] ; then __errortext -c "$koiname __addarg err: exit options cannot have a verifyingfunction" ; return 1 ; fi
 	fi
 
+	# update argument lists
 	__koishortoptions=( "${__koishortoptions[@]}" "$1" )
 	__koilongoptions=( "${__koilongoptions[@]}" "$2" )
 	__koiactions=( "${__koiactions[@]}" "$3" )
@@ -477,7 +477,7 @@ function __parseargs {
 				fi
 
 				case "${__koiactions[$i]}" in
-					help|flag|exit )
+					help|flag )
 						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
 						;;
 					storevalue )
@@ -577,11 +577,8 @@ function __parseargs {
 				fi
 				eval "${varname}+=( \"$2\" )"
 
-			# if action is storevalue, or exit
+			# if action is storevalue
 			else
-				if [[ "${__koiactions[$index]}" == "exit" ]] ; then
-					exit
-				fi
 				read $varname <<< "$2"
 			fi
 
