@@ -653,7 +653,68 @@ function __cleararglists {
 	__koihelptexts=( )
 }
 
+function __parsekoirc {
+	# parse the ~/.koirc
+
+	if [[ ! -f ~/.koirc ]] ; then
+		__errortext -c "$koiname: __parsekoirc err: no such file ~/.koirc"
+		return 1
+	fi
+
+	local configurableoptions=( koiname koidescription koicolors koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary )
+	local koioption
+	local koivalue
+	local resolvedkoivalue
+	local line
+	local linecount=0
+	local finished=0
+
+	until [[ $finished -eq 1 ]] ; do
+		# read line from ~/.koirc
+		(( $linecount + 1 ))
+		read -r line || finished=1
+		if [[ "$line" == "" ]] ; then continue ; fi
+		if [[ "${line:0:1}" == "#" ]] ; then continue ; fi
+		if [[ "$line" != *=* ]] ; then
+			__errortext "$koiname: err: invalid syntax in ~/.koirc, line $linecount"
+			return 1
+		fi
+		koioption=$(echo "${line%=*}" | xargs)
+
+		# validate variable
+		local found=0
+		local option
+		for option in "${configurableoptions[@]}" ; do
+			if [[ "$option" == "$koioption" ]] ; then found=1 ; fi
+		done
+		if [[ $found -eq 0 ]] ; then
+			__errortext "$koiname: err: invalid option declared in ~/.koirc, '$koioption' is not configurable"
+			return 1
+		fi
+
+		# set up variable
+		koivalue=$(echo "${line#${koioption}*=}" | xargs)
+		if [[ "$koivalue" == true ]] ; then
+			resolvedkoivalue=1
+		elif [[ "$koivalue" == false ]] ; then
+			resolvedkoivalue=0
+		elif [[ "$koivalue" == red ]] ; then
+			# todo
+		else
+			resolvedkoivalue="$koivalue"
+		fi
+		read $koioption <<< "$resolvedkoivalue"
+
+	done < ~/.koirc
+}
+
 function __koirun {
+	# check for ~/.koirc
+	if [[ -f ~/.koirc ]] ; then
+		__parsekoirc
+	fi
+
+	# run logic
 	if declare -F -- "__koimain" >/dev/null ; then
 		__koisubcommands=0
 		__koimain "$@"
@@ -685,6 +746,11 @@ function __helptext {
 	$2 is the indent size to use, in spaces
 	$3+ is the text to print
 	COMMENT
+
+	if [[ $# -lt 2 ]] ; then
+		__errortext -c "$koiname: __helptext err: incorrect number of arguments, must be at least 2"
+		return 1
+	fi
 
 	local texttype="$1"
 	local indentsize=$2

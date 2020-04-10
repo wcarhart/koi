@@ -15,7 +15,7 @@ To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
 COMMENT
 
-source koi
+source ../koi
 koiname=curl_example
 koidescription="Examples of potential curl commands you could make with koi"
 
