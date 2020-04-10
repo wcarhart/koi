@@ -179,7 +179,7 @@ function __addarg {
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
 
 	# action
-	local availableactions="help storevalue storearray directorypath positionalvalue positionalarray flag exit"
+	local availableactions="help storevalue storearray positionalvalue positionalarray flag exit"
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	local found=0
 	local action
@@ -426,7 +426,7 @@ function __parseargs {
 			for i in "${!__koilongoptions[@]}" ; do
 				local indent="${#__koilongoptions[$i]}"
 				local action="${__koiactions[$i]}"
-				if [[ "$action" == "storevalue" || "$action" == "storearray" || "$action" == "directorypath" ]] ; then
+				if [[ "$action" == "storevalue" || "$action" == "storearray" ]] ; then
 					indent=$(( $indent + ${#__koilongoptions[$i]} + 9 ))
 				elif [[ "$action" != "positionalvalue" && "$action" != "positionalarray" ]] ; then
 					local indent=$(( $indent + 10 ))
@@ -480,7 +480,7 @@ function __parseargs {
 					help|flag|exit )
 						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
 						;;
-					storevalue|directorypath )
+					storevalue )
 						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname} ${argcaps}${endrequiredtext} "
 						;;
 					storearray )
@@ -525,7 +525,7 @@ function __parseargs {
 
 				# capitalize variable name
 				output="  ${shortoptionstr}${__koilongoptions[$i]}"
-				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "directorypath" ]] ; then
+				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" ]] ; then
 					output="${output} `echo "${varname}" | tr '[a-z]' '[A-Z]'` "
 				fi
 
@@ -577,11 +577,9 @@ function __parseargs {
 				fi
 				eval "${varname}+=( \"$2\" )"
 
-			# if action is storevalue, directorypath, or exit
+			# if action is storevalue, or exit
 			else
-				if [[ "${__koiactions[$index]}" == "directorypath" ]] ; then
-					if [[ ! -d "$2" ]] ; then __errortext "$koiname: err: value for argument '${__koilongoptions[$index]}' needs to be a directory, no such directory '$2'" ; return 1 ; fi
-				elif [[ "${__koiactions[$index]}" == "exit" ]] ; then
+				if [[ "${__koiactions[$index]}" == "exit" ]] ; then
 					exit
 				fi
 				read $varname <<< "$2"
