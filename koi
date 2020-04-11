@@ -651,6 +651,7 @@ function __cleararglists {
 	__koirequireds=( )
 	__koidefaults=( )
 	__koihelptexts=( )
+	__koiverifyingfunctions=( )
 }
 
 function __parsekoirc {
