@@ -694,18 +694,40 @@ function __parsekoirc {
 
 		# set up variable
 		koivalue=$(echo "${line#${koioption}*=}" | xargs)
-		if [[ "$koivalue" == true ]] ; then
-			resolvedkoivalue=1
-		elif [[ "$koivalue" == false ]] ; then
-			resolvedkoivalue=0
-		elif [[ "$koivalue" == red ]] ; then
-			# todo
-		else
-			resolvedkoivalue="$koivalue"
-		fi
-		read $koioption <<< "$resolvedkoivalue"
+		resolvedkoivalue="$(__resolvekoircvalues "$koivalue")"
+		read -r $koioption <<< "$resolvedkoivalue"
 
 	done < ~/.koirc
+}
+
+function __resolvekoircvalues {
+	# resolve a .koirc value
+	# $1 is the value to resolve
+	if [[ "$1" == true ]] ; then
+		echo 1
+	elif [[ "$1" == false ]] ; then
+		echo 0
+	elif [[ "$1" == bold ]] ; then
+		echo "$__bold"
+	elif [[ "$1" == lightgrey ]] ; then
+		echo "$__lightgrey"
+	elif [[ "$1" == red ]] ; then
+		echo "$__red"
+	elif [[ "$1" == green ]] ; then
+		echo "$__green"
+	elif [[ "$1" == yellow ]] ; then
+		echo "$__yellow"
+	elif [[ "$1" == blue ]] ; then
+		echo "$__blue"
+	elif [[ "$1" == pink ]] ; then
+		echo "$__pink"
+	elif [[ "$1" == teal ]] ; then
+		echo "$__teal"
+	elif [[ "$1" == white ]] ; then
+		echo "$__white"
+	else
+		echo "$1"
+	fi
 }
 
 function __koirun {
