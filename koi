@@ -2,9 +2,29 @@
 set -e
 
 # ============ STARTUP FUNCTIONALITY ============ #
+# colors and style
+__reset='\033[0m'
+__bold='\033[1m'
+__lightgrey='\033[90m'
+__red='\033[91m'
+__green='\033[92m'
+__yellow='\033[93m'
+__blue='\033[94m'
+__pink='\033[95m'
+__teal='\033[96m'
+__white='\033[97m'
+
+# configurable options
 koiname=koi
 koidescription="Bashful argument parsing"
 koicolors=1
+koihelpmenuprefix=
+koiwordwraplength=100
+koishowhints=1
+koicolorprimary="$__teal"
+koicolorsecondary="$__yellow"
+
+# internal variables
 __koisubcommands=1
 __koishortoptions=( )
 __koilongoptions=( )
@@ -43,24 +63,14 @@ function help {
 		fi
 	done
 
-	# setup colors
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
-
 	# build help menu
 	local helpoutput=$(cat <<- EndOfHelp
-	${coloryellow}${koidescription}${colorreset}
+	${koicolorsecondary}${koidescription}${__reset}
 
-	${colorteal}Usage:${colorreset}
+	${koicolorprimary}Usage:${__reset}
 	  $koiname COMMAND [args]
 
-	${colorteal}Available commands:${colorreset}
+	${koicolorprimary}Available commands:${__reset}
 	$( \
 		local cmd ; \
 		for cmd in `__listfunctions` ; do \
@@ -75,15 +85,17 @@ function help {
 	if [[ "$verbose" -eq 1 ]] ; then
 		__commanddocs
 	else
-		helpoutput=$(cat <<- EndOfHelp
-		${colorteal}Hints:${colorreset}
-		  $koiname help --verbose    Show complete command documentation
-		  $koiname COMMAND --help    Show individual command documentation
+		if [[ "$koishowhints" -eq 1 ]] ; then
+			helpoutput=$(cat <<- EndOfHelp
+			${koicolorprimary}Hints:${__reset}
+			  $koiname help --verbose    Show complete command documentation
+			  $koiname COMMAND --help    Show individual command documentation
 
-		EndOfHelp
-		)
-		echo -e "$helpoutput"
-		echo
+			EndOfHelp
+			)
+			echo -e "$helpoutput"
+			echo
+		fi
 	fi
 }
 
@@ -134,16 +146,8 @@ function __verifyfiletype {
 
 # ============ META FUNCTIONS ============ #
 function __commanddocs {
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
 	local helpoutput=$(cat <<- EndOfHelp
-	${colorteal}Command documentation:${colorreset}
+	${koicolorprimary}Command documentation:${__reset}
 	$( \
 		local cmd ; \
 		for cmd in `__listfunctions` ; do \
@@ -342,16 +346,6 @@ function __parseargs {
 	done
 	set -- "${resolvedargs[@]}"
 
-	# configure colors
-	local colorteal=
-	local coloryellow=
-	local colorreset=
-	if [[ "$koicolors" -eq 1 ]] ; then
-		colorteal='\033[96m'
-		coloryellow='\033[93m'
-		colorreset='\033[0m'
-	fi
-
 	# determine positional arguments
 	local positionalargindex=0
 	local positionalarguments=()
@@ -529,13 +523,12 @@ function __parseargs {
 
 			# if using __koimain
 			if [[ $__koisubcommands -eq 0 ]] ; then
-				finaloutput="${coloryellow}${koidescription}${colorreset}\n\n${colorteal}Usage:${colorreset}\n"
+				finaloutput="${koicolorsecondary}${koidescription}${__reset}\n\n${koicolorprimary}Usage:${__reset}\n"
 			else
-				local subcommandindent=">> "
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			finaloutput="`__helptext clitext 0 "${finaloutput}${subcommandindent}${coloryellow}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${colorreset}${subcommandhelptext}\n"`"
+			finaloutput="`__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n"`"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
 
@@ -658,9 +651,93 @@ function __cleararglists {
 	__koirequireds=( )
 	__koidefaults=( )
 	__koihelptexts=( )
+	__koiverifyingfunctions=( )
+}
+
+function __parsekoirc {
+	# parse the ~/.koirc
+
+	if [[ ! -f ~/.koirc ]] ; then
+		__errortext -c "$koiname: __parsekoirc err: no such file ~/.koirc"
+		return 1
+	fi
+
+	local configurableoptions=( koiname koidescription koicolors koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary )
+	local koioption
+	local koivalue
+	local resolvedkoivalue
+	local line
+	local linecount=0
+	local finished=0
+
+	until [[ $finished -eq 1 ]] ; do
+		# read line from ~/.koirc
+		(( $linecount + 1 ))
+		read -r line || finished=1
+		if [[ "$line" == "" ]] ; then continue ; fi
+		if [[ "${line:0:1}" == "#" ]] ; then continue ; fi
+		if [[ "$line" != *=* ]] ; then
+			__errortext "$koiname: err: invalid syntax in ~/.koirc, line $linecount"
+			return 1
+		fi
+		koioption=$(echo "${line%=*}" | xargs)
+
+		# validate variable
+		local found=0
+		local option
+		for option in "${configurableoptions[@]}" ; do
+			if [[ "$option" == "$koioption" ]] ; then found=1 ; fi
+		done
+		if [[ $found -eq 0 ]] ; then
+			__errortext "$koiname: err: invalid option declared in ~/.koirc, '$koioption' is not configurable"
+			return 1
+		fi
+
+		# set up variable
+		koivalue=$(echo "${line#${koioption}*=}" | xargs)
+		resolvedkoivalue="$(__resolvekoircvalues "$koivalue")"
+		read -r $koioption <<< "$resolvedkoivalue"
+
+	done < ~/.koirc
+}
+
+function __resolvekoircvalues {
+	# resolve a .koirc value
+	# $1 is the value to resolve
+	if [[ "$1" == true ]] ; then
+		echo 1
+	elif [[ "$1" == false ]] ; then
+		echo 0
+	elif [[ "$1" == bold ]] ; then
+		echo "$__bold"
+	elif [[ "$1" == lightgrey ]] ; then
+		echo "$__lightgrey"
+	elif [[ "$1" == red ]] ; then
+		echo "$__red"
+	elif [[ "$1" == green ]] ; then
+		echo "$__green"
+	elif [[ "$1" == yellow ]] ; then
+		echo "$__yellow"
+	elif [[ "$1" == blue ]] ; then
+		echo "$__blue"
+	elif [[ "$1" == pink ]] ; then
+		echo "$__pink"
+	elif [[ "$1" == teal ]] ; then
+		echo "$__teal"
+	elif [[ "$1" == white ]] ; then
+		echo "$__white"
+	else
+		echo "$1"
+	fi
 }
 
 function __koirun {
+	# check for ~/.koirc
+	if [[ -f ~/.koirc ]] ; then
+		__parsekoirc
+	fi
+
+	# run logic
 	if declare -F -- "__koimain" >/dev/null ; then
 		__koisubcommands=0
 		__koimain "$@"
@@ -693,6 +770,11 @@ function __helptext {
 	$3+ is the text to print
 	COMMENT
 
+	if [[ $# -lt 2 ]] ; then
+		__errortext -c "$koiname: __helptext err: incorrect number of arguments, must be at least 2"
+		return 1
+	fi
+
 	local texttype="$1"
 	local indentsize=$2
 	shift 2
@@ -702,23 +784,22 @@ function __helptext {
 	elif [[ "$texttype" == "helptext" ]] ; then
 		echo -e "$@" | fold -w 100 -s
 	elif [[ "$texttype" == "argtext" ]] ; then
-		local foldsize=100
 		local stringindex=0
 		local oldstringindex=
 		local output="$@"
 		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
-		if [[ "${#output}" -gt $foldsize ]] ; then
-			while [[ $(( $stringindex + $foldsize )) -lt "${#output}" ]] ; do
+		if [[ "${#output}" -gt $koiwordwraplength ]] ; then
+			while [[ $(( $stringindex + $koiwordwraplength )) -lt "${#output}" ]] ; do
 				oldstringindex=$stringindex
-				stringindex=$(( $oldstringindex + $foldsize ))
+				stringindex=$(( $oldstringindex + $koiwordwraplength ))
 				local splitchar="${output:$stringindex:1}"
 
 				local linecount=0
 				while [[ "$splitchar" != " " ]] ; do
 					linecount=$(( $linecount + 1 ))
 					stringindex=$(( $stringindex - 1 ))
-					if [[ $(( $linecount )) -ge $(( $foldsize - $indentsize - 1 )) ]] ; then
-						stringindex=$(( $oldstringindex + $foldsize ))
+					if [[ $(( $linecount )) -ge $(( $koiwordwraplength - $indentsize - 1 )) ]] ; then
+						stringindex=$(( $oldstringindex + $koiwordwraplength ))
 						break
 					fi
 					splitchar="${output:$stringindex:1}"
@@ -741,9 +822,7 @@ function __helptext {
 function __errortext {
 	if [[ "$1" == "-c" || "$1" == "--color" ]] ; then
 		shift
-		local colorred='\033[91m'
-		local colorreset='\033[0m'
-		>&2 echo -e "${colorred}$@${colorreset}"
+		>&2 echo -e "${__red}$@${__reset}"
 	else
 		>&2 echo -e "$@"
 	fi
