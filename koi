@@ -23,6 +23,7 @@ koiwordwraplength=100
 koishowhints=1
 koicolorprimary="$__teal"
 koicolorsecondary="$__yellow"
+koirequirehelpactions=1
 
 # internal variables
 __koisubcommands=1
@@ -327,14 +328,16 @@ function __parseargs {
 	COMMENT
 
 	# verify help command
-	local foundhelp=0
-	local action
-	for action in "${__koiactions[@]}" ; do
-		if [[ "$action" == "help" ]] ; then foundhelp=1 ; fi
-	done
-	if [[ $foundhelp -eq 0 ]] ; then
-		__errortext -c "$koiname: __parseargs err: no valid help argument registered for function '${FUNCNAME[1]}'"
-		return 1
+	if [[ $koirequirehelpactions -eq 1 ]] ; then
+		local foundhelp=0
+		local action
+		for action in "${__koiactions[@]}" ; do
+			if [[ "$action" == "help" ]] ; then foundhelp=1 ; fi
+		done
+		if [[ $foundhelp -eq 0 ]] ; then
+			__errortext -c "$koiname: __parseargs err: no valid help argument registered for function '${FUNCNAME[1]}'"
+			return 1
+		fi
 	fi
 
 	# resolve joint arguments
@@ -674,7 +677,7 @@ function __parsekoirc {
 		return 1
 	fi
 
-	local configurableoptions=( koiname koidescription koicolors koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary )
+	local configurableoptions=( koiname koidescription koicolors koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary koirequirehelpactions )
 	local koioption
 	local koivalue
 	local resolvedkoivalue
