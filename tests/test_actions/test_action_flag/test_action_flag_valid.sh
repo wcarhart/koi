@@ -34,5 +34,5 @@ function koitest_run {
 	runtest test_action_flag_valid_required __error__ ""
 	runtest test_action_flag_valid_no_consume_arguments "1 arg" "-f" "-a" "arg"
 	runtest test_action_flag_valid_optional_with_value "1" "-f"
-	runtest test_action_flag_valid_optional_without_value "0" ""
+	runtest test_action_flag_valid_optional_without_value "0"
 }

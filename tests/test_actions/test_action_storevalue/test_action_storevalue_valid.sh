@@ -61,7 +61,7 @@ function koitest_run {
 	runtest test_action_valid_storevalue_required "arg" "-a" "arg"
 	runtest test_action_valid_storevalue_required __error__ ""
 	runtest test_action_valid_storevalue_with_default "arg" "-a" "arg"
-	runtest test_action_valid_storevalue_with_default "foo" ""
+	runtest test_action_valid_storevalue_with_default "foo"
 	runtest test_action_valid_storevalue_multiple_a "arg barg" "-a" "arg" "-b" "barg"
 	runtest test_action_valid_storevalue_multiple_b "arg barg" "-a" "arg" "-b" "barg"
 	runtest test_action_valid_storevalue_multiple_c "arg barg" "-a" "arg" "-b" "barg"

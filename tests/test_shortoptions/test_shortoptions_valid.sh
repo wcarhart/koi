@@ -12,6 +12,7 @@ function test_shortoption_valid_no_shortoption_with_longoption {
 function test_shortoption_valid_no_shortoption_with_longoption_multiple {
 	__addarg "" "--aaa" "storevalue" "optional" "" "help text"
 	__addarg "" "--bbb" "storevalue" "optional" "" "help text"
+	__parseargs "$@"
 	echo "$aaa $bbb"
 }
 
@@ -31,7 +32,7 @@ function test_shortoption_valid_valid_shortoption_multiple {
 # ========= ASSERTIONS ========= #
 function koitest_run {
 	runtest test_shortoption_valid_no_shortoption_with_longoption long "--long" "long"
+	runtest test_shortoption_valid_no_shortoption_with_longoption_multiple "arg barg" "--aaa" "arg" "--bbb" "barg"
 	runtest test_shortoption_valid_valid_shortoption_singular arg "-a" "arg"
 	runtest test_shortoption_valid_valid_shortoption_multiple "arg barg" "-a" "arg" "-b" "barg"
-	runtest test_shortoption_valid_no_shortoption_with_longoption_multiple "arg barg" "-a" "arg" "-b" "barg"
 }

@@ -102,7 +102,7 @@ function test_required_valid_flag_required_none {
 function test_required_valid_flag_optional {
 	__addarg "-a" "--aaa" "flag" "optional" "" "help text"
 	__parseargs "$@"
-	echo "$aaa[@"
+	echo "$aaa"
 }
 
 # ========= ASSERTIONS ========= #
@@ -111,7 +111,7 @@ function koitest_run {
 	runtest test_required_valid_storevalue_required_none __error__
 	runtest test_required_valid_storevalue_optional ""
 	runtest test_required_valid_storearray_required "arg" "-a" "arg"
-	runtest test_required_valid_storearray_required_multiple "arg barg" "-a" "arg" "-b" "barg"
+	runtest test_required_valid_storearray_required_multiple "arg barg" "-a" "arg" "-a" "barg"
 	runtest test_required_valid_storearray_required_none __error__
 	runtest test_required_valid_storearray_optional ""
 	runtest test_required_valid_positionalvalue_required "arg" "arg"
