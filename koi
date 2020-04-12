@@ -17,7 +17,6 @@ __white='\033[97m'
 # configurable options
 koiname=koi
 koidescription="Bashful argument parsing"
-koicolors=1
 koihelpmenuprefix=
 koiwordwraplength=100
 koishowhints=1
@@ -27,13 +26,13 @@ koirequirehelpactions=1
 
 # internal variables
 __koisubcommands=1
-__koishortoptions=( )
-__koilongoptions=( )
-__koiactions=( )
-__koirequireds=( )
-__koidefaults=( )
-__koihelptexts=( )
-__koiverifyingfunctions=( )
+__koishortoptions=()
+__koilongoptions=()
+__koiactions=()
+__koirequireds=()
+__koidefaults=()
+__koihelptexts=()
+__koiverifyingfunctions=()
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -41,6 +40,7 @@ function list {
 	__addarg "-d" "--docs" "flag" "optional" "" "If included, print command documentation"
 	__parseargs "$@"
 	
+	# shellcheck disable=SC2154
 	if [[ "$docs" -eq 1 ]] ; then
 		__commanddocs
 	else
@@ -54,7 +54,8 @@ function help {
 	__parseargs "$@"
 
 	# build help menu
-	local helpoutput=$(cat <<- EndOfHelp
+	local helpoutput
+	helpoutput=$(cat <<- EndOfHelp
 	${koicolorsecondary}${koidescription}${__reset}
 
 	${koicolorprimary}Usage:${__reset}
@@ -63,7 +64,7 @@ function help {
 	${koicolorprimary}Available commands:${__reset}
 	$( \
 		local cmd ; \
-		for cmd in `__listfunctions` ; do \
+		for cmd in $(__listfunctions) ; do \
 			echo "  $cmd" ; \
 		done \
 	)
@@ -73,6 +74,7 @@ function help {
 	echo
 
 	# optional help menu additions
+	# shellcheck disable=SC2154
 	if [[ "$verbose" -eq 1 ]] ; then
 		__commanddocs
 	else
@@ -141,7 +143,7 @@ function __commanddocs {
 	local stderr
 	local helpoutput="${koicolorprimary}Command documentation:${__reset}"
 	local cmd
-	for cmd in `__listfunctions` ; do
+	for cmd in $(__listfunctions) ; do
 		{
 			IFS=$'\n' read -r -d '' stderr;
 			IFS=$'\n' read -r -d '' stdout;
@@ -159,7 +161,8 @@ function __commanddocs {
 }
 
 function __listfunctions {
-	functionlist=( `declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g'` )
+	# shellcheck disable=SC2207
+	functionlist=( $(declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g') )
 	local func
 	for func in "${functionlist[@]}" ; do
 		echo "$func"
@@ -298,14 +301,17 @@ function __addarg {
 	fi
 
 	# long options must be unique
-	local compareshort=( )
+	local compareshort=()
 	local short
 	for short in "${__koishortoptions[@]}" ; do
 		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
 	done
+	if [[ "${#compareshort[@]}" -eq 0 ]] ; then compareshort=( "_" ) ; fi
 	local comparelong=( "${__koilongoptions[@]}" )
-	local shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
-	local longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	local shortunique
+	shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	local longunique
+	longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
 		__errortext -c "$koiname: __addarg err: short option names must be unique"
 		return 1
@@ -341,12 +347,12 @@ function __parseargs {
 	fi
 
 	# resolve joint arguments
-	local resolvedargs=( )
+	local resolvedargs=()
 	local arg
 	for arg in "$@" ; do
 		if [[ "${arg:0:1}" == "-" ]] ; then
 			if [[ "${#arg}" -gt 2 && "${arg:1:1}" != "-" ]] ; then
-				while read -n1 char ; do
+				while read -r -n1 char ; do
 					if [[ "$char" == "-" ]] ; then continue ; fi
 					if [[ "$char" == " " ]] ; then continue ; fi
 					if [[ "$char" == "" ]] ; then continue ; fi
@@ -362,7 +368,6 @@ function __parseargs {
 	set -- "${resolvedargs[@]}"
 
 	# determine positional arguments
-	local positionalargindex=0
 	local positionalarguments=()
 	local positionalrequireds=()
 	local positionalverifyingfunctions=()
@@ -371,11 +376,15 @@ function __parseargs {
 	for argindex in "${!__koiactions[@]}" ; do
 		if [[ "${__koiactions[$argindex]}" == "positionalarray" ]] ; then
 			usepositionalarray=1
+			# shellcheck disable=SC2178
 			positionalarguments="${__koilongoptions[$argindex]}"
+			# shellcheck disable=SC2178
 			positionalverifyingfunctions="${__koiverifyingfunctions[$argindex]}"
 			if [[ "${__koirequireds[$argindex]}" == "required" ]] ; then
+				# shellcheck disable=SC2178
 				positionalrequireds=required
 			else
+				# shellcheck disable=SC2178
 				positionalrequireds=optional
 			fi
 			break
@@ -394,7 +403,7 @@ function __parseargs {
 		local option=
 		local index=
 		local i
-		for i in `seq 0 "${#__koishortoptions[@]}"` ; do
+		for i in $(seq 0 "${#__koishortoptions[@]}") ; do
 			if [[ "${__koishortoptions[$i]}" == "$key" ]] ; then
 				option="${__koishortoptions[$i]}"
 				index=$i
@@ -411,6 +420,7 @@ function __parseargs {
 		local positionalverifyingfunction=
 		local ispositional=0
 		if [[ "$option" == "" ]] ; then
+			# shellcheck disable=SC2128
 			if [[ "$positionalarguments" != "" ]] ; then
 				option="null"
 				ispositional=1
@@ -439,10 +449,11 @@ function __parseargs {
 		# if action is positionalvalue or positionalarray
 		if [[ $ispositional -eq 1 ]] ; then
 			if [[ $usepositionalarray == 0 ]] ; then
-				read $positionaloption <<< "$1"
+				# shellcheck disable=SC2229,SC2086
+				read -r $positionaloption <<< "$1"
 			else
 				if [[ "${!positionaloption}" == "" ]] ; then
-					eval "${positionaloption}=( )"
+					eval "${positionaloption}=()"
 				fi
 				eval "${positionaloption}+=( \"$1\" )"
 			fi
@@ -451,6 +462,7 @@ function __parseargs {
 			if [[ "$positionalverifyingfunction" != "" ]] ; then
 				local verifyingcmd="${positionalverifyingfunction%% *}"
 				local verifyingargs="${positionalverifyingfunction##$verifyingcmd}"
+				# shellcheck disable=SC2086
 				$verifyingcmd $verifyingargs "$1"
 			fi
 
@@ -462,15 +474,14 @@ function __parseargs {
 
 			# determine max indent size
 			local maxindent=0
-			local willuselongerindent=0
 			local i
 			for i in "${!__koilongoptions[@]}" ; do
 				local indent="${#__koilongoptions[$i]}"
 				local action="${__koiactions[$i]}"
 				if [[ "$action" == "storevalue" || "$action" == "storearray" ]] ; then
-					indent=$(( $indent + ${#__koilongoptions[$i]} + 9 ))
+					indent=$(( indent + ${#__koilongoptions[$i]} + 9 ))
 				elif [[ "$action" != "positionalvalue" && "$action" != "positionalarray" ]] ; then
-					local indent=$(( $indent + 10 ))
+					local indent=$(( indent + 10 ))
 				fi
 				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
 			done
@@ -479,19 +490,20 @@ function __parseargs {
 			local positionalhelptext=
 			if [[ $usepositionalarray -eq 1 ]] ; then
 				# if we're using a positional array
+				# shellcheck disable=SC2128
 				if [[ "$positionalrequireds" == "required" ]] ; then
-					positionalhelptext="${positionalhelptext}`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`... "
+					positionalhelptext="${positionalhelptext}$(echo "$positionalarguments" | tr '[:lower:]' '[:upper:]')... "
 				else
-					positionalhelptext="${positionalhelptext}[`echo "$positionalarguments" | tr '[a-z]' '[A-Z]'`...] "
+					positionalhelptext="${positionalhelptext}[$(echo "$positionalarguments" | tr '[:lower:]' '[:upper:]')...] "
 				fi
 			else
 				# if we're using positional values
 				local argindex
 				for argindex in "${!positionalarguments[@]}" ; do
 					if [[ "${positionalrequireds[$argindex]}" == "required" ]] ; then
-						positionalhelptext="${positionalhelptext}`echo "${positionalarguments[$argindex]}" | tr '[a-z]' '[A-Z]'` "
+						positionalhelptext="${positionalhelptext}$(echo "${positionalarguments[$argindex]}" | tr '[:lower:]' '[:upper:]') "
 					else
-						positionalhelptext="${positionalhelptext}[`echo "${positionalarguments[$argindex]}" | tr '[a-z]' '[A-Z]'`] "
+						positionalhelptext="${positionalhelptext}[$(echo "${positionalarguments[$argindex]}" | tr '[:lower:]' '[:upper:]')] "
 					fi
 				done
 			fi
@@ -511,7 +523,7 @@ function __parseargs {
 				else
 					argumentname="${__koilongoptions[$i]}"
 				fi
-				argcaps=`echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[a-z]' '[A-Z]'`
+				argcaps=$(echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
 				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
 					startrequiredtext='['
 					endrequiredtext=']'
@@ -543,7 +555,7 @@ function __parseargs {
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			finaloutput="`__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n"`"
+			finaloutput="$(__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n")"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
 
@@ -566,13 +578,14 @@ function __parseargs {
 				# capitalize variable name
 				output="  ${shortoptionstr}${__koilongoptions[$i]}"
 				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" ]] ; then
-					output="${output} `echo "${varname}" | tr '[a-z]' '[A-Z]'` "
+					output="${output} $(echo "${varname}" | tr '[:lower:]' '[:upper:]') "
 				fi
 
 				# calculate indent size
 				local outputlength="${#output}"
-				local indentsize=$(( $maxindent - $outputlength ))
-				local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+				local indentsize=$(( maxindent - outputlength ))
+				local indent
+				indent="$(printf "%0.s " $(seq 1 $indentsize))"
 
 				# append help texts
 				output="${output}${indent}"
@@ -591,7 +604,7 @@ function __parseargs {
 					output="${output}\n"
 				fi
 
-				finaloutput="$finaloutput`__helptext argtext "$maxindent" "\n$output"`"
+				finaloutput="${finaloutput}$(__helptext argtext "$maxindent" "\n$output")"
 			done
 
 			# print help output
@@ -600,7 +613,8 @@ function __parseargs {
 
 		# if action is flag
 		elif [[ "${__koiactions[$index]}" == "flag" ]] ; then
-			read $varname <<< 1
+			# shellcheck disable=SC2229,SC2086
+			read -r $varname <<< 1
 			shift
 
 		# handle options with arguments that need to be validated
@@ -613,19 +627,21 @@ function __parseargs {
 			# if action is storearray
 			if [[ "${__koiactions[$index]}" == "storearray" ]] ; then
 				if [[ "${!varname}" == "" ]] ; then
-					eval "${varname}=( )"
+					eval "${varname}=()"
 				fi
 				eval "${varname}+=( \"$2\" )"
 
 			# if action is storevalue
 			else
-				read $varname <<< "$2"
+				# shellcheck disable=SC2229,SC2086
+				read -r $varname <<< "$2"
 			fi
 
 			# run verifyingfunction, if one is registered
 			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
 				local verifyingcmd="${__koiverifyingfunctions[$index]%% *}"
 				local verifyingargs="${__koiverifyingfunctions[$index]##$verifyingcmd}"
+				# shellcheck disable=SC2086
 				$verifyingcmd $verifyingargs "$2"
 			fi
 
@@ -650,9 +666,11 @@ function __parseargs {
 				if [[ "$action" == "help" || "$action" == "positionalvalue" || "$action" == "positionalarray" ]] ; then
 					continue
 				elif [[ "$action" == "flag" ]] ; then
-					read $varname <<< 0
+					# shellcheck disable=SC2229,SC2086
+					read -r $varname <<< 0
 				else
-					read $varname <<< "${__koidefaults[$index]}"
+					# shellcheck disable=SC2229,SC2086
+					read -r $varname <<< "${__koidefaults[$index]}"
 				fi
 			fi				
 		fi
@@ -660,13 +678,13 @@ function __parseargs {
 }
 
 function __cleararglists {
-	__koishortoptions=( )
-	__koilongoptions=( )
-	__koiactions=( )
-	__koirequireds=( )
-	__koidefaults=( )
-	__koihelptexts=( )
-	__koiverifyingfunctions=( )
+	__koishortoptions=()
+	__koilongoptions=()
+	__koiactions=()
+	__koirequireds=()
+	__koidefaults=()
+	__koihelptexts=()
+	__koiverifyingfunctions=()
 }
 
 function __parsekoirc {
@@ -677,7 +695,7 @@ function __parsekoirc {
 		return 1
 	fi
 
-	local configurableoptions=( koiname koidescription koicolors koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary koirequirehelpactions )
+	local configurableoptions=( koiname koidescription koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary koirequirehelpactions )
 	local koioption
 	local koivalue
 	local resolvedkoivalue
@@ -687,7 +705,7 @@ function __parsekoirc {
 
 	until [[ $finished -eq 1 ]] ; do
 		# read line from ~/.koirc
-		(( $linecount + 1 ))
+		(( linecount + 1 ))
 		read -r line || finished=1
 		if [[ "$line" == "" ]] ; then continue ; fi
 		if [[ "${line:0:1}" == "#" ]] ; then continue ; fi
@@ -711,6 +729,7 @@ function __parsekoirc {
 		# set up variable
 		koivalue=$(echo "${line#${koioption}*=}" | xargs)
 		resolvedkoivalue="$(__resolvekoircvalues "$koivalue")"
+		# shellcheck disable=SC2229,SC2086
 		read -r $koioption <<< "$resolvedkoivalue"
 
 	done < ~/.koirc
@@ -761,8 +780,10 @@ function __koirun {
 	else
 		if [[ $# -eq 0 ]] ; then
 			__errortext -c "$koiname: err: a subcommand is required, but one was not provided"
-			local funcs=( `__listfunctions` )
-			local cmds=$(printf ", %s" "${funcs[@]}")
+			# shellcheck disable=SC2207
+			local funcs=( $(__listfunctions) )
+			local cmds
+			cmds=$(printf ", %s" "${funcs[@]}")
 			__errortext "  available subcommands:${cmds:1}"
 			__errortext "  use '$koiname help --verbose' for full documentation"
 			exit 1
@@ -793,7 +814,6 @@ function __helptext {
 	local texttype="$1"
 	local indentsize=$2
 	shift 2
-	local toprint="$@"
 	if [[ "$texttype" == "clitext" ]] ; then
 		echo -ne "$@"
 	elif [[ "$texttype" == "helptext" ]] ; then
@@ -801,20 +821,22 @@ function __helptext {
 	elif [[ "$texttype" == "argtext" ]] ; then
 		local stringindex=0
 		local oldstringindex=
-		local output="$@"
-		local indent="`printf "%0.s " $(seq 1 $indentsize)`"
+		local output="$*"
+		local indent
+		# shellcheck disable=SC2086
+		indent="$(printf "%0.s " $(seq 1 $indentsize))"
 		if [[ "${#output}" -gt $koiwordwraplength ]] ; then
-			while [[ $(( $stringindex + $koiwordwraplength )) -lt "${#output}" ]] ; do
+			while [[ $(( stringindex + koiwordwraplength )) -lt "${#output}" ]] ; do
 				oldstringindex=$stringindex
-				stringindex=$(( $oldstringindex + $koiwordwraplength ))
+				stringindex=$(( oldstringindex + koiwordwraplength ))
 				local splitchar="${output:$stringindex:1}"
 
 				local linecount=0
 				while [[ "$splitchar" != " " ]] ; do
-					linecount=$(( $linecount + 1 ))
-					stringindex=$(( $stringindex - 1 ))
-					if [[ $(( $linecount )) -ge $(( $koiwordwraplength - $indentsize - 1 )) ]] ; then
-						stringindex=$(( $oldstringindex + $koiwordwraplength ))
+					linecount=$(( linecount + 1 ))
+					stringindex=$(( stringindex - 1 ))
+					if [[ $linecount -ge $(( koiwordwraplength - indentsize - 1 )) ]] ; then
+						stringindex=$(( oldstringindex + koiwordwraplength ))
 						break
 					fi
 					splitchar="${output:$stringindex:1}"
@@ -840,7 +862,7 @@ function __helptext {
 function __errortext {
 	if [[ "$1" == "-c" || "$1" == "--color" ]] ; then
 		shift
-		>&2 echo -e "${__red}$@${__reset}"
+		>&2 echo -e "${__red}$*${__reset}"
 	else
 		>&2 echo -e "$@"
 	fi
