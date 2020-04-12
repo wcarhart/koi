@@ -6,6 +6,7 @@ reset='\033[0m'
 red='\033[91m'
 green='\033[92m'
 yellow='\033[93m'
+blue='\033[94m'
 
 function cleanup {
 	if [[ -f .koitest_passed ]] ; then rm -rf .koitest_passed ; fi
@@ -98,11 +99,18 @@ if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
 	tests_passed=$(grep -c ^ .koitest_passed)
 	tests_failed=$(grep -c ^ .koitest_failed)
 
+	passed_text="test"
+	failed_text="test"
+	run_text="test"
+	if [[ "$tests_passed" -gt 1 ]] ; then passed_text="${passed_text}s" ; fi
+	if [[ "$tests_failed" -gt 1 ]] ; then failed_text="${failed_text}s" ; fi
+	if [[ "$tests_run" -gt 1 ]] ; then run_text="${run_text}s" ; fi
+
 	echo
 	echo -e "${yellow}Metrics:${reset}"
-	echo -e " - $tests_passed tests ${green}passed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")%)"
-	echo -e " - $tests_failed tests ${red}failed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")%)"
-	echo " - $tests_run tests run (~$runtime seconds)"
+	echo -e " - $tests_passed ${passed_text} ${green}passed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")%)"
+	echo -e " - $tests_failed ${failed_text} ${red}failed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")%)"
+	echo -e " - $tests_run ${run_text} ${blue}run${reset} (~$runtime seconds)"
 fi
 
 if [[ "$tests_run" -ne 0 ]] ; then
