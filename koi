@@ -26,13 +26,13 @@ koirequirehelpactions=1
 
 # internal variables
 __koisubcommands=1
-__koishortoptions=( )
-__koilongoptions=( )
-__koiactions=( )
-__koirequireds=( )
-__koidefaults=( )
-__koihelptexts=( )
-__koiverifyingfunctions=( )
+__koishortoptions=()
+__koilongoptions=()
+__koiactions=()
+__koirequireds=()
+__koidefaults=()
+__koihelptexts=()
+__koiverifyingfunctions=()
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -347,7 +347,7 @@ function __parseargs {
 	fi
 
 	# resolve joint arguments
-	local resolvedargs=( )
+	local resolvedargs=()
 	local arg
 	for arg in "$@" ; do
 		if [[ "${arg:0:1}" == "-" ]] ; then
@@ -453,7 +453,7 @@ function __parseargs {
 				read -r $positionaloption <<< "$1"
 			else
 				if [[ "${!positionaloption}" == "" ]] ; then
-					eval "${positionaloption}=( )"
+					eval "${positionaloption}=()"
 				fi
 				eval "${positionaloption}+=( \"$1\" )"
 			fi
@@ -627,7 +627,7 @@ function __parseargs {
 			# if action is storearray
 			if [[ "${__koiactions[$index]}" == "storearray" ]] ; then
 				if [[ "${!varname}" == "" ]] ; then
-					eval "${varname}=( )"
+					eval "${varname}=()"
 				fi
 				eval "${varname}+=( \"$2\" )"
 
@@ -678,13 +678,13 @@ function __parseargs {
 }
 
 function __cleararglists {
-	__koishortoptions=( )
-	__koilongoptions=( )
-	__koiactions=( )
-	__koirequireds=( )
-	__koidefaults=( )
-	__koihelptexts=( )
-	__koiverifyingfunctions=( )
+	__koishortoptions=()
+	__koilongoptions=()
+	__koiactions=()
+	__koirequireds=()
+	__koidefaults=()
+	__koihelptexts=()
+	__koiverifyingfunctions=()
 }
 
 function __parsekoirc {
