@@ -32,33 +32,34 @@ function runtest {
 		IFS=$'\n' read -r -d '' stdout;
 		(IFS=$'\n' read -r -d '' exitcode; exit ${exitcode});
 	} < <((printf '\0%s\0%d\0' "$($testfunction "$@")" "${?}" 1>&2) 2>&1)
+	local errcode=$?
 
 	if [[ "$expectedvalue" == "__error__" ]] ; then
-		if [[ "$exitcode" -ne 0 ]] ; then
-			indendedtext "${green}PASS${reset}"
+		if [[ "$errcode" -ne 0 ]] ; then
+			indendedtext 4 "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		elif [[ "$stderr" != "" ]] ; then
-			indendedtext "${green}PASS${reset}"
+			indendedtext 4 "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		else
 			indendedtext "${red}FAIL${reset} expected error, but exited cleanly"
-			indendedtext "stderr: $stderr"
+			indendedtext 6 "${red}stderr:${reset} $stderr"
 			echo "$testfunction" >> .koitest_failed
 		fi
 	else
-		if [[ "$exitcode" -ne 0 ]] ; then
-			indendedtext "${red}FAIL${reset} non-zero exit code"
-			indendedtext "stderr: $stderr"
+		if [[ "$stdout" != "$expectedvalue" ]] ; then
+			indendedtext 4 "${red}FAIL${reset} expected '$expectedvalue', found '$stdout'"
+			echo "$testfunction" >> .koitest_failed
+		elif [[ "$errcode" -ne 0 ]] ; then
+			indendedtext 4 "${red}FAIL${reset} non-zero exit code"
+			indendedtext 6 "${red}stderr:${reset} $stderr"
 			echo "$testfunction" >> .koitest_failed
 		elif [[ "$stderr" != "" ]] ; then
-			indendedtext "${red}FAIL${reset} test exited cleanly, but wrote to stderr"
-			indendedtext "stderr: $stderr"
-			echo "$testfunction" >> .koitest_failed
-		elif [[ "$stdout" != "$expectedvalue" ]] ; then
-			indendedtext "${red}FAIL${reset} expected '$expectedvalue', found '$stdout'"
+			indendedtext 4 "${red}FAIL${reset} test exited cleanly, but wrote to stderr"
+			indendedtext 6 "${red}stderr:${reset} $stderr"
 			echo "$testfunction" >> .koitest_failed
 		else
-			indendedtext "${green}PASS${reset}"
+			indendedtext 4 "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		fi
 	fi
@@ -67,7 +68,13 @@ function runtest {
 }
 
 function indendedtext {
-	echo -e "$(sed 's/^/    /g' <<< "$@")"
+	# indent some text
+	# $1 is the size of the indent
+	# $2+ is the text to indent
+	local indentsize=$1
+	shift
+	local indent="$(printf "%0.s " $(seq 1 $indentsize))"
+	echo -e "$(sed "s/^/${indent}/g" <<< "$@")"
 }
 
 # ========= run tests ========= #
