@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # ========= set up configs ========= #
-files=( $(find * -type f -name *.sh) )
+# shellcheck disable=SC2207,SC2035
+files=( $(find * -type f -name '*.sh') )
 reset='\033[0m'
 red='\033[91m'
 green='\033[92m'
@@ -31,6 +32,7 @@ function runtest {
 	{
 		IFS=$'\n' read -r -d '' stderr;
 		IFS=$'\n' read -r -d '' stdout;
+		# shellcheck disable=SC2086
 		(IFS=$'\n' read -r -d '' exitcode; exit ${exitcode});
 	} < <((printf '\0%s\0%d\0' "$($testfunction "$@")" "${?}" 1>&2) 2>&1)
 	local errcode=$?
@@ -74,23 +76,28 @@ function indendedtext {
 	# $2+ is the text to indent
 	local indentsize=$1
 	shift
-	local indent="$(printf "%0.s " $(seq 1 $indentsize))"
+	local indent
+	# shellcheck disable=SC2086
+	indent="$(printf "%0.s " $(seq 1 $indentsize))"
+	# shellcheck disable=SC2001
 	echo -e "$(sed "s/^/${indent}/g" <<< "$@")"
 }
 
 # ========= run tests ========= #
-starttime=`date +%s`
+starttime=$(date +%s)
 for file in "${files[@]}" ; do
 	if [[ "$file" == *"koitest" ]] ; then continue ; fi
 	(
 		echo -e "${yellow}$file${reset}"
+		# shellcheck disable=SC1091
 		source ../koi
 		set -e
+		# shellcheck disable=SC1090
 		source "$file"
 		koitest_run
 	)
 done
-endtime=`date +%s`
+endtime=$(date +%s)
 runtime=$(( endtime - starttime ))
 
 # ========= output metrics ========= #
