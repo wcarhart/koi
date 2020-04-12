@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ========= set up configs ========= #
-files=( $(find * -type f) )
+files=( $(find * -type f -name *.sh) )
 reset='\033[0m'
 red='\033[91m'
 green='\033[92m'
@@ -33,11 +33,6 @@ function runtest {
 		(IFS=$'\n' read -r -d '' exitcode; exit ${exitcode});
 	} < <((printf '\0%s\0%d\0' "$($testfunction "$@")" "${?}" 1>&2) 2>&1)
 
-	# {
-	# 	IFS=$'\n' read -r -d '' stderr;
-	# 	IFS=$'\n' read -r -d '' stdout;
-	# } < <((printf '\0%s\0' "$($testfunction "$@")" 1>&2) 2>&1)
-
 	if [[ "$expectedvalue" == "__error__" ]] ; then
 		if [[ "$exitcode" -ne 0 ]] ; then
 			indendedtext "${green}PASS${reset}"
@@ -59,24 +54,14 @@ function runtest {
 			indendedtext "${red}FAIL${reset} test exited cleanly, but wrote to stderr"
 			indendedtext "stderr: $stderr"
 			echo "$testfunction" >> .koitest_failed
+		elif [[ "$stdout" != "$expectedvalue" ]] ; then
+			indendedtext "${red}FAIL${reset} expected '$expectedvalue', found '$stdout'"
+			echo "$testfunction" >> .koitest_failed
 		else
 			indendedtext "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		fi
 	fi
-
-	# if [[ "$stderr" != "" && "$expectedvalue" != "__error__" ]] ; then
-	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} $stderr")"
-	# 	echo "$testfunction" >> .koitest_failed
-	# elif [[ "$stdout" != "$expectedvalue" && "$expectedvalue" != "__error__" ]] ; then
-	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} expected '$expectedvalue', found '$stdout'")"
-	# 	echo "$testfunction" >> .koitest_failed
-	# elif [[ "$expectedvalue" == "__error__" && "$stderr" == "" && "$exitcode" -eq 0 ]] ; then
-	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} expected error, but exited cleanly")"
-	# else
-	# 	echo -e "$(sed 's/^/    /g' <<< "${green}PASS${reset}")"
-	# 	echo "$testfunction" >> .koitest_passed
-	# fi
 
 	echo "$testfunction" >> .koitest_run
 }
@@ -90,7 +75,7 @@ starttime=`date +%s`
 for file in "${files[@]}" ; do
 	if [[ "$file" == *"koitest" ]] ; then continue ; fi
 	(
-		echo "$file"
+		echo -e "${yellow}$file${reset}"
 		source ../koi
 		set -e
 		source "$file"

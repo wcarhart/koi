@@ -40,6 +40,12 @@ function test_invalid_no_dash {
 	echo "$aaa"
 }
 
+function test_invalid_more_than_one_dash {
+	__addarg "--aaa" "--aaa" "storevalue" "optional" "" "help text"
+	__parseargs "$@"
+	echo "$aaa"
+}
+
 # ========= ASSERTIONS ========= #
 function koitest_run {
 	runtest test_non_alphanumeric_shortoption __error__ "-_" "arg"
@@ -48,4 +54,5 @@ function koitest_run {
 	runtest test_invalid_length_long __error__ "-aaa" "arg"
 	runtest test_invalid_length_short __error__ "-" "arg"
 	runtest test_invalid_no_dash __error__ "a" "arg"
+	runtest test_invalid_more_than_one_dash __error__ "--aaa" "arg"
 }
