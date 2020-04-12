@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# ========= set up configs ========= #
+files=( $(find * -type f) )
+reset='\033[0m'
+red='\033[91m'
+green='\033[92m'
+yellow='\033[93m'
+
+function cleanup {
+	if [[ -f .koitest_passed ]] ; then rm -rf .koitest_passed ; fi
+	if [[ -f .koitest_failed ]] ; then rm -rf .koitest_failed ; fi
+	if [[ -f .koitest_run ]] ; then rm -rf .koitest_run ; fi
+}
+trap cleanup EXIT
+cleanup
+
+# ========= test runner ========= #
+function runtest {
+	# run a test
+	# $1 is the test to run
+	# $2 is the expected return value
+	# $3+ are the arguments for the test
+	local testfunction="$1"
+	local expectedvalue="$2"
+	shift
+	shift
+	echo "  $testfunction"
+
+	{
+		IFS=$'\n' read -r -d '' stderr;
+		IFS=$'\n' read -r -d '' stdout;
+		(IFS=$'\n' read -r -d '' exitcode; exit ${exitcode});
+	} < <((printf '\0%s\0%d\0' "$($testfunction "$@")" "${?}" 1>&2) 2>&1)
+
+	# {
+	# 	IFS=$'\n' read -r -d '' stderr;
+	# 	IFS=$'\n' read -r -d '' stdout;
+	# } < <((printf '\0%s\0' "$($testfunction "$@")" 1>&2) 2>&1)
+
+	if [[ "$expectedvalue" == "__error__" ]] ; then
+		if [[ "$exitcode" -ne 0 ]] ; then
+			indendedtext "${green}PASS${reset}"
+			echo "$testfunction" >> .koitest_passed
+		elif [[ "$stderr" != "" ]] ; then
+			indendedtext "${green}PASS${reset}"
+			echo "$testfunction" >> .koitest_passed
+		else
+			indendedtext "${red}FAIL${reset} expected error, but exited cleanly"
+			indendedtext "stderr: $stderr"
+			echo "$testfunction" >> .koitest_failed
+		fi
+	else
+		if [[ "$exitcode" -ne 0 ]] ; then
+			indendedtext "${red}FAIL${reset} non-zero exit code"
+			indendedtext "stderr: $stderr"
+			echo "$testfunction" >> .koitest_failed
+		elif [[ "$stderr" != "" ]] ; then
+			indendedtext "${red}FAIL${reset} test exited cleanly, but wrote to stderr"
+			indendedtext "stderr: $stderr"
+			echo "$testfunction" >> .koitest_failed
+		else
+			indendedtext "${green}PASS${reset}"
+			echo "$testfunction" >> .koitest_passed
+		fi
+	fi
+
+	# if [[ "$stderr" != "" && "$expectedvalue" != "__error__" ]] ; then
+	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} $stderr")"
+	# 	echo "$testfunction" >> .koitest_failed
+	# elif [[ "$stdout" != "$expectedvalue" && "$expectedvalue" != "__error__" ]] ; then
+	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} expected '$expectedvalue', found '$stdout'")"
+	# 	echo "$testfunction" >> .koitest_failed
+	# elif [[ "$expectedvalue" == "__error__" && "$stderr" == "" && "$exitcode" -eq 0 ]] ; then
+	# 	echo -e "$(sed 's/^/    /g' <<< "${red}FAIL:${reset} expected error, but exited cleanly")"
+	# else
+	# 	echo -e "$(sed 's/^/    /g' <<< "${green}PASS${reset}")"
+	# 	echo "$testfunction" >> .koitest_passed
+	# fi
+
+	echo "$testfunction" >> .koitest_run
+}
+
+function indendedtext {
+	echo -e "$(sed 's/^/    /g' <<< "$@")"
+}
+
+# ========= run tests ========= #
+starttime=`date +%s`
+for file in "${files[@]}" ; do
+	if [[ "$file" == *"koitest" ]] ; then continue ; fi
+	(
+		echo "$file"
+		source ../koi
+		set -e
+		source "$file"
+		koitest_run
+	)
+done
+endtime=`date +%s`
+runtime=$(( endtime - starttime ))
+
+# ========= output metrics ========= #
+tests_run=$(grep -c ^ .koitest_run)
+if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
+	tests_passed=$(grep -c ^ .koitest_passed)
+	tests_failed=$(grep -c ^ .koitest_failed)
+
+	echo
+	echo -e "${yellow}Metrics:${reset}"
+	echo -e " - $tests_passed tests ${green}passed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")%)"
+	echo -e " - $tests_failed tests ${red}failed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")%)"
+	echo " - $tests_run tests run (~$runtime seconds)"
+fi
+
+if [[ "$tests_run" -ne 0 ]] ; then
+	exit 1
+fi
