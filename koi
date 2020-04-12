@@ -301,11 +301,12 @@ function __addarg {
 	fi
 
 	# long options must be unique
-	local compareshort=( )
+	local compareshort=()
 	local short
 	for short in "${__koishortoptions[@]}" ; do
 		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
 	done
+	if [[ "${#compareshort[@]}" -eq 0 ]] ; then compareshort=( "_" ) ; fi
 	local comparelong=( "${__koilongoptions[@]}" )
 	local shortunique
 	shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
