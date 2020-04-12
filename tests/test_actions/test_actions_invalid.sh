@@ -3,7 +3,7 @@
 koirequirehelpactions=0
 
 # ========= TESTS ========= #
-function test_invalid_action {
+function test_action_invalid {
 	__addarg "-a" "--aaa" "mycoolaction" "optional" "" "help text"
 	__parseargs "$@"
 	echo "$aaa"
@@ -11,5 +11,5 @@ function test_invalid_action {
 
 # ========= ASSERTIONS ========= #
 function koitest_run {
-	runtest test_invalid_action __error__ "--aaa" "arg"
+	runtest test_action_invalid __error__ "--aaa" "arg"
 }

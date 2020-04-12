@@ -6,7 +6,7 @@ koirequirehelpactions=0
 function test_general_invalid_addarg_arguments_less {
 	__addarg "-h" "--help" "help"
 	__parseargs "$@"
-	echo "here"
+	echo "$help"
 }
 
 function test_general_invalid_addarg_arguments_more {
