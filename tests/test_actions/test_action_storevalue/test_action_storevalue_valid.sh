@@ -48,8 +48,14 @@ function test_action_valid_storevalue_multiple_c {
 	echo "$aaa $bbb"
 }
 
-function test_action_valid_storevalue_overwrite {
+function test_action_valid_storevalue_overwrite_required {
 	__addarg "-a" "--aaa" "storevalue" "required" "" "help text"
+	__parseargs "$@"
+	echo "$aaa"
+}
+
+function test_action_valid_storevalue_overwrite_optional {
+	__addarg "-a" "--aaa" "storevalue" "optional" "" "help text"
 	__parseargs "$@"
 	echo "$aaa"
 }
@@ -66,5 +72,6 @@ function koitest_run {
 	runtest test_action_valid_storevalue_multiple_b "arg barg" "-a" "arg" "-b" "barg"
 	runtest test_action_valid_storevalue_multiple_c "arg barg" "-a" "arg" "-b" "barg"
 	runtest test_action_valid_storevalue_multiple_c " "
-	runtest test_action_valid_storevalue_overwrite "barg" "-a" "arg" "-b" "barg"
+	runtest test_action_valid_storevalue_overwrite_required "barg" "-a" "arg" "-a" "barg"
+	runtest test_action_valid_storevalue_overwrite_optional "barg" "-a" "arg" "-a" "barg"
 }

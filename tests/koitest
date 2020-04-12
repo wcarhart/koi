@@ -94,17 +94,29 @@ endtime=`date +%s`
 runtime=$(( endtime - starttime ))
 
 # ========= output metrics ========= #
-tests_run=$(grep -c ^ .koitest_run)
+if [[ -f .koitest_run ]] ; then
+	tests_run=$(grep -c ^ .koitest_run)
+else
+	tests_run=0
+fi
 if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
-	tests_passed=$(grep -c ^ .koitest_passed)
-	tests_failed=$(grep -c ^ .koitest_failed)
+	if [[ -f .koitest_passed ]] ; then
+		tests_passed=$(grep -c ^ .koitest_passed)
+	else
+		tests_passed=0
+	fi
+	if [[ -f .koitest_failed ]] ; then
+		tests_failed=$(grep -c ^ .koitest_failed)
+	else
+		tests_failed=0
+	fi
 
 	passed_text="test"
 	failed_text="test"
 	run_text="test"
-	if [[ "$tests_passed" -gt 1 ]] ; then passed_text="${passed_text}s" ; fi
-	if [[ "$tests_failed" -gt 1 ]] ; then failed_text="${failed_text}s" ; fi
-	if [[ "$tests_run" -gt 1 ]] ; then run_text="${run_text}s" ; fi
+	if [[ "$tests_passed" -ne 1 ]] ; then passed_text="${passed_text}s" ; fi
+	if [[ "$tests_failed" -ne 1 ]] ; then failed_text="${failed_text}s" ; fi
+	if [[ "$tests_run" -ne 1 ]] ; then run_text="${run_text}s" ; fi
 
 	echo
 	echo -e "${yellow}Metrics:${reset}"
