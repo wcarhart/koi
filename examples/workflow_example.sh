@@ -23,7 +23,7 @@ koicolors=0
 # Here's an example of of koi only using long options (starting with --)
 function start {
 	__addarg "-h" "--help" "help" "optional" "" "Start a workflow given a workflow script"
-	__addarg "" "--script" "filepath" "required" "" "The workflow script"
+	__addarg "" "script" "positionalvalue" "required" "" "The workflow script"
 	__addarg "" "--name" "storevalue" "required" "" "The name of the workflow"
 	__addarg "" "--user" "storevalue" "optional" "`whoami`" "The workflow user"
 	__parseargs "$@"

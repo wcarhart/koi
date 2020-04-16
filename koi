@@ -162,7 +162,7 @@ function __commanddocs {
 
 function __listfunctions {
 	# shellcheck disable=SC2207
-	functionlist=( $(declare -F | sed -e 's/declare -f //g' -e 's/[_-].*//g') )
+	functionlist=( $(declare -F | sed -e 's/declare -f //g' -e 's/^[_-].*$//g') )
 	local func
 	for func in "${functionlist[@]}" ; do
 		echo "$func"
