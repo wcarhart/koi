@@ -2,7 +2,7 @@
 
 # ========= set up configs ========= #
 # shellcheck disable=SC2207,SC2035
-files=( $(find * -type f -name '*.sh') )
+files=( $(find * -type f -name '*.sh' -not \( -path 'scripts/*' -prune \)) )
 reset='\033[0m'
 red='\033[91m'
 green='\033[92m'
