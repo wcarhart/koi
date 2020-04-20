@@ -209,6 +209,23 @@ function __addarg {
 		fi
 	fi
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
+	local illegalnames illegalname
+	illegalnames=( \
+		BASH BASH_ENV BASH_SUBSHELL BASHPID BASH_VERSINFO BASH_VERSION CDPATH \
+		DIRSTACK EDITOR EUID FUNCNAME GLOBIGNORE GROUPS HOME HOSTNAME \
+		HOSTTYPE IFS IGNOREEOF LC_COLLATE LC_CTYPE LINENO MACHTYPE OLDPWD \
+		OSTYPE PATH PIPESTATUS PPID PROMPT_COMMAND PS1 PS2 PS3 PS4 PWD \
+		REPLY SECONDS SHELLOPTS SHLVL TMOUT UID koiname koidescription \
+		koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary \
+		koicolorsecondary koirequirehelpactions \
+	)
+	for illegalname in "${illegalnames[@]}" ; do
+		if [[ "$2" == "$illegalname" || "$2" == --"$illegalname" ]] ; then
+			__errortext -c "$koiname: __addarg err: illegal long option name '$2'"
+			__errortext -c "  Some variable names are restricted due to their use interally"
+			return 1
+		fi
+	done
 
 	# action
 	local availableactions="help storevalue storearray positionalvalue positionalarray flag"
