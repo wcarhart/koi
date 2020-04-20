@@ -27,7 +27,14 @@ function runtest {
 	local expectedvalue="$2"
 	shift
 	shift
-	echo "  $testfunction"
+	indendedtext 2 "$testfunction"
+
+	if ! declare -F -- "$testfunction" >/dev/null ; then
+		indendedtext 4 "${red}FAIL${reset} no such function '$testfunction'"
+		echo "$testfunction" >> .koitest_failed
+		echo "$testfunction" >> .koitest_run
+		return
+	fi
 
 	{
 		IFS=$'\n' read -r -d '' stderr;
@@ -125,10 +132,24 @@ if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
 	if [[ "$tests_failed" -ne 1 ]] ; then failed_text="${failed_text}s" ; fi
 	if [[ "$tests_run" -ne 1 ]] ; then run_text="${run_text}s" ; fi
 
+	passed_percentage=$(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")
+	failed_percentage=$(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")
+
+	if [[ "$passed_percentage" == "1.00" ]] ; then
+		passed_percentage="100"
+	elif [[ "$passed_percentage" == "0.00" ]] ; then
+		passed_percentage="0"
+	fi
+	if [[ "$failed_percentage" == "1.00" ]] ; then
+		failed_percentage="100"
+	elif [[ "$failed_percentage" == "0.00" ]] ; then
+		failed_percentage="0"
+	fi
+
 	echo
 	echo -e "${yellow}Metrics:${reset}"
-	echo -e " - $tests_passed ${passed_text} ${green}passed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")%)"
-	echo -e " - $tests_failed ${failed_text} ${red}failed${reset} ($(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")%)"
+	echo -e " - $tests_passed ${passed_text} ${green}passed${reset} ($passed_percentage%)"
+	echo -e " - $tests_failed ${failed_text} ${red}failed${reset} ($failed_percentage%)"
 	echo -e " - $tests_run ${run_text} ${blue}run${reset} (~$runtime seconds)"
 fi
 

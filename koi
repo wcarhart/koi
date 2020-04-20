@@ -264,9 +264,9 @@ function __addarg {
 
 	# verify nonambiguity
 	# only one positional array allowed
-	local positionalarrays=0
-	local positionalvalues=0
-	local action
+	local action positionalarrays positionalvalues
+	positionalarrays=0
+	positionalvalues=0
 	for action in "${__koiactions[@]}" ; do
 		if [[ "$action" == "positionalvalue" ]] ; then positionalvalues=$(( positionalvalues + 1 )) ; fi
 		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
@@ -280,10 +280,10 @@ function __addarg {
 	fi
 
 	# only one optional positional value allowed
+	local optionalpositionalvalues requiredpositionalvalues index
 	if [[ $positionalvalues -gt 1 ]] ; then
-		local optionalpositionalvalues=0
-		local requiredpositionalvalues=0
-		local index
+		optionalpositionalvalues=0
+		requiredpositionalvalues=0
 		for index in "${!__koiactions[@]}" ; do
 			if [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "optional" ]] ; then
 				optionalpositionalvalues=$(( optionalpositionalvalues + 1 ))
@@ -301,16 +301,24 @@ function __addarg {
 	fi
 
 	# long options must be unique
-	local compareshort=()
-	local short
+	local short long shortunique longunique compareshort comparelong
+	compareshort=()
 	for short in "${__koishortoptions[@]}" ; do
 		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
 	done
 	if [[ "${#compareshort[@]}" -eq 0 ]] ; then compareshort=( "_" ) ; fi
-	local comparelong=( "${__koilongoptions[@]}" )
-	local shortunique
+
+	comparelong=()
+	for long in "${__koilongoptions[@]}" ; do
+		if [[ "$long" == --* ]] ; then
+			comparelong=( "${comparelong[@]}" "${long:2}" )
+		else
+			comparelong=( "${comparelong[@]}" "$long" )
+		fi
+	done
+	if [[ "${#comparelong[@]}" -eq 0 ]] ; then comparelong=( "_" ) ; fi
+
 	shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
-	local longunique
 	longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
 	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
 		__errortext -c "$koiname: __addarg err: short option names must be unique"
