@@ -1,5 +1,7 @@
 #!/bin/bash
 
+koirequirehelpactions=0
+
 # ========= TESTS ========= #
 function test_general_valid_combinations_a {
 	__addarg "-h" "--help" "help" "optional" "" "help text"
@@ -51,9 +53,25 @@ function __verifytest {
 
 # ========= ASSERTIONS ========= #
 function koitest_run {
+	local function_list
+	function_list=$(cat <<- EndOfExpected
+	cleanup
+	help
+	indendedtext
+	koitest_run
+	list
+	runtest
+	test_general_valid_combinations_a
+	test_general_valid_combinations_b
+	test_general_valid_combinations_c
+	test_general_valid_crash_on_empty_arguments_a
+	test_general_valid_crash_on_empty_arguments_b
+	EndOfExpected
+	)
 	runtest test_general_valid_combinations_a "1 pos0 pos1 barg0 barg1" "pos0" "-b" "barg0" "-f" "-b" "barg1" "pos1"
 	runtest test_general_valid_combinations_b "10 pos1 0 arg pos0 1" "-d" "pos0" "-a" "arg" "pos1"
 	runtest test_general_valid_combinations_c "c c c 0" "-a" "c" "-b" "c" "--aaa" "c"
 	runtest test_general_valid_crash_on_empty_arguments_a __error__ ""
 	runtest test_general_valid_crash_on_empty_arguments_b __error__ ""
+	runtest __listfunctions "$function_list"
 }
