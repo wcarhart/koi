@@ -1,8 +1,20 @@
 #!/bin/bash
 
 # ========= set up configs ========= #
-# shellcheck disable=SC2207,SC2035
-files=( $(find * -type f -name '*.sh' -not \( -path 'scripts/*' -prune \)) )
+if [[ $# -eq 0 ]] ; then
+	# shellcheck disable=SC2207,SC2035
+	files=( $(find * -type f -name '*.sh' -not \( -path 'scripts/*' -prune \)) )
+else
+	files=( "$@" )
+fi
+
+for f in "${files[@]}" ; do
+	if [[ ! -f "$f" ]] ; then
+		>&2 echo "err: no such file '$f'"
+		exit 1
+	fi
+done
+
 reset='\033[0m'
 red='\033[91m'
 green='\033[92m'
@@ -132,15 +144,21 @@ if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
 	if [[ "$tests_failed" -ne 1 ]] ; then failed_text="${failed_text}s" ; fi
 	if [[ "$tests_run" -ne 1 ]] ; then run_text="${run_text}s" ; fi
 
-	passed_percentage=$(printf %.2f\\n "$(bc -l <<< "${tests_passed}/${tests_run}")")
-	failed_percentage=$(printf %.2f\\n "$(bc -l <<< "${tests_failed}/${tests_run}")")
+	if [[ "$tests_run" -eq 0 ]] ; then
+		test_divide_by=1
+	else
+		test_divide_by="$tests_run"
+	fi
 
-	if [[ "$passed_percentage" == "1.00" ]] ; then
+	passed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_passed}/${test_divide_by}) * 100")")
+	failed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_failed}/${test_divide_by}) * 100")")
+
+	if [[ "$passed_percentage" == "100.00" ]] ; then
 		passed_percentage="100"
 	elif [[ "$passed_percentage" == "0.00" ]] ; then
 		passed_percentage="0"
 	fi
-	if [[ "$failed_percentage" == "1.00" ]] ; then
+	if [[ "$failed_percentage" == "100.00" ]] ; then
 		failed_percentage="100"
 	elif [[ "$failed_percentage" == "0.00" ]] ; then
 		failed_percentage="0"
