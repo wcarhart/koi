@@ -165,7 +165,7 @@ function test_groups_valid_optional_mixed_a {
 function test_groups_valid_optional_mixed_b {
 	__addarg "-a" "--arg" "storevalue" "optional" "" "help text"
 	__addarg "-b" "--barg" "storevalue" "optional" "" "help text"
-	__addgroup "group" "AND" "optional" "--flag" "--arg"
+	__addgroup "group" "AND" "optional" "--arg" "--barg"
 	__parseargs "$@"
 
 	echo "$arg $barg"
@@ -183,7 +183,7 @@ function test_groups_valid_required_mixed_a {
 function test_groups_valid_required_mixed_b {
 	__addarg "-a" "--arg" "storevalue" "optional" "" "help text"
 	__addarg "-b" "--barg" "storevalue" "optional" "" "help text"
-	__addgroup "group" "AND" "required" "--flag" "--arg"
+	__addgroup "group" "AND" "required" "--arg" "--barg"
 	__parseargs "$@"
 
 	echo "$arg $barg"

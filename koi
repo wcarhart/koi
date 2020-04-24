@@ -57,8 +57,8 @@ function help {
 	__parseargs "$@"
 
 	# build help menu
-	local helpoutput
-	helpoutput=$(cat <<- EndOfHelp
+	local __helpoutput
+	__helpoutput=$(cat <<- EndOfHelp
 	${koicolorsecondary}${koidescription}${__reset}
 
 	${koicolorprimary}Usage:${__reset}
@@ -66,14 +66,14 @@ function help {
 
 	${koicolorprimary}Available commands:${__reset}
 	$( \
-		local cmd ; \
-		for cmd in $(__listfunctions) ; do \
-			echo "  $cmd" ; \
+		local __cmd ; \
+		for __cmd in $(__listfunctions) ; do \
+			echo "  $__cmd" ; \
 		done \
 	)
 	EndOfHelp
 	)
-	echo -e "$helpoutput"
+	echo -e "$__helpoutput"
 	echo
 
 	# optional help menu additions
@@ -82,14 +82,14 @@ function help {
 		__commanddocs
 	else
 		if [[ "$koishowhints" -eq 1 ]] ; then
-			helpoutput=$(cat <<- EndOfHelp
+			__helpoutput=$(cat <<- EndOfHelp
 			${koicolorprimary}Hints:${__reset}
 			  $koiname help --verbose    Show complete command documentation
 			  $koiname COMMAND --help    Show individual command documentation
 
 			EndOfHelp
 			)
-			echo -e "$helpoutput"
+			echo -e "$__helpoutput"
 			echo
 		fi
 	fi
@@ -123,52 +123,51 @@ function __verifyfiletype {
 		return 1
 	fi
 
-	local filetype="$1"
-	if [[ "${filetype:0:1}" == "." ]] ; then
-		filetype="${filetype:1}"
+	local __filetype __file
+	__filetype="$1"
+	if [[ "${__filetype:0:1}" == "." ]] ; then
+		__filetype="${__filetype:1}"
 	fi
-	local file="$2"
+	__file="$2"
 
-	if [[ ! -f "$file" ]] ; then
-		__errortext "$koiname: err: no such file '$file'"
+	if [[ ! -f "$__file" ]] ; then
+		__errortext "$koiname: err: no such file '$__file'"
 		return 1
 	fi
 
-	if [[ "$file" != *".${filetype}" ]] ; then
-		__errortext "$koiname: err: argument '$file' must be a $filetype file"
+	if [[ "$__file" != *".${__filetype}" ]] ; then
+		__errortext "$koiname: err: argument '$__file' must be a $__filetype file"
 		return 1
 	fi
 }
 
 # ============ META FUNCTIONS ============ #
 function __commanddocs {
-	local stdout
-	local stderr
-	local helpoutput="${koicolorprimary}Command documentation:${__reset}"
-	local cmd
-	for cmd in $(__listfunctions) ; do
+	local __stdout __stderr __helpoutput __cmd
+	__helpoutput="${koicolorprimary}Command documentation:${__reset}"
+	for __cmd in $(__listfunctions) ; do
 		{
-			IFS=$'\n' read -r -d '' stderr;
-			IFS=$'\n' read -r -d '' stdout;
-		} < <((printf '\0%s\0' "$(set -e ; __cleararglists ; $cmd --help)" 1>&2) 2>&1)
+			IFS=$'\n' read -r -d '' __stderr;
+			IFS=$'\n' read -r -d '' __stdout;
+		} < <((printf '\0%s\0' "$(set -e ; __cleararglists ; $__cmd --help)" 1>&2) 2>&1)
 
-		if [[ "$stderr" != "" ]] ; then
-			__errortext "$stderr"
+		if [[ "$__stderr" != "" ]] ; then
+			__errortext "$__stderr"
 			return 1
 		fi
-		helpoutput="${helpoutput}\n${stdout}\n"
-		stdout=
+		__helpoutput="${__helpoutput}\n${__stdout}\n"
+		__stdout=
 	done
 
-	echo -e "$helpoutput"
+	echo -e "$__helpoutput"
 }
 
 function __listfunctions {
 	# shellcheck disable=SC2207
 	functionlist=( $(declare -F | sed -e 's/declare -f //g' -e 's/^[_-].*$//g') )
-	local func
-	for func in "${functionlist[@]}" ; do
-		echo "$func"
+	local __func
+	for __func in "${functionlist[@]}" ; do
+		echo "$__func"
 	done
 }
 
@@ -212,8 +211,8 @@ function __addarg {
 		fi
 	fi
 	if [[ "$2" == *" "* ]] ; then __errortext -c "$koiname: __addarg err: long option cannot contain a space" ; return 1 ; fi
-	local illegalnames illegalname
-	illegalnames=( \
+	local __illegalnames __illegalname
+	__illegalnames=( \
 		BASH BASH_ENV BASH_SUBSHELL BASHPID BASH_VERSINFO BASH_VERSION CDPATH \
 		DIRSTACK EDITOR EUID FUNCNAME GLOBIGNORE GROUPS HOME HOSTNAME \
 		HOSTTYPE IFS IGNOREEOF LC_COLLATE LC_CTYPE LINENO MACHTYPE OLDPWD \
@@ -222,8 +221,8 @@ function __addarg {
 		koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary \
 		koicolorsecondary koirequirehelpactions \
 	)
-	for illegalname in "${illegalnames[@]}" ; do
-		if [[ "$2" == "$illegalname" || "$2" == --"$illegalname" ]] ; then
+	for __illegalname in "${__illegalnames[@]}" ; do
+		if [[ "$2" == "$__illegalname" || "$2" == --"$__illegalname" ]] ; then
 			__errortext -c "$koiname: __addarg err: illegal long option name '$2'"
 			__errortext -c "  Some variable names are restricted due to their use interally"
 			return 1
@@ -231,12 +230,13 @@ function __addarg {
 	done
 
 	# action
-	local availableactions="help storevalue storearray positionalvalue positionalarray flag"
+	local __availableactions
+	__availableactions="help storevalue storearray positionalvalue positionalarray flag"
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
-	local found=0
-	local action
-	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
-	if [[ $found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $(sed 's/,/, /g' <<< $(__join ',' $availableactions))" ; return 1 ; fi
+	local __found __action
+	__found=0
+	for __action in $__availableactions ; do if [[ "$__action" == "$3" ]] ; then __found=1 ; break ; fi ; done
+	if [[ $__found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $(sed 's/,/, /g' <<< $(__join ',' $__availableactions))" ; return 1 ; fi
 	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
 		if [[ "$1" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
 		if [[ "$2" == -* ]] ; then __errortext -c "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
@@ -266,9 +266,10 @@ function __addarg {
 
 	# verifyingfunction
 	if [[ "$7" != "" ]] ; then
-		local verifyingcmd="${7%% *}"
-		local verifyingargs="${7##$verifyingcmd}"
-		if ! declare -F -- "$verifyingcmd" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
+		local __verifyingcmd __verifyingargs
+		__verifyingcmd="${7%% *}"
+		__verifyingargs="${7##$__verifyingcmd}"
+		if ! declare -F -- "$__verifyingcmd" >/dev/null ; then __errortext -c "$koiname: __addarg err: specified verifying function '$7' is not defined" ; return 1 ; fi
 		if [[ "$3" == "help" ]] ; then __errortext -c "$koiname __addarg err: help options cannot have a verifyingfunction" ; return 1 ; fi
 		if [[ "$3" == "flag" ]] ; then __errortext -c "$koiname __addarg err: flag options cannot have a verifyingfunction" ; return 1 ; fi
 	fi
@@ -284,67 +285,67 @@ function __addarg {
 
 	# verify nonambiguity
 	# only one positional array allowed
-	local action positionalarrays positionalvalues
-	positionalarrays=0
-	positionalvalues=0
-	for action in "${__koiactions[@]}" ; do
-		if [[ "$action" == "positionalvalue" ]] ; then positionalvalues=$(( positionalvalues + 1 )) ; fi
-		if [[ "$action" == "positionalarray" ]] ; then positionalarrays=$(( positionalarrays + 1 )) ; fi
+	local __action __positionalarrays __positionalvalues
+	__positionalarrays=0
+	__positionalvalues=0
+	for __action in "${__koiactions[@]}" ; do
+		if [[ "$__action" == "positionalvalue" ]] ; then __positionalvalues=$(( __positionalvalues + 1 )) ; fi
+		if [[ "$__action" == "positionalarray" ]] ; then __positionalarrays=$(( __positionalarrays + 1 )) ; fi
 	done
-	if [[ $positionalarrays -gt 1 ]] ; then
+	if [[ $__positionalarrays -gt 1 ]] ; then
 		__errortext -c "$koiname: __addarg err: there cannot be multiple positional array actions because they cannot be parsed unambiguously"
 		return 1
-	elif [[ $positionalarrays -eq 1 && $positionalvalues -gt 0 ]] ; then
+	elif [[ $__positionalarrays -eq 1 && $__positionalvalues -gt 0 ]] ; then
 		__errortext -c "$koiname: __addarg err: there cannot be combinations of positional arrays and positional values because they cannot be parsed unambiguously"
 		return 1
 	fi
 
 	# only one optional positional value allowed
-	local optionalpositionalvalues requiredpositionalvalues index
-	if [[ $positionalvalues -gt 1 ]] ; then
-		optionalpositionalvalues=0
-		requiredpositionalvalues=0
-		for index in "${!__koiactions[@]}" ; do
-			if [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "optional" ]] ; then
-				optionalpositionalvalues=$(( optionalpositionalvalues + 1 ))
-			elif [[ "${__koiactions[$index]}" == "positionalvalue" && "${__koirequireds[$index]}" == "required" ]] ; then
-				requiredpositionalvalues=$(( requiredpositionalvalues + 1 ))
+	local __optionalpositionalvalues __requiredpositionalvalues __index
+	if [[ $__positionalvalues -gt 1 ]] ; then
+		__optionalpositionalvalues=0
+		__requiredpositionalvalues=0
+		for __index in "${!__koiactions[@]}" ; do
+			if [[ "${__koiactions[$__index]}" == "positionalvalue" && "${__koirequireds[$__index]}" == "optional" ]] ; then
+				__optionalpositionalvalues=$(( __optionalpositionalvalues + 1 ))
+			elif [[ "${__koiactions[$__index]}" == "positionalvalue" && "${__koirequireds[$__index]}" == "required" ]] ; then
+				__requiredpositionalvalues=$(( __requiredpositionalvalues + 1 ))
 			fi
 		done
-		if [[ $optionalpositionalvalues -gt 1 ]] ; then
+		if [[ $__optionalpositionalvalues -gt 1 ]] ; then
 			__errortext -c "$koiname: __addarg err: there cannot be multiple optional positional values because they cannot be parsed unambiguously"
 			return 1
-		elif [[ $optionalpositionalvalues -eq 1 && $requiredpositionalvalues -gt 0 ]] ; then
+		elif [[ $__optionalpositionalvalues -eq 1 && $__requiredpositionalvalues -gt 0 ]] ; then
 			__errortext -c "$koiname: __addarg err: there cannot be combinations of optional and required positional values because they cannot be parsed unambiguously"
 			return 1
 		fi
 	fi
 
 	# long options must be unique
-	local short long shortunique longunique compareshort comparelong
-	compareshort=()
-	for short in "${__koishortoptions[@]}" ; do
-		if [[ "$short" != "" ]] ; then compareshort=( "${compareshort[@]}" "$short" ) ; fi
+	local __short __long __shortunique __longunique __compareshort __comparelong
+	__compareshort=()
+	for __short in "${__koishortoptions[@]}" ; do
+		if [[ "$__short" != "" ]] ; then __compareshort=( "${__compareshort[@]}" "$__short" ) ; fi
 	done
-	if [[ "${#compareshort[@]}" -eq 0 ]] ; then compareshort=( "_" ) ; fi
+	if [[ "${#__compareshort[@]}" -eq 0 ]] ; then __compareshort=( "_" ) ; fi
 
-	comparelong=()
-	for long in "${__koilongoptions[@]}" ; do
-		if [[ "$long" == --* ]] ; then
-			comparelong=( "${comparelong[@]}" "${long:2}" )
+	__comparelong=()
+	for __long in "${__koilongoptions[@]}" ; do
+		if [[ "$__long" == --* ]] ; then
+			__comparelong=( "${__comparelong[@]}" "${__long:2}" )
 		else
-			comparelong=( "${comparelong[@]}" "$long" )
+			__comparelong=( "${__comparelong[@]}" "$__long" )
 		fi
 	done
-	if [[ "${#comparelong[@]}" -eq 0 ]] ; then comparelong=( "_" ) ; fi
+	if [[ "${#__comparelong[@]}" -eq 0 ]] ; then __comparelong=( "_" ) ; fi
 
-	shortunique=$(printf '%s\n' "${compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
-	longunique=$(printf '%s\n' "${comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
-	if [[ "$shortunique" != "${#compareshort[@]}" ]] ; then
+	__shortunique=$(printf '%s\n' "${__compareshort[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	__longunique=$(printf '%s\n' "${__comparelong[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	if [[ "$__shortunique" != "${#__compareshort[@]}" ]] ; then
 		__errortext -c "$koiname: __addarg err: short option names must be unique"
 		return 1
 	fi
-	if [[ "$longunique" != "${#comparelong[@]}" ]] ; then
+	if [[ "$__longunique" != "${#__comparelong[@]}" ]] ; then
 		__errortext -c "$koiname: __addarg err: long option names must be unique"
 		return 1
 	fi
@@ -364,7 +365,7 @@ function __addgroup {
 		return 1
 	fi
 
-	local name property required
+	local __name __property __grouprequired
 
 	# group name
 	if ! [[ "$1" =~ ^[a-zA-Z]+[a-zA-Z0-9]*$ ]] ; then
@@ -373,12 +374,12 @@ function __addgroup {
 	fi
 
 	# group property
-	local prop validproperties found
-	validproperties="XOR OR AND"
-	found=0
-	for prop in $validproperties ; do if [[ "$prop" == "$2" ]] ; then found=1 ; fi ; done
-	if [[ $found -eq 0 ]] ; then
-		__errortext -c "$koiname: __addgroup err: group property must be one of: $validproperties"
+	local __prop __validproperties __found
+	__validproperties="XOR OR AND"
+	__found=0
+	for __prop in $__validproperties ; do if [[ "$__prop" == "$2" ]] ; then __found=1 ; break ; fi ; done
+	if [[ $__found -eq 0 ]] ; then
+		__errortext -c "$koiname: __addgroup err: group property must be one of: $(sed 's/,/, /g' <<< "$(__join ',' "$__validproperties")")"
 		return 1
 	fi
 
@@ -388,49 +389,49 @@ function __addgroup {
 		return 1
 	fi
 
-	name="$1"
-	property="$2"
-	grouprequired="$3"
+	__name="$1"
+	__property="$2"
+	__grouprequired="$3"
 	shift 3
 
 	# group arguments
-	local arg count i action required
-	count=0
-	for arg in "$@" ; do
-		found=0
-		let count=count+1
+	local __arg __count __i __action __required
+	__count=0
+	for __arg in "$@" ; do
+		__found=0
+		let __count=__count+1
 
 		# can only register certain arguments
-		for i in "${!__koilongoptions[@]}" ; do
-			if [[ "${__koilongoptions[$i]}" == "$arg" ]] ; then
-				action="${__koiactions[$i]}"
-				required="${__koirequireds[$i]}"
-				found=1
+		for __i in "${!__koilongoptions[@]}" ; do
+			if [[ "${__koilongoptions[$__i]}" == "$__arg" ]] ; then
+				__action="${__koiactions[$__i]}"
+				__required="${__koirequireds[$__i]}"
+				__found=1
 				break
 			fi
 		done
 
 		# argument must be registered with __addarg
-		if [[ $found -eq 0 ]] ; then
-			__errortext -c "$koiname: __addgroup err: no such registered argument '$arg'"
+		if [[ $__found -eq 0 ]] ; then
+			__errortext -c "$koiname: __addgroup err: no such registered argument '$__arg'"
 			return 1
 		fi
 
 		# can only register flag, storevalue, storearray actions
-		if [[ "$action" != "flag" && "$action" != "storevalue" && "$action" != "storearray" ]] ; then
-			__errortext -c "$koiname: __addgroup err: cannot add $action argument to a group"
+		if [[ "$__action" != "flag" && "$__action" != "storevalue" && "$__action" != "storearray" ]] ; then
+			__errortext -c "$koiname: __addgroup err: cannot add $__action argument to a group"
 			return 1
 		fi
 
 		# can only register optional arguments
-		if [[ "$required" != "optional" ]] ; then
+		if [[ "$__required" != "optional" ]] ; then
 			__errortext -c "$koiname: __addgroup err: cannot add required arguments to a group"
 			return 1
 		fi
-		__koigroupvalues=( "${__koigroupvalues[@]}" "${arg}:${name}" )
+		__koigroupvalues=( "${__koigroupvalues[@]}" "${__arg}:${__name}" )
 	done
 
-	__koigroupmeta=( "${__koigroupmeta[@]}" "${name}:${count}:${grouprequired}:${property}" )
+	__koigroupmeta=( "${__koigroupmeta[@]}" "${__name}:${__count}:${__grouprequired}:${__property}" )
 }
 
 function __parseargs {
@@ -446,223 +447,229 @@ function __parseargs {
 
 	# verify help command
 	if [[ $koirequirehelpactions -eq 1 ]] ; then
-		local foundhelp=0
-		local action
-		for action in "${__koiactions[@]}" ; do
-			if [[ "$action" == "help" ]] ; then foundhelp=1 ; fi
+		local __action __foundhelp
+		__foundhelp=0
+		for __action in "${__koiactions[@]}" ; do
+			if [[ "$__action" == "help" ]] ; then __foundhelp=1 ; fi
 		done
-		if [[ $foundhelp -eq 0 ]] ; then
+		if [[ $__foundhelp -eq 0 ]] ; then
 			__errortext -c "$koiname: __parseargs err: no valid help argument registered for function '${FUNCNAME[1]}'"
 			return 1
 		fi
 	fi
 
 	# resolve joint arguments
-	local arg resolvedargs
-	resolvedargs=()
-	for arg in "$@" ; do
-		if [[ "${arg:0:1}" == "-" ]] ; then
-			if [[ "${#arg}" -gt 2 && "${arg:1:1}" != "-" ]] ; then
+	local __arg __resolvedargs
+	__resolvedargs=()
+	for __arg in "$@" ; do
+		if [[ "${__arg:0:1}" == "-" ]] ; then
+			if [[ "${#__arg}" -gt 2 && "${__arg:1:1}" != "-" ]] ; then
 				while read -r -n1 char ; do
 					if [[ "$char" == "-" ]] ; then continue ; fi
 					if [[ "$char" == " " ]] ; then continue ; fi
 					if [[ "$char" == "" ]] ; then continue ; fi
-					resolvedargs=( "${resolvedargs[@]}" "-${char}" )
-				done < <(echo "$arg")
+					__resolvedargs=( "${__resolvedargs[@]}" "-${char}" )
+				done < <(echo "$__arg")
 			else
-				resolvedargs=( "${resolvedargs[@]}" "$arg" )
+				__resolvedargs=( "${__resolvedargs[@]}" "$__arg" )
 			fi  
 		else
-			resolvedargs=( "${resolvedargs[@]}" "$arg" )
+			__resolvedargs=( "${__resolvedargs[@]}" "$__arg" )
 		fi  
 	done
-	set -- "${resolvedargs[@]}"
+	set -- "${__resolvedargs[@]}"
 
 	# determine positional arguments
-	local positionalarguments=()
-	local positionalrequireds=()
-	local positionalverifyingfunctions=()
-	local usepositionalarray=0
-	local argindex
-	for argindex in "${!__koiactions[@]}" ; do
-		if [[ "${__koiactions[$argindex]}" == "positionalarray" ]] ; then
-			usepositionalarray=1
+	local __positionalarguments __positionalrequireds __positionalverifyingfunctions __usepositionalarray __argindex
+	__positionalarguments=()
+	__positionalrequireds=()
+	__positionalverifyingfunctions=()
+	__usepositionalarray=0
+	for __argindex in "${!__koiactions[@]}" ; do
+		if [[ "${__koiactions[$__argindex]}" == "positionalarray" ]] ; then
+			__usepositionalarray=1
 			# shellcheck disable=SC2178
-			positionalarguments="${__koilongoptions[$argindex]}"
+			__positionalarguments="${__koilongoptions[$__argindex]}"
 			# shellcheck disable=SC2178
-			positionalverifyingfunctions="${__koiverifyingfunctions[$argindex]}"
-			if [[ "${__koirequireds[$argindex]}" == "required" ]] ; then
+			__positionalverifyingfunctions="${__koiverifyingfunctions[$__argindex]}"
+			if [[ "${__koirequireds[$__argindex]}" == "required" ]] ; then
 				# shellcheck disable=SC2178
-				positionalrequireds=required
+				__positionalrequireds=required
 			else
 				# shellcheck disable=SC2178
-				positionalrequireds=optional
+				__positionalrequireds=optional
 			fi
 			break
-		elif [[ "${__koiactions[$argindex]}" == "positionalvalue" ]] ; then
-			positionalarguments=( "${positionalarguments[@]}" "${__koilongoptions[$argindex]}" )
-			positionalrequireds=( "${positionalrequireds[@]}" "${__koirequireds[$argindex]}" )
-			positionalverifyingfunctions=( "${positionalverifyingfunctions[@]}" "${__koiverifyingfunctions[$argindex]}" )
+		elif [[ "${__koiactions[$__argindex]}" == "positionalvalue" ]] ; then
+			__positionalarguments=( "${__positionalarguments[@]}" "${__koilongoptions[$__argindex]}" )
+			__positionalrequireds=( "${__positionalrequireds[@]}" "${__koirequireds[$__argindex]}" )
+			__positionalverifyingfunctions=( "${__positionalverifyingfunctions[@]}" "${__koiverifyingfunctions[$__argindex]}" )
 		fi
 	done
 
 	while [[ $# -gt 0 ]] ; do
-		local key="$1"
+		local __key
+		__key="$1"
 
 		# get name of option/argument
 		# check for flags/options first
-		local option=
-		local index=
-		local i
-		for i in $(seq 0 "${#__koishortoptions[@]}") ; do
-			if [[ "${__koishortoptions[$i]}" == "$key" ]] ; then
-				option="${__koishortoptions[$i]}"
-				index=$i
+		local __option __index __i
+		__option=
+		__index=
+		for __i in $(seq 0 "${#__koishortoptions[@]}") ; do
+			if [[ "${__koishortoptions[$__i]}" == "$__key" ]] ; then
+				__option="${__koishortoptions[$__i]}"
+				__index=$__i
 				break
-			elif [[ "${__koilongoptions[$i]}" == "$key" ]] ; then
-				option="${__koilongoptions[$i]}"
-				index=$i
+			elif [[ "${__koilongoptions[$__i]}" == "$__key" ]] ; then
+				__option="${__koilongoptions[$__i]}"
+				__index=$__i
 				break
 			fi
 		done
 
 		# check for positional arguments
-		local positionaloption=
-		local positionalverifyingfunction=
-		local ispositional=0
-		if [[ "$option" == "" ]] ; then
+		local __positionalverifyingfunction __positionaloption __ispositional
+		__positionaloption=
+		__positionalverifyingfunction=
+		__ispositional=0
+		if [[ "$__option" == "" ]] ; then
 			# shellcheck disable=SC2128
-			if [[ "$positionalarguments" != "" ]] ; then
-				option="null"
-				ispositional=1
-				if [[ $usepositionalarray -eq 1 ]] ; then
-					positionaloption="$positionalarguments"
-					positionalverifyingfunction="$positionalverifyingfunctions"
+			if [[ "$__positionalarguments" != "" ]] ; then
+				__option="null"
+				__ispositional=1
+				if [[ $__usepositionalarray -eq 1 ]] ; then
+					__positionaloption="$__positionalarguments"
+					__positionalverifyingfunction="$__positionalverifyingfunctions"
 				else
 					# handle option
-					positionaloption="${positionalarguments[0]}"
-					positionalarguments=( "${positionalarguments[@]:1}" )
+					__positionaloption="${__positionalarguments[0]}"
+					__positionalarguments=( "${__positionalarguments[@]:1}" )
 
 					# handle verifyingfunction
-					positionalverifyingfunction="${positionalverifyingfunctions[0]}"
-					positionalverifyingfunctions=( "${positionalverifyingfunctions[@]:1}" )
+					__positionalverifyingfunction="${__positionalverifyingfunctions[0]}"
+					__positionalverifyingfunctions=( "${__positionalverifyingfunctions[@]:1}" )
 				fi
 			fi
 		fi
 
 		# check if we're still missing the option
-		if [[ "$option" == "" ]] ; then __errortext "$koiname: err: no such option '$key'" ; return 1 ; fi
+		if [[ "$__option" == "" ]] ; then __errortext "$koiname: err: no such option '$__key'" ; return 1 ; fi
 
 		# figure out what to do with option
 		# get variable from longoption
-		local varname="${__koilongoptions[$index]#--}"
+		local __varname
+		__varname="${__koilongoptions[$__index]#--}"
 
 		# if action is positionalvalue or positionalarray
-		if [[ $ispositional -eq 1 ]] ; then
-			if [[ $usepositionalarray == 0 ]] ; then
+		if [[ $__ispositional -eq 1 ]] ; then
+			if [[ $__usepositionalarray == 0 ]] ; then
 				# shellcheck disable=SC2229,SC2086
-				read -r $positionaloption <<< "$1"
+				read -r $__positionaloption <<< "$1"
 			else
-				if [[ "${!positionaloption}" == "" ]] ; then
-					eval "${positionaloption}=()"
+				if [[ "${!__positionaloption}" == "" ]] ; then
+					eval "${__positionaloption}=()"
 				fi
-				eval "${positionaloption}+=( \"$1\" )"
+				eval "${__positionaloption}+=( \"$1\" )"
 			fi
 
 			# run verifyingfunction, if one is registered
-			if [[ "$positionalverifyingfunction" != "" ]] ; then
-				local verifyingcmd="${positionalverifyingfunction%% *}"
-				local verifyingargs="${positionalverifyingfunction##$verifyingcmd}"
+			if [[ "$__positionalverifyingfunction" != "" ]] ; then
+				local __verifyingcmd __verifyingargs
+				__verifyingcmd="${__positionalverifyingfunction%% *}"
+				__verifyingargs="${__positionalverifyingfunction##$__verifyingcmd}"
 				# shellcheck disable=SC2086
-				$verifyingcmd $verifyingargs "$1"
+				$__verifyingcmd $__verifyingargs "$1"
 			fi
 
 			# move to the next argument
 			shift
 
 			# record argument
-			__koiparsedargs=( "${__koiparsedargs[@]}" "$positionaloption" )
+			__koiparsedargs=( "${__koiparsedargs[@]}" "$__positionaloption" )
 
 		# if action is help
-		elif [[ "${__koiactions[$index]}" == "help" ]] ; then
+		elif [[ "${__koiactions[$__index]}" == "help" ]] ; then
 
 			# determine max indent size
-			local maxindent=0
-			local i
-			for i in "${!__koilongoptions[@]}" ; do
-				local indent="${#__koilongoptions[$i]}"
-				local action="${__koiactions[$i]}"
-				if [[ "$action" == "storevalue" || "$action" == "storearray" ]] ; then
-					indent=$(( indent + ${#__koilongoptions[$i]} + 9 ))
-				elif [[ "$action" != "positionalvalue" && "$action" != "positionalarray" ]] ; then
-					local indent=$(( indent + 10 ))
+			local __i __maxindent
+			__maxindent=0
+			for __i in "${!__koilongoptions[@]}" ; do
+				local __indent __action
+				__indent="${#__koilongoptions[$__i]}"
+				__action="${__koiactions[$__i]}"
+				if [[ "$__action" == "storevalue" || "$__action" == "storearray" ]] ; then
+					__indent=$(( __indent + ${#__koilongoptions[$__i]} + 9 ))
+				elif [[ "$__action" != "positionalvalue" && "$__action" != "positionalarray" ]] ; then
+					__indent=$(( __indent + 10 ))
 				fi
-				if [[ $indent -gt maxindent ]] ; then maxindent=$indent ; fi
+				if [[ $__indent -gt __maxindent ]] ; then __maxindent=$__indent ; fi
 			done
 
 			# build help text for positional arguments
-			local positionalhelptext=
-			if [[ $usepositionalarray -eq 1 ]] ; then
+			local __positionalhelptext
+			__positionalhelptext=
+			if [[ $__usepositionalarray -eq 1 ]] ; then
 				# if we're using a positional array
 				# shellcheck disable=SC2128
-				if [[ "$positionalrequireds" == "required" ]] ; then
-					positionalhelptext="${positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "$positionalarguments")... "
+				if [[ "$__positionalrequireds" == "required" ]] ; then
+					__positionalhelptext="${__positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "$__positionalarguments")... "
 				else
-					positionalhelptext="${positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "$positionalarguments")...] "
+					__positionalhelptext="${__positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "$__positionalarguments")...] "
 				fi
 			else
 				# if we're using positional values
-				local argindex
-				for argindex in "${!positionalarguments[@]}" ; do
-					if [[ "${positionalrequireds[$argindex]}" == "required" ]] ; then
-						positionalhelptext="${positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "${positionalarguments[$argindex]}") "
+				local __argindex
+				for __argindex in "${!__positionalarguments[@]}" ; do
+					if [[ "${__positionalrequireds[$__argindex]}" == "required" ]] ; then
+						__positionalhelptext="${__positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "${__positionalarguments[$__argindex]}") "
 					else
-						positionalhelptext="${positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "${positionalarguments[$argindex]}")] "
+						__positionalhelptext="${__positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "${__positionalarguments[$__argindex]}")] "
 					fi
 				done
 			fi
 
 			# build help text for options in groups
-			local group groupargs argumentgrouphelptext i
-			argumentgrouphelptext=
-			groupargs=()
-			for group in "${__koigroupmeta[@]}" ; do
-				local groupvalue grouptext groupargdisplaystr grouparray groupname groupsize grouprequired groupproperty
-				local argcaps argumentname
-				grouparray=( ${group//:/ } )
-				groupname="${grouparray[0]}"
-				groupsize="${grouparray[1]}"
-				grouprequired="${grouparray[2]}"
-				groupproperty="${grouparray[3]}"
+			local __group __groupargs __argumentgrouphelptext __i
+			__argumentgrouphelptext=
+			__groupargs=()
+			for __group in "${__koigroupmeta[@]}" ; do
+				local __groupvalue __grouptext __groupargdisplaystr __grouparray __groupname __groupsize __grouprequired __groupproperty
+				local __argcaps __argumentname
+				__grouparray=( ${__group//:/ } )
+				__groupname="${__grouparray[0]}"
+				__groupsize="${__grouparray[1]}"
+				__grouprequired="${__grouparray[2]}"
+				__groupproperty="${__grouparray[3]}"
 
-				grouptext=()
-				for groupvalue in "${__koigroupvalues[@]}" ; do
-					if [[ "${groupvalue#*:}" == "$groupname" ]] ; then
-						for i in "${!__koilongoptions[@]}" ; do
-							if [[ "${__koilongoptions[$i]}" == "${groupvalue%:*}" ]] ; then
-								argcaps=
-								argumentname=
+				__grouptext=()
+				for __groupvalue in "${__koigroupvalues[@]}" ; do
+					if [[ "${__groupvalue#*:}" == "$__groupname" ]] ; then
+						for __i in "${!__koilongoptions[@]}" ; do
+							if [[ "${__koilongoptions[$__i]}" == "${__groupvalue%:*}" ]] ; then
+								__argcaps=
+								__argumentname=
 
 								# if the argument has a short option, use it; if not, use the long option
-								if [[ "${__koishortoptions[$i]}" != "" ]] ; then
-									argumentname="${__koishortoptions[$i]}"
+								if [[ "${__koishortoptions[$__i]}" != "" ]] ; then
+									__argumentname="${__koishortoptions[$__i]}"
 								else
-									argumentname="${__koilongoptions[$i]}"
+									__argumentname="${__koilongoptions[$__i]}"
 								fi
 
 								# get argument value, if using storevalue or storearray
-								argcaps=$(echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
+								__argcaps=$(echo "${__koilongoptions[$__i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
 
 								# build usage based on action
-								case "${__koiactions[$i]}" in
+								case "${__koiactions[$__i]}" in
 									flag )
-										groupargdisplaystr="${argumentname}"
+										__groupargdisplaystr="${__argumentname}"
 										;;
 									storevalue )
-										groupargdisplaystr="${argumentname} ${argcaps}"
+										__groupargdisplaystr="${__argumentname} ${__argcaps}"
 										;;
 									storearray )
-										groupargdisplaystr="${argumentname} ${argcaps}+"
+										__groupargdisplaystr="${__argumentname} ${__argcaps}+"
 										;;
 									* )
 										continue
@@ -671,71 +678,71 @@ function __parseargs {
 								break
 							fi
 						done
-						grouptext=( "${grouptext[@]}" "$groupargdisplaystr" )
-						groupargs=( "${groupargs[@]}" "${groupvalue%:*}" )
+						__grouptext=( "${__grouptext[@]}" "$__groupargdisplaystr" )
+						__groupargs=( "${__groupargs[@]}" "${__groupvalue%:*}" )
 					fi
 				done
 
-				local startrequiredtext endrequiredtext
-				startrequiredtext=
-				endrequiredtext=
+				local __startrequiredtext __endrequiredtext
+				__startrequiredtext=
+				__endrequiredtext=
 
-				if [[ "${grouprequired}" == "optional" ]] ; then
-					startrequiredtext='['
-					endrequiredtext=']'
+				if [[ "${__grouprequired}" == "optional" ]] ; then
+					__startrequiredtext='['
+					__endrequiredtext=']'
 				fi
 
-				if [[ "${groupproperty}" == "XOR" || "${groupproperty}" == "OR" ]] ; then
-					argumentgrouphelptext="${argumentgrouphelptext}${startrequiredtext}($(sed 's/|/ | /g' <<< "$(__join '|' "${grouptext[@]}")"))${endrequiredtext} "
-				elif [[ "${groupproperty}" == "AND" ]] ; then
-					argumentgrouphelptext="${argumentgrouphelptext}${startrequiredtext}($(sed 's/&/ & /g' <<< "$(__join '&' "${grouptext[@]}")"))${endrequiredtext} "
+				if [[ "${__groupproperty}" == "XOR" || "${__groupproperty}" == "OR" ]] ; then
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}($(sed 's/|/ | /g' <<< "$(__join '|' "${__grouptext[@]}")"))${__endrequiredtext} "
+				elif [[ "${__groupproperty}" == "AND" ]] ; then
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}($(sed 's/&/ & /g' <<< "$(__join '&' "${__grouptext[@]}")"))${__endrequiredtext} "
 				fi
 			done
 
 			# build help text for options not in groups
-			local argumentshelptext i
-			argumentshelptext=
-			for i in "${!__koiactions[@]}" ; do
-				local argumentname startrequiredtext endrequiredtext argcaps found
-				argumentname=
-				startrequiredtext=
-				endrequiredtext=
-				argcaps=
+			local __argumentshelptext __i
+			__argumentshelptext=
+			for __i in "${!__koiactions[@]}" ; do
+				local __argumentname __startrequiredtext __endrequiredtext __argcaps __found
+				__argumentname=
+				__startrequiredtext=
+				__endrequiredtext=
+				__argcaps=
 
 				# if the argument has a short option, use it; if not, use the long option
-				if [[ "${__koishortoptions[$i]}" != "" ]] ; then
-					argumentname="${__koishortoptions[$i]}"
+				if [[ "${__koishortoptions[$__i]}" != "" ]] ; then
+					__argumentname="${__koishortoptions[$__i]}"
 				else
-					argumentname="${__koilongoptions[$i]}"
+					__argumentname="${__koilongoptions[$__i]}"
 				fi
 
 				# skip arguments that are used in groups, because the group help text is built above
-				local longname
-				found=0
-				for longname in "${groupargs[@]}" ; do
-					if [[ "$longname" == "${__koilongoptions[$i]}" ]] ; then found=1 ; break ; fi
+				local __longname
+				__found=0
+				for __longname in "${__groupargs[@]}" ; do
+					if [[ "$__longname" == "${__koilongoptions[$__i]}" ]] ; then __found=1 ; break ; fi
 				done
-				if [[ $found -eq 1 ]] ; then continue ; fi
+				if [[ $__found -eq 1 ]] ; then continue ; fi
 
 				# get argument value, if using storevalue or storearray
-				argcaps=$(echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
+				__argcaps=$(echo "${__koilongoptions[$__i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
 
 				# add brackets if argument is optional
-				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
-					startrequiredtext='['
-					endrequiredtext=']'
+				if [[ "${__koirequireds[$__i]}" == "optional" ]] ; then
+					__startrequiredtext='['
+					__endrequiredtext=']'
 				fi
 
 				# build usage based on action
-				case "${__koiactions[$i]}" in
+				case "${__koiactions[$__i]}" in
 					help|flag )
-						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
+						__argumentshelptext="${__argumentshelptext}${__startrequiredtext}${__argumentname}${__endrequiredtext} "
 						;;
 					storevalue )
-						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname} ${argcaps}${endrequiredtext} "
+						__argumentshelptext="${__argumentshelptext}${__startrequiredtext}${__argumentname} ${__argcaps}${__endrequiredtext} "
 						;;
 					storearray )
-						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname} ${argcaps}+${endrequiredtext} "
+						__argumentshelptext="${__argumentshelptext}${__startrequiredtext}${__argumentname} ${__argcaps}+${__endrequiredtext} "
 						;;
 					* )
 						continue
@@ -744,106 +751,111 @@ function __parseargs {
 			done
 
 			# iterate through options and build help output
-			local finaloutput=
+			local __finaloutput
+			__finaloutput=
 
 			# if using __koimain
 			if [[ $__koisubcommands -eq 0 ]] ; then
-				finaloutput="${koicolorsecondary}${koidescription}${__reset}\n\n${koicolorprimary}Usage:${__reset}\n"
+				__finaloutput="${koicolorsecondary}${koidescription}${__reset}\n\n${koicolorprimary}Usage:${__reset}\n"
 			else
-				local subcommandcmd="${FUNCNAME[1]} "
-				local subcommandhelptext="\n${__koihelptexts[$index]}"
+				local __subcommandcmd __subcommandhelptext
+				__subcommandcmd="${FUNCNAME[1]} "
+				__subcommandhelptext="\n${__koihelptexts[$__index]}"
 			fi
-			finaloutput="$(__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentgrouphelptext}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n")"
-			local i
-			for i in "${!__koishortoptions[@]}" ; do
+			__finaloutput="$(__helptext clitext 0 "${__finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${__subcommandcmd}${__argumentgrouphelptext}${__argumentshelptext}${__positionalhelptext}${__reset}${__subcommandhelptext}\n")"
+			local __i
+			for __i in "${!__koishortoptions[@]}" ; do
 
-				local output=
+				local __output
+				__output=
 
-				if [[ "${__koiactions[$i]}" == "help" ]] ; then
+				if [[ "${__koiactions[$__i]}" == "help" ]] ; then
 					continue
 				fi
 
 				# get variable name from long option
-				varname="${__koilongoptions[$i]#--}"
+				__varname="${__koilongoptions[$__i]#--}"
 
 				# append to output if short option exists
-				if [[ "${__koishortoptions[$i]}" == "" ]] ; then
-					local shortoptionstr=
+				local __shortoptionstr
+				if [[ "${__koishortoptions[$__i]}" == "" ]] ; then
+					__shortoptionstr=
 				else
-					local shortoptionstr="${__koishortoptions[$i]}, "
+					__shortoptionstr="${__koishortoptions[$__i]}, "
 				fi
 
 				# capitalize variable name
-				output="  ${shortoptionstr}${__koilongoptions[$i]}"
-				if [[ "${__koiactions[$i]}" == "storevalue" || "${__koiactions[$i]}" == "storearray" ]] ; then
-					output="${output} $(echo "${varname}" | tr '[:lower:]' '[:upper:]') "
+				__output="  ${__shortoptionstr}${__koilongoptions[$__i]}"
+				if [[ "${__koiactions[$__i]}" == "storevalue" || "${__koiactions[$__i]}" == "storearray" ]] ; then
+					__output="${__output} $(echo "${__varname}" | tr '[:lower:]' '[:upper:]') "
 				fi
 
 				# calculate indent size
-				local outputlength="${#output}"
-				local indentsize=$(( maxindent - outputlength ))
-				local indent
-				indent="$(printf "%0.s " $(seq 1 $indentsize))"
+				local __outputlength __indentsize __indent
+				__outputlength="${#__output}"
+				__indentsize=$(( __maxindent - __outputlength ))
+				__indent="$(printf "%0.s " $(seq 1 $__indentsize))"
 
 				# append help texts
-				output="${output}${indent}"
-				if [[ "${__koiactions[$i]}" == "storearray" || "${__koiactions[$i]}" == "positionalarray" ]] ; then
-					output="${output}(+) "
+				__output="${__output}${__indent}"
+				if [[ "${__koiactions[$__i]}" == "storearray" || "${__koiactions[$__i]}" == "positionalarray" ]] ; then
+					__output="${__output}(+) "
 				fi
-				output="${output}${__koihelptexts[$i]} "
-				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
-					output="${output}(optional) "
-					if [[ "${__koidefaults[$i]}" != "" ]] ; then
-						output="${output}(default: ${__koidefaults[$i]})\n"
+				__output="${__output}${__koihelptexts[$__i]} "
+				if [[ "${__koirequireds[$__i]}" == "optional" ]] ; then
+					__output="${__output}(optional) "
+					if [[ "${__koidefaults[$__i]}" != "" ]] ; then
+						__output="${__output}(default: ${__koidefaults[$__i]})\n"
 					else
-						output="${output}\n"
+						__output="${__output}\n"
 					fi
 				else
-					output="${output}\n"
+					__output="${__output}\n"
 				fi
 
-				finaloutput="${finaloutput}$(__helptext argtext "$maxindent" "\n$output")"
+				__finaloutput="${__finaloutput}$(__helptext argtext "$__maxindent" "\n$__output")"
 			done
 
 			# print help output
-			echo -e "$finaloutput"
+			echo -e "$__finaloutput"
 			exit
 
 		# if action is flag
-		elif [[ "${__koiactions[$index]}" == "flag" ]] ; then
+		elif [[ "${__koiactions[$__index]}" == "flag" ]] ; then
 			# shellcheck disable=SC2229,SC2086
-			read -r $varname <<< 1
+			read -r $__varname <<< 1
 			shift
 
 			# record argument
-			__koiparsedargs=( "${__koiparsedargs[@]}" "--$varname" )
+			__koiparsedargs=( "${__koiparsedargs[@]}" "--$__varname" )
 
 		# handle options with arguments that need to be validated
 		else
 			if [[ "$2" == "" ]] ; then
-				__errortext "$koiname: err: missing value for argument ${__koilongoptions[$index]}"
+				__errortext "$koiname: err: missing value for argument ${__koilongoptions[$__index]}"
 				return 1
 			fi
 
 			# if action is storearray
-			if [[ "${__koiactions[$index]}" == "storearray" ]] ; then
-				if [[ "${!varname}" == "" ]] ; then
-					eval "${varname}=()"
+			if [[ "${__koiactions[$__index]}" == "storearray" ]] ; then
+				if [[ "${!__varname}" == "" ]] ; then
+					eval "${__varname}=()"
 				fi
-				eval "${varname}+=( \"$2\" )"
+				eval "${__varname}+=( \"$2\" )"
 
 			# if action is storevalue
 			else
 				# shellcheck disable=SC2229,SC2086
-				read -r $varname <<< "$2"
+				read -r $__varname <<< "$2"
 			fi
 
 			# run verifyingfunction, if one is registered
-			if [[ "${__koiverifyingfunctions[$index]}" != "" ]] ; then
-				local verifyingcmd="${__koiverifyingfunctions[$index]%% *}"
-				local verifyingargs="${__koiverifyingfunctions[$index]##$verifyingcmd}"
+			if [[ "${__koiverifyingfunctions[$__index]}" != "" ]] ; then
+				local __verifyingcmd __verifyingargs
+				__verifyingcmd="${__koiverifyingfunctions[$__index]%% *}"
+				__verifyingargs="${__koiverifyingfunctions[$__index]##$__verifyingcmd}"
 				# shellcheck disable=SC2086
-				$verifyingcmd $verifyingargs "$2"
+				$__verifyingcmd $__verifyingargs "$2"
 			fi
 
 			# move to the next argument
@@ -851,75 +863,76 @@ function __parseargs {
 			shift
 
 			# record argument
-			__koiparsedargs=( "${__koiparsedargs[@]}" "--$varname" )
+			__koiparsedargs=( "${__koiparsedargs[@]}" "--$__varname" )
 		fi
 
 	done
 
 	# deal with required options
-	local index
-	for index in "${!__koirequireds[@]}" ; do
-		varname="${__koilongoptions[$index]#--}"
-		if [[ "${__koirequireds[$index]}" == "required" ]] ; then
-			if [[ "${!varname}" == "" ]] ; then
-				__errortext "$koiname: err: missing required argument ${__koilongoptions[$index]}"
+	local __index
+	for __index in "${!__koirequireds[@]}" ; do
+		__varname="${__koilongoptions[$__index]#--}"
+		if [[ "${__koirequireds[$__index]}" == "required" ]] ; then
+			if [[ "${!__varname}" == "" ]] ; then
+				__errortext "$koiname: err: missing required argument ${__koilongoptions[$__index]}"
 				return 1
 			fi
 		else
-			if [[ "${!varname}" == "" ]] ; then
-				local action="${__koiactions[$index]}"
-				if [[ "$action" == "help" || "$action" == "positionalvalue" || "$action" == "positionalarray" ]] ; then
+			if [[ "${!__varname}" == "" ]] ; then
+				local __action
+				__action="${__koiactions[$__index]}"
+				if [[ "$__action" == "help" || "$__action" == "positionalvalue" || "$__action" == "positionalarray" ]] ; then
 					continue
-				elif [[ "$action" == "flag" ]] ; then
+				elif [[ "$__action" == "flag" ]] ; then
 					# shellcheck disable=SC2229,SC2086
-					read -r $varname <<< 0
+					read -r $__varname <<< 0
 				else
 					# shellcheck disable=SC2229,SC2086
-					read -r $varname <<< "${__koidefaults[$index]}"
+					read -r $__varname <<< "${__koidefaults[$__index]}"
 				fi
 			fi				
 		fi
 	done
 
 	# handle groups
-	local group grouparray groupname groupsize grouprequired groupproperty parsedargsingroup argsingroup grouparg parsedarg argsingroupstr
-	for group in "${__koigroupmeta[@]}" ; do
+	local __group __grouparray __groupname __groupsize __grouprequired __groupproperty __parsedargsingroup __argsingroup __grouparg __parsedarg __argsingroupstr
+	for __group in "${__koigroupmeta[@]}" ; do
 		# get group meta
-		grouparray=( ${group//:/ } )
-		groupname="${grouparray[0]}"
-		groupsize="${grouparray[1]}"
-		grouprequired="${grouparray[2]}"
-		groupproperty="${grouparray[3]}"
+		__grouparray=( ${__group//:/ } )
+		__groupname="${__grouparray[0]}"
+		__groupsize="${__grouparray[1]}"
+		__grouprequired="${__grouparray[2]}"
+		__groupproperty="${__grouparray[3]}"
 
-		argsingroup=()
-		for grouparg in "${__koigroupvalues[@]}" ; do
-			if [[ "${grouparg#*:}" == "$groupname" ]] ; then
-				argsingroup=( "${argsingroup[@]}" "${grouparg%:*}" )
+		__argsingroup=()
+		for __grouparg in "${__koigroupvalues[@]}" ; do
+			if [[ "${__grouparg#*:}" == "$__groupname" ]] ; then
+				__argsingroup=( "${__argsingroup[@]}" "${__grouparg%:*}" )
 			fi
 		done
 
 		# determine which parsed args are in the group, if any
-		parsedargsingroup=()
-		for parsedarg in "${__koiparsedargs[@]}" ; do
-			for grouparg in "${argsingroup[@]}" ; do
-				if [[ "$parsedarg" == "$grouparg" ]] ; then
-					parsedargsingroup=( "${parsedargsingroup[@]}" "$parsedarg" )
+		__parsedargsingroup=()
+		for __parsedarg in "${__koiparsedargs[@]}" ; do
+			for __grouparg in "${__argsingroup[@]}" ; do
+				if [[ "$__parsedarg" == "$__grouparg" ]] ; then
+					__parsedargsingroup=( "${__parsedargsingroup[@]}" "$__parsedarg" )
 				fi
 			done
 		done
 
 		# determine if parsed args fit into group required
-		if [[ "${#parsedargsingroup[@]}" -eq 0 ]] ; then
-			if [[ "$grouprequired" == "required" ]] ; then
-				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
-				if [[ "$groupproperty" == "XOR" ]] ; then
-					__errortext "$koiname: err: exactly one argument from the mutually exclusive group is required: ${argsingroupstr}"
+		if [[ "${#__parsedargsingroup[@]}" -eq 0 ]] ; then
+			if [[ "$__grouprequired" == "required" ]] ; then
+				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${__argsingroup[@]})")
+				if [[ "$__groupproperty" == "XOR" ]] ; then
+					__errortext "$koiname: err: exactly one argument from the mutually exclusive group is required: ${__argsingroupstr}"
 					return 1
-				elif [[ "$groupproperty" == "OR" ]] ; then
-					__errortext "$koiname: err: at least one argument from the group is required: ${argsingroupstr}"
+				elif [[ "$__groupproperty" == "OR" ]] ; then
+					__errortext "$koiname: err: at least one argument from the group is required: ${__argsingroupstr}"
 					return 1
-				elif [[ "$groupproperty" == "AND" ]] ; then
-					__errortext "$koiname: err: all of the arguments from the mutually inclusive group are required: ${argsingroupstr}"
+				elif [[ "$__groupproperty" == "AND" ]] ; then
+					__errortext "$koiname: err: all of the arguments from the mutually inclusive group are required: ${__argsingroupstr}"
 					return 1
 				fi
 			else
@@ -928,17 +941,18 @@ function __parseargs {
 		fi
 
 		# determine if parsed args fit into defined groups
-		if [[ "$groupproperty" == "XOR" ]] ; then
-			argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
-			if [[ "${#parsedargsingroup[@]}" -ne 1 ]] ; then
-				__errortext "$koiname: err: only one argument in the mutually exclusive group is allowed: ${argsingroupstr}"
+		if [[ "$__groupproperty" == "XOR" ]] ; then
+			if [[ "${#__parsedargsingroup[@]}" -ne 1 ]] ; then
+				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${__argsingroup[@]})")
+				__errortext "$koiname: err: only one argument in the mutually exclusive group is allowed: ${__argsingroupstr}"
 				return 1
 			fi
-		elif [[ "$groupproperty" == "OR" ]] ; then
+		elif [[ "$__groupproperty" == "OR" ]] ; then
 			:
-		elif [[ "$groupproperty" == "AND" ]] ; then
-			if [[ "${#parsedargsingroup[@]}" -ne "${groupsize}" ]] ; then
-				__errortext "$koiname: err: all of the arguments in the mutually inclusive group are required, if any are provided: ${argsingroupstr}"
+		elif [[ "$__groupproperty" == "AND" ]] ; then
+			if [[ "${#__parsedargsingroup[@]}" -ne "${__groupsize}" ]] ; then
+				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${__argsingroup[@]})")
+				__errortext "$koiname: err: all of the arguments in the mutually inclusive group are required, if any are provided: ${__argsingroupstr}"
 				return 1
 			fi
 		fi
@@ -976,42 +990,39 @@ function __parsekoirc {
 		return 1
 	fi
 
-	local configurableoptions=( koiname koidescription koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary koirequirehelpactions )
-	local koioption
-	local koivalue
-	local resolvedkoivalue
-	local line
-	local linecount=0
-	local finished=0
+	local __configurableoptions __koioption __koivalue __resolvedkoivalue __line __linecount __finished
+	__configurableoptions=( koiname koidescription koihelpmenuprefix koiwordwraplength koishowhints koicolorprimary koicolorsecondary koirequirehelpactions )
+	__linecount=0
+	__finished=0
 
-	until [[ $finished -eq 1 ]] ; do
+	until [[ $__finished -eq 1 ]] ; do
 		# read line from ~/.koirc
-		(( linecount + 1 ))
-		read -r line || finished=1
-		if [[ "$line" == "" ]] ; then continue ; fi
-		if [[ "${line:0:1}" == "#" ]] ; then continue ; fi
-		if [[ "$line" != *=* ]] ; then
-			__errortext "$koiname: err: invalid syntax in ~/.koirc, line $linecount"
+		(( __linecount + 1 ))
+		read -r __line || __finished=1
+		if [[ "$__line" == "" ]] ; then continue ; fi
+		if [[ "${__line:0:1}" == "#" ]] ; then continue ; fi
+		if [[ "$__line" != *=* ]] ; then
+			__errortext "$koiname: err: invalid syntax in ~/.koirc, __line $__linecount"
 			return 1
 		fi
-		koioption=$(echo "${line%=*}" | xargs)
+		__koioption=$(echo "${__line%=*}" | xargs)
 
 		# validate variable
-		local found=0
-		local option
-		for option in "${configurableoptions[@]}" ; do
-			if [[ "$option" == "$koioption" ]] ; then found=1 ; fi
+		local __option __found
+		__found=0
+		for __option in "${__configurableoptions[@]}" ; do
+			if [[ "$__option" == "$__koioption" ]] ; then __found=1 ; fi
 		done
-		if [[ $found -eq 0 ]] ; then
-			__errortext "$koiname: err: invalid option declared in ~/.koirc, '$koioption' is not configurable"
+		if [[ $__found -eq 0 ]] ; then
+			__errortext "$koiname: err: invalid option declared in ~/.koirc, '$__koioption' is not configurable"
 			return 1
 		fi
 
 		# set up variable
-		koivalue=$(echo "${line#${koioption}*=}" | xargs)
-		resolvedkoivalue="$(__resolvekoircvalues "$koivalue")"
+		__koivalue=$(echo "${__line#${__koioption}*=}" | xargs)
+		__resolvedkoivalue="$(__resolvekoircvalues "$__koivalue")"
 		# shellcheck disable=SC2229,SC2086
-		read -r $koioption <<< "$resolvedkoivalue"
+		read -r $__koioption <<< "$__resolvedkoivalue"
 
 	done < ~/.koirc
 }
@@ -1092,48 +1103,51 @@ function __helptext {
 		return 1
 	fi
 
-	local texttype="$1"
-	local indentsize=$2
+	local __texttype __indentsize
+	__texttype="$1"
+	__indentsize=$2
 	shift 2
-	if [[ "$texttype" == "clitext" ]] ; then
+	if [[ "$__texttype" == "clitext" ]] ; then
 		echo -ne "$@"
-	elif [[ "$texttype" == "helptext" ]] ; then
+	elif [[ "$__texttype" == "helptext" ]] ; then
 		echo -e "$@" | fold -w 100 -s
-	elif [[ "$texttype" == "argtext" ]] ; then
-		local stringindex=0
-		local oldstringindex=
-		local output="$*"
-		local indent
+	elif [[ "$__texttype" == "argtext" ]] ; then
+		local __stringindex __oldstringindex __output __indent
+		__stringindex=0
+		__oldstringindex=
+		__output="$*"
 		# shellcheck disable=SC2086
-		indent="$(printf "%0.s " $(seq 1 $indentsize))"
-		if [[ "${#output}" -gt $koiwordwraplength ]] ; then
-			while [[ $(( stringindex + koiwordwraplength )) -lt "${#output}" ]] ; do
-				oldstringindex=$stringindex
-				stringindex=$(( oldstringindex + koiwordwraplength ))
-				local splitchar="${output:$stringindex:1}"
+		__indent="$(printf "%0.s " $(seq 1 $__indentsize))"
+		if [[ "${#__output}" -gt $koiwordwraplength ]] ; then
+			while [[ $(( __stringindex + koiwordwraplength )) -lt "${#__output}" ]] ; do
+				__oldstringindex=$__stringindex
+				__stringindex=$(( __oldstringindex + koiwordwraplength ))
 
-				local linecount=0
-				while [[ "$splitchar" != " " ]] ; do
-					linecount=$(( linecount + 1 ))
-					stringindex=$(( stringindex - 1 ))
-					if [[ $linecount -ge $(( koiwordwraplength - indentsize - 1 )) ]] ; then
-						stringindex=$(( oldstringindex + koiwordwraplength ))
+				local __splitchar __linecount __tailstring
+				__splitchar="${__output:$__stringindex:1}"
+				__linecount=0
+
+				while [[ "$__splitchar" != " " ]] ; do
+					__linecount=$(( __linecount + 1 ))
+					__stringindex=$(( __stringindex - 1 ))
+					if [[ $__linecount -ge $(( koiwordwraplength - __indentsize - 1 )) ]] ; then
+						__stringindex=$(( __oldstringindex + koiwordwraplength ))
 						break
 					fi
-					splitchar="${output:$stringindex:1}"
+					__splitchar="${__output:$__stringindex:1}"
 				done
 
-				local tailstring="${output:$stringindex}"
-				while [[ "${tailstring:0:1}" == " " ]] ; do
-					tailstring="${tailstring:1}"
+				__tailstring="${__output:$__stringindex}"
+				while [[ "${__tailstring:0:1}" == " " ]] ; do
+					__tailstring="${__tailstring:1}"
 				done
 
-				if [[ "$tailstring" != "" && "$tailstring" != '\n' ]] ; then
-					output="${output:0:$stringindex}\n${indent}${tailstring}"
+				if [[ "$__tailstring" != "" && "$__tailstring" != '\n' ]] ; then
+					__output="${__output:0:$__stringindex}\n${__indent}${__tailstring}"
 				fi
 			done
 		fi
-		echo -e "$output"
+		echo -e "$__output"
 	else
 		__errortext -c "$koiname: __helptext err: provided text type is not one of: clitext, helptext, argtext"
 		return 1

@@ -18,4 +18,15 @@ function testgroup {
 	echo "glad: $glad"
 }
 
+function mixed {
+	__addarg "-h" "--help" "help" "optional" "" "help text"
+	__addarg "-f" "--flag" "flag" "optional" "" "help text"
+	__addarg "-a" "--arg" "storevalue" "optional" "" "help text"
+	__addgroup "group" "XOR" "optional" "--flag" "--arg"
+	__parseargs "$@"
+
+	echo "flag: '$flag'"
+	echo "arg: '$arg'"
+}
+
 __koirun "$@"
