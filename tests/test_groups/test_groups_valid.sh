@@ -3,6 +3,15 @@
 koirequirehelpactions=0
 
 # ========= TESTS ========= #
+function test_groups_valid_name_with_number {
+	__addarg "-f" "--flag" "flag" "optional" "" "help text"
+	__addarg "-g" "--glad" "flag" "optional" "" "help text"
+	__addgroup "flags2" "XOR" "optional" "--flag" "--glad"
+	__parseargs "$@"
+
+	echo "$flag $glad"
+}
+
 function test_groups_valid_optional_mutex_blank {
 	__addarg "-f" "--flag" "flag" "optional" "" "help text"
 	__addarg "-g" "--glad" "flag" "optional" "" "help text"
@@ -200,6 +209,7 @@ function test_group_valid_no_short_option {
 
 # ========= ASSERTIONS ========= #
 function koitest_run {
+	runtest test_groups_valid_name_with_number "0 1" "-g"
 	runtest test_groups_valid_optional_mutex_blank "0 0"
 	runtest test_groups_valid_optional_mutin_blank "0 0"
 	runtest test_groups_valid_optional_mutor_blank "0 0"
