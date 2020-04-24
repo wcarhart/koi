@@ -15,7 +15,7 @@ To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
 COMMENT
 
-source koi
+source ../../koi
 koiname=koi_template
 koidescription="Helpful template to demonstrate what argument options are available with koi"
 

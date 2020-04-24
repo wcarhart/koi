@@ -15,7 +15,7 @@ To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
 COMMENT
 
-source koi
+source ../../koi
 koiname=positional_example.sh
 koidescription="Examples of how to use positional arguments with koi"
 
