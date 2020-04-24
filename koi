@@ -33,6 +33,9 @@ __koirequireds=()
 __koidefaults=()
 __koihelptexts=()
 __koiverifyingfunctions=()
+__koigroupmeta=()
+__koigroupvalues=()
+__koiparsedargs=()
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -347,6 +350,82 @@ function __addarg {
 	fi
 }
 
+function __addgroup {
+	: <<- COMMENT
+	Add a set of arguments to a group
+		$1 - the name of the group (required)
+		$2 - the property of the group (required)
+		$3+ - are the arguments to add to the group (at least 2 required)
+	COMMENT
+
+	if [[ $# -lt 4 ]] ; then
+		__errortext -c "$koiname: __addgroup err: incorrect usage, at least 4 arguments are required"
+		return 1
+	fi
+
+	local name property
+
+	# group name
+	if ! [[ "$1" =~ ^[a-zA-Z]+[a-zA-Z0-9]*$ ]] ; then
+		__errortext -c "$koiname: __addgroup err: name must be alphanumeric and cannot start with a number"
+		return 1
+	fi
+
+	# group property
+	local prop validproperties found
+	validproperties="XOR OR AND"
+	found=0
+	for prop in $validproperties ; do if [[ "$prop" == "$2" ]] ; then found=1 ; fi ; done
+	if [[ $found -eq 0 ]] ; then
+		__errortext -c "$koiname: __addgroup err: group property must be one of: $validproperties"
+		return 1
+	fi
+
+	name="$1"
+	property="$2"
+	shift
+	shift
+
+	# group arguments
+	local arg count i action required
+	count=0
+	for arg in "$@" ; do
+		found=0
+		let count=count+1
+
+		# can only register certain arguments
+		for i in "${!__koilongoptions[@]}" ; do
+			if [[ "${__koilongoptions[$i]}" == "$arg" ]] ; then
+				action="${__koiactions[$i]}"
+				required="${__koirequireds[$i]}"
+				found=1
+				break
+			fi
+		done
+
+		# argument must be registered with __addarg
+		if [[ $found -eq 0 ]] ; then
+			__errortext -c "$koiname: __addgroup err: no such registered argument '$arg'"
+			return 1
+		fi
+
+		# can only register flag, storevalue, storearray
+		if [[ "$action" != "flag" && "$action" != "storevalue" && "$action" != "storearray" ]] ; then
+			__errortext -c "$koiname: __addgroup err: cannot add $action argument to a group"
+			return 1
+		fi
+
+		# can only register optional
+		if [[ "$required" != "optional" ]] ; then
+			__errortext -c "$koiname: __addgroup err: cannot add required arguments to a group"
+			return 1
+		fi
+		__koigroupvalues=( "${__koigroupvalues[@]}" "${arg}:${name}" )
+	done
+
+	__koigroupmeta=( "${__koigroupmeta[@]}" "${name}:${count}:${property}" )
+}
+
 function __parseargs {
 	: <<- COMMENT
 	Parse previously defined arguments and options
@@ -493,6 +572,9 @@ function __parseargs {
 
 			# move to the next argument
 			shift
+
+			# record argument
+			__koiparsedargs=( "${__koiparsedargs[@]}" "$positionaloption" )
 
 		# if action is help
 		elif [[ "${__koiactions[$index]}" == "help" ]] ; then
@@ -642,6 +724,9 @@ function __parseargs {
 			read -r $varname <<< 1
 			shift
 
+			# record argument
+			__koiparsedargs=( "${__koiparsedargs[@]}" "--$varname" )
+
 		# handle options with arguments that need to be validated
 		else
 			if [[ "$2" == "" ]] ; then
@@ -673,7 +758,11 @@ function __parseargs {
 			# move to the next argument
 			shift
 			shift
+
+			# record argument
+			__koiparsedargs=( "${__koiparsedargs[@]}" "--$varname" )
 		fi
+
 	done
 
 	# deal with required options
@@ -700,9 +789,63 @@ function __parseargs {
 			fi				
 		fi
 	done
+
+	# handle groups
+	local group grouparray groupname groupsize groupproperty parsedargsingroup argsingroup grouparg parsedarg argsingroupstr
+	for group in "${__koigroupmeta[@]}" ; do
+		# get group meta
+		grouparray=( ${group//:/ } )
+		groupname="${grouparray[0]}"
+		groupsize="${grouparray[1]}"
+		groupproperty="${grouparray[2]}"
+
+		argsingroup=()
+		for grouparg in "${__koigroupvalues[@]}" ; do
+			if [[ "${grouparg#*:}" == "$groupname" ]] ; then
+				argsingroup=( "${argsingroup[@]}" "${grouparg%:*}" )
+			fi
+		done
+
+		# determine which parsed args are in the group, if any
+		parsedargsingroup=()
+		for parsedarg in "${__koiparsedargs[@]}" ; do
+			for grouparg in "${argsingroup[@]}" ; do
+				if [[ "$parsedarg" == "$grouparg" ]] ; then
+					parsedargsingroup=( "${parsedargsingroup[@]}" "$parsedarg" )
+				fi
+			done
+		done
+		if [[ "${#parsedargsingroup[@]}" -eq 0 ]] ; then continue ; fi
+
+		# determine if parsed args fit into defined groups
+		if [[ "$groupproperty" == "XOR" ]] ; then
+			if [[ "${#parsedargsingroup[@]}" -ne 1 ]] ; then
+				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
+				__errortext "$koiname: err: only one argument in the mutually exclusive group is allowed: ${argsingroupstr}"
+				return 1
+			fi
+		elif [[ "$groupproperty" == "OR" ]] ; then
+			:
+		elif [[ "$groupproperty" == "AND" ]] ; then
+			if [[ "${#parsedargsingroup[@]}" -ne "${groupsize}" ]] ; then
+				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
+				__errortext "$koiname: err: all of the arguments in the inclusive group are required, if any are provided: ${argsingroupstr}"
+				return 1
+			fi
+		fi
+	done
+}
+
+function __join {
+	# join a set of arguments with given character
+	local IFS
+	typeset IFS="$1"
+	shift
+	echo "$*"
 }
 
 function __cleararglists {
+	# clear the argument lists
 	__koishortoptions=()
 	__koilongoptions=()
 	__koiactions=()
@@ -710,6 +853,9 @@ function __cleararglists {
 	__koidefaults=()
 	__koihelptexts=()
 	__koiverifyingfunctions=()
+	__koigroupmeta=()
+	__koigroupvalues=()
+	__koiparsedargs=()
 }
 
 function __parsekoirc {
