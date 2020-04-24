@@ -236,7 +236,7 @@ function __addarg {
 	local found=0
 	local action
 	for action in $availableactions ; do if [[ "$action" == "$3" ]] ; then found=1 ; fi ; done
-	if [[ $found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $availableactions" ; return 1 ; fi
+	if [[ $found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $(sed 's/,/, /g' <<< $(__join ',' $availableactions))" ; return 1 ; fi
 	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
 		if [[ "$1" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
 		if [[ "$2" == -* ]] ; then __errortext -c "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
@@ -248,7 +248,7 @@ function __addarg {
 
 	# required
 	if [[ "$4" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing required for argument" ; return 1 ; fi
-	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext -c "$koiname: __addarg err: required must be one of: required optional" ; return 1 ; fi
+	if [[ "$4" != "required" && "$4" != "optional" ]] ; then __errortext -c "$koiname: __addarg err: required must be one of: required, optional" ; return 1 ; fi
 	if [[ "$3" == "help" && "$4" == "required" ]] ; then __errortext -c "$koiname: __addarg err: help option cannot be required" ; return 1 ; fi
 
 	# default
@@ -355,15 +355,16 @@ function __addgroup {
 	Add a set of arguments to a group
 		$1 - the name of the group (required)
 		$2 - the property of the group (required)
+		$3 - whether or not the group is required (required)
 		$3+ - are the arguments to add to the group (at least 2 required)
 	COMMENT
 
-	if [[ $# -lt 4 ]] ; then
+	if [[ $# -lt 5 ]] ; then
 		__errortext -c "$koiname: __addgroup err: incorrect usage, at least 4 arguments are required"
 		return 1
 	fi
 
-	local name property
+	local name property required
 
 	# group name
 	if ! [[ "$1" =~ ^[a-zA-Z]+[a-zA-Z0-9]*$ ]] ; then
@@ -381,10 +382,16 @@ function __addgroup {
 		return 1
 	fi
 
+	# group required
+	if [[ "$3" != "required" && "$3" != "optional" ]] ; then
+		__errortext -c "$koiname: __addgroup err: group required must be one of: required, optional"
+		return 1
+	fi
+
 	name="$1"
 	property="$2"
-	shift
-	shift
+	grouprequired="$3"
+	shift 3
 
 	# group arguments
 	local arg count i action required
@@ -409,13 +416,13 @@ function __addgroup {
 			return 1
 		fi
 
-		# can only register flag, storevalue, storearray
+		# can only register flag, storevalue, storearray actions
 		if [[ "$action" != "flag" && "$action" != "storevalue" && "$action" != "storearray" ]] ; then
 			__errortext -c "$koiname: __addgroup err: cannot add $action argument to a group"
 			return 1
 		fi
 
-		# can only register optional
+		# can only register optional arguments
 		if [[ "$required" != "optional" ]] ; then
 			__errortext -c "$koiname: __addgroup err: cannot add required arguments to a group"
 			return 1
@@ -423,7 +430,7 @@ function __addgroup {
 		__koigroupvalues=( "${__koigroupvalues[@]}" "${arg}:${name}" )
 	done
 
-	__koigroupmeta=( "${__koigroupmeta[@]}" "${name}:${count}:${property}" )
+	__koigroupmeta=( "${__koigroupmeta[@]}" "${name}:${count}:${grouprequired}:${property}" )
 }
 
 function __parseargs {
@@ -599,43 +606,127 @@ function __parseargs {
 				# if we're using a positional array
 				# shellcheck disable=SC2128
 				if [[ "$positionalrequireds" == "required" ]] ; then
-					positionalhelptext="${positionalhelptext}$(echo "$positionalarguments" | tr '[:lower:]' '[:upper:]')... "
+					positionalhelptext="${positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "$positionalarguments")... "
 				else
-					positionalhelptext="${positionalhelptext}[$(echo "$positionalarguments" | tr '[:lower:]' '[:upper:]')...] "
+					positionalhelptext="${positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "$positionalarguments")...] "
 				fi
 			else
 				# if we're using positional values
 				local argindex
 				for argindex in "${!positionalarguments[@]}" ; do
 					if [[ "${positionalrequireds[$argindex]}" == "required" ]] ; then
-						positionalhelptext="${positionalhelptext}$(echo "${positionalarguments[$argindex]}" | tr '[:lower:]' '[:upper:]') "
+						positionalhelptext="${positionalhelptext}$(tr '[:lower:]' '[:upper:]' <<< "${positionalarguments[$argindex]}") "
 					else
-						positionalhelptext="${positionalhelptext}[$(echo "${positionalarguments[$argindex]}" | tr '[:lower:]' '[:upper:]')] "
+						positionalhelptext="${positionalhelptext}[$(tr '[:lower:]' '[:upper:]' <<< "${positionalarguments[$argindex]}")] "
 					fi
 				done
 			fi
 
-			# build help text for options
-			local argumentshelptext=
-			local i
+			# build help text for options in groups
+			local group groupargs argumentgrouphelptext i
+			argumentgrouphelptext=
+			groupargs=()
+			for group in "${__koigroupmeta[@]}" ; do
+				local groupvalue grouptext groupargdisplaystr grouparray groupname groupsize grouprequired groupproperty
+				local argcaps argumentname
+				grouparray=( ${group//:/ } )
+				groupname="${grouparray[0]}"
+				groupsize="${grouparray[1]}"
+				grouprequired="${grouparray[2]}"
+				groupproperty="${grouparray[3]}"
+
+				grouptext=()
+				for groupvalue in "${__koigroupvalues[@]}" ; do
+					if [[ "${groupvalue#*:}" == "$groupname" ]] ; then
+						for i in "${!__koilongoptions[@]}" ; do
+							if [[ "${__koilongoptions[$i]}" == "${groupvalue%:*}" ]] ; then
+								argcaps=
+								argumentname=
+
+								# if the argument has a short option, use it; if not, use the long option
+								if [[ "${__koishortoptions[$i]}" != "" ]] ; then
+									argumentname="${__koishortoptions[$i]}"
+								else
+									argumentname="${__koilongoptions[$i]}"
+								fi
+
+								# get argument value, if using storevalue or storearray
+								argcaps=$(echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
+
+								# build usage based on action
+								case "${__koiactions[$i]}" in
+									flag )
+										groupargdisplaystr="${argumentname}"
+										;;
+									storevalue )
+										groupargdisplaystr="${argumentname} ${argcaps}"
+										;;
+									storearray )
+										groupargdisplaystr="${argumentname} ${argcaps}+"
+										;;
+									* )
+										continue
+										;;
+								esac
+								break
+							fi
+						done
+						grouptext=( "${grouptext[@]}" "$groupargdisplaystr" )
+						groupargs=( "${groupargs[@]}" "${groupvalue%:*}" )
+					fi
+				done
+
+				local startrequiredtext endrequiredtext
+				startrequiredtext=
+				endrequiredtext=
+
+				if [[ "${grouprequired}" == "optional" ]] ; then
+					startrequiredtext='['
+					endrequiredtext=']'
+				fi
+
+				if [[ "${groupproperty}" == "XOR" || "${groupproperty}" == "OR" ]] ; then
+					argumentgrouphelptext="${argumentgrouphelptext}${startrequiredtext}($(sed 's/|/ | /g' <<< "$(__join '|' "${grouptext[@]}")"))${endrequiredtext} "
+				elif [[ "${groupproperty}" == "AND" ]] ; then
+					argumentgrouphelptext="${argumentgrouphelptext}${startrequiredtext}($(sed 's/&/ & /g' <<< "$(__join '&' "${grouptext[@]}")"))${endrequiredtext} "
+				fi
+			done
+
+			# build help text for options not in groups
+			local argumentshelptext i
+			argumentshelptext=
 			for i in "${!__koiactions[@]}" ; do
+				local argumentname startrequiredtext endrequiredtext argcaps found
+				argumentname=
+				startrequiredtext=
+				endrequiredtext=
+				argcaps=
 
-				local argumentname=
-				local startrequiredtext=
-				local endrequiredtext=
-				local argcaps=
-
+				# if the argument has a short option, use it; if not, use the long option
 				if [[ "${__koishortoptions[$i]}" != "" ]] ; then
 					argumentname="${__koishortoptions[$i]}"
 				else
 					argumentname="${__koilongoptions[$i]}"
 				fi
+
+				# skip arguments that are used in groups, because the group help text is built above
+				local longname
+				found=0
+				for longname in "${groupargs[@]}" ; do
+					if [[ "$longname" == "${__koilongoptions[$i]}" ]] ; then found=1 ; break ; fi
+				done
+				if [[ $found -eq 1 ]] ; then continue ; fi
+
+				# get argument value, if using storevalue or storearray
 				argcaps=$(echo "${__koilongoptions[$i]}" | sed 's/^-*//g' | tr '[:lower:]' '[:upper:]')
+
+				# add brackets if argument is optional
 				if [[ "${__koirequireds[$i]}" == "optional" ]] ; then
 					startrequiredtext='['
 					endrequiredtext=']'
 				fi
 
+				# build usage based on action
 				case "${__koiactions[$i]}" in
 					help|flag )
 						argumentshelptext="${argumentshelptext}${startrequiredtext}${argumentname}${endrequiredtext} "
@@ -662,7 +753,7 @@ function __parseargs {
 				local subcommandcmd="${FUNCNAME[1]} "
 				local subcommandhelptext="\n${__koihelptexts[$index]}"
 			fi
-			finaloutput="$(__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n")"
+			finaloutput="$(__helptext clitext 0 "${finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${subcommandcmd}${argumentgrouphelptext}${argumentshelptext}${positionalhelptext}${__reset}${subcommandhelptext}\n")"
 			local i
 			for i in "${!__koishortoptions[@]}" ; do
 
@@ -791,13 +882,14 @@ function __parseargs {
 	done
 
 	# handle groups
-	local group grouparray groupname groupsize groupproperty parsedargsingroup argsingroup grouparg parsedarg argsingroupstr
+	local group grouparray groupname groupsize grouprequired groupproperty parsedargsingroup argsingroup grouparg parsedarg argsingroupstr
 	for group in "${__koigroupmeta[@]}" ; do
 		# get group meta
 		grouparray=( ${group//:/ } )
 		groupname="${grouparray[0]}"
 		groupsize="${grouparray[1]}"
-		groupproperty="${grouparray[2]}"
+		grouprequired="${grouparray[2]}"
+		groupproperty="${grouparray[3]}"
 
 		argsingroup=()
 		for grouparg in "${__koigroupvalues[@]}" ; do
@@ -815,12 +907,30 @@ function __parseargs {
 				fi
 			done
 		done
-		if [[ "${#parsedargsingroup[@]}" -eq 0 ]] ; then continue ; fi
+
+		# determine if parsed args fit into group required
+		if [[ "${#parsedargsingroup[@]}" -eq 0 ]] ; then
+			if [[ "$grouprequired" == "required" ]] ; then
+				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
+				if [[ "$groupproperty" == "XOR" ]] ; then
+					__errortext "$koiname: err: exactly one argument from the mutually exclusive group is required: ${argsingroupstr}"
+					return 1
+				elif [[ "$groupproperty" == "OR" ]] ; then
+					__errortext "$koiname: err: at least one argument from the group is required: ${argsingroupstr}"
+					return 1
+				elif [[ "$groupproperty" == "AND" ]] ; then
+					__errortext "$koiname: err: all of the arguments from the mutually inclusive group are required: ${argsingroupstr}"
+					return 1
+				fi
+			else
+				continue
+			fi
+		fi
 
 		# determine if parsed args fit into defined groups
 		if [[ "$groupproperty" == "XOR" ]] ; then
+			argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
 			if [[ "${#parsedargsingroup[@]}" -ne 1 ]] ; then
-				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
 				__errortext "$koiname: err: only one argument in the mutually exclusive group is allowed: ${argsingroupstr}"
 				return 1
 			fi
@@ -828,11 +938,11 @@ function __parseargs {
 			:
 		elif [[ "$groupproperty" == "AND" ]] ; then
 			if [[ "${#parsedargsingroup[@]}" -ne "${groupsize}" ]] ; then
-				argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' ${argsingroup[@]})")
-				__errortext "$koiname: err: all of the arguments in the inclusive group are required, if any are provided: ${argsingroupstr}"
+				__errortext "$koiname: err: all of the arguments in the mutually inclusive group are required, if any are provided: ${argsingroupstr}"
 				return 1
 			fi
 		fi
+
 	done
 }
 
