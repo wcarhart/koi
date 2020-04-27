@@ -925,11 +925,31 @@ function __parseargs {
 		done
 
 		# determine which parsed args are in the group, if any
+		local __parsedargaction __i __added
 		__parsedargsingroup=()
+		__added=0
 		for __parsedarg in "${__koiparsedargs[@]}" ; do
+			# determine parsed arg's action
+			for __i in "${!__koilongoptions[@]}" ; do
+				if [[ "${__koilongoptions[$__i]}" == "$__parsedarg" ]] ; then
+					__parsedargaction="${__koiactions[$__i]}"
+					break
+				fi
+			done
+
+			# add to args in group array
 			for __grouparg in "${__argsingroup[@]}" ; do
 				if [[ "$__parsedarg" == "$__grouparg" ]] ; then
-					__parsedargsingroup=( "${__parsedargsingroup[@]}" "$__parsedarg" )
+
+					# only add storearray arguments to args in group array once
+					if [[ "$__parsedargaction" == "storearray" ]] ; then
+						if [[ $__added -eq 0 ]] ; then
+							__parsedargsingroup=( "${__parsedargsingroup[@]}" "$__parsedarg" )
+							__added=1
+						fi
+					else
+						__parsedargsingroup=( "${__parsedargsingroup[@]}" "$__parsedarg" )
+					fi
 				fi
 			done
 		done

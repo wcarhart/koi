@@ -207,6 +207,24 @@ function test_group_valid_no_short_option {
 	echo "$flag $glad"
 }
 
+function test_group_valid_with_array_a {
+	__addarg "-f" "--flag" "flag" "optional" "" "help text"
+	__addarg "-a" "--arr" "storearray" "optional" "" "help text"
+	__addgroup "group" "XOR" "required" "--flag" "--arr"
+	__parseargs "$@"
+
+	echo "${arr[@]} $flag"
+}
+
+function test_group_valid_with_array_b {
+	__addarg "-a" "--arr" "storearray" "optional" "" "help text"
+	__addarg "-b" "--bar" "storearray" "optional" "" "help text"
+	__addgroup "arrays" "XOR" "required" "--arr" "--bar"
+	__parseargs "$@"
+
+	echo "${arr[@]} ${bar[@]}" 
+}
+
 # ========= ASSERTIONS ========= #
 function koitest_run {
 	runtest test_groups_valid_name_with_number "0 1" "-g"
@@ -231,4 +249,6 @@ function koitest_run {
 	runtest test_groups_valid_required_mixed_a "0 value" "--arg" "value"
 	runtest test_groups_valid_required_mixed_b "avalue bvalue" "-b" "bvalue" "--arg" "avalue"
 	runtest test_group_valid_no_short_option "1 1" "-g" "--flag"
+	runtest test_group_valid_with_array_a "abc def 0" "-a" "abc" "-a" "def"
+	runtest test_group_valid_with_array_b "a0 a1 b0 b1" "-a" "a0" "-a" "a1" "-b" "b0" "-b" "b1"
 }
