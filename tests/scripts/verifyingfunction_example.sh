@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-source koi
+source ../../koi
 koiname=verifyingfunction_example.sh
 koidescription="Examples of verifying functions"
 

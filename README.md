@@ -83,6 +83,10 @@ _Subcommands_
 ```bash
 myscript.sh subcommand -a foo --longoption baz arg0 arg1
 ```
+_Mutually Exclusive Groups_
+```
+myscript.sh (-a | -b)
+```
 For more examples, check the [Examples](https://www.willcarhart.dev/docs/koi/#/examples) section in the documentation.
 
 ## Nomenclature

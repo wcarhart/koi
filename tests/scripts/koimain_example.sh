@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-source koi
+source ../../koi
 koiname=koimain_example.sh
 koidescription="Examples of running koi without subcommands via __koimain"
 

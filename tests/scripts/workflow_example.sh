@@ -15,7 +15,7 @@ To run the script, use the __koirun function at the very end of the script:
   __koirun "$@"
 COMMENT
 
-source koi
+source ../../koi
 koiname=workflow_example.sh
 koidescription="Examples of potential workflow-related commands you could make with koi"
 koicolors=0
