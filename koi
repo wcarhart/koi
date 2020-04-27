@@ -639,7 +639,8 @@ function __parseargs {
 			for __group in "${__koigroupmeta[@]}" ; do
 				local __groupvalue __grouptext __groupargdisplaystr __grouparray __groupname __groupsize __grouprequired __groupproperty
 				local __argcaps __argumentname
-				__grouparray=( "${__group//:/ }" )
+				# shellcheck disable=SC2206
+				__grouparray=( ${__group//:/ } )
 				__groupname="${__grouparray[0]}"
 				__groupsize="${__grouparray[1]}"
 				__grouprequired="${__grouparray[2]}"
@@ -693,19 +694,22 @@ function __parseargs {
 				if [[ "${__grouprequired}" == "optional" ]] ; then
 					__startrequiredtext='['
 					__endrequiredtext=']'
+				else
+					__startrequiredtext='('
+					__endrequiredtext=')'
 				fi
 
 				if [[ "${__groupproperty}" == "XOR" || "${__groupproperty}" == "OR" ]] ; then
 					# shellcheck disable=SC2001
-					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}($(sed 's/|/ | /g' <<< "$(__join '|' "${__grouptext[@]}")"))${__endrequiredtext} "
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(sed 's/|/ | /g' <<< "$(__join '|' "${__grouptext[@]}")")${__endrequiredtext} "
 				elif [[ "${__groupproperty}" == "AND" ]] ; then
 					# shellcheck disable=SC2001
-					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}($(sed 's/&/ & /g' <<< "$(__join '&' "${__grouptext[@]}")"))${__endrequiredtext} "
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(sed 's/&/ & /g' <<< "$(__join '&' "${__grouptext[@]}")")${__endrequiredtext} "
 				fi
 			done
 
 			# build help text for options not in groups
-			local __argumentshelptext __i
+			local __argumentshelptext __helphelptext __i
 			__argumentshelptext=
 			for __i in "${!__koiactions[@]}" ; do
 				local __argumentname __startrequiredtext __endrequiredtext __argcaps __found
@@ -740,7 +744,10 @@ function __parseargs {
 
 				# build usage based on action
 				case "${__koiactions[$__i]}" in
-					help|flag )
+					help )
+						__helphelptext="${__helphelptext}${__startrequiredtext}${__argumentname}${__endrequiredtext} "
+						;;
+					flag )
 						__argumentshelptext="${__argumentshelptext}${__startrequiredtext}${__argumentname}${__endrequiredtext} "
 						;;
 					storevalue )
@@ -767,7 +774,7 @@ function __parseargs {
 				__subcommandcmd="${FUNCNAME[1]} "
 				__subcommandhelptext="\n${__koihelptexts[$__index]}"
 			fi
-			__finaloutput="$(__helptext clitext 0 "${__finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${__subcommandcmd}${__argumentgrouphelptext}${__argumentshelptext}${__positionalhelptext}${__reset}${__subcommandhelptext}\n")"
+			__finaloutput="$(__helptext clitext 0 "${__finaloutput}${koihelpmenuprefix}${koicolorsecondary}${koiname} ${__subcommandcmd}${__helphelptext}${__argumentgrouphelptext}${__argumentshelptext}${__positionalhelptext}${__reset}${__subcommandhelptext}\n")"
 			local __i
 			for __i in "${!__koishortoptions[@]}" ; do
 
@@ -903,7 +910,8 @@ function __parseargs {
 	local __group __grouparray __groupname __groupsize __grouprequired __groupproperty __parsedargsingroup __argsingroup __grouparg __parsedarg __argsingroupstr
 	for __group in "${__koigroupmeta[@]}" ; do
 		# get group meta
-		__grouparray=( "${__group//:/ }" )
+		# shellcheck disable=SC2206
+		__grouparray=( ${__group//:/ } )
 		__groupname="${__grouparray[0]}"
 		__groupsize="${__grouparray[1]}"
 		__grouprequired="${__grouparray[2]}"

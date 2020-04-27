@@ -11,7 +11,7 @@ function testgroup {
 	__addarg "-g" "--glad" "flag" "optional" "" "help text"
 	__addarg "-v" "--vlad" "storevalue" "optional" "" "help text"
 	__addarg "" "pos" "positionalvalue" "optional" "" "help text"
-	__addgroup "flags" "AND" "optional" "--glad" "--flag" "--vlad"
+	__addgroup "flags" "AND" "required" "--glad" "--flag" "--vlad"
 	__parseargs "$@"
 
 	echo "flag: $flag"
