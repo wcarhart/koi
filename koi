@@ -548,6 +548,7 @@ function __adddep {
 						break
 					fi
 				done
+				break
 			fi
 		done
 
@@ -633,6 +634,7 @@ function __parseargs {
 		fi
 	done
 
+	# begin parsing arguments
 	while [[ $# -gt 0 ]] ; do
 		local __key
 		__key="$1"
@@ -937,16 +939,35 @@ function __parseargs {
 					__output="${__output}(+) "
 				fi
 				__output="${__output}${__koihelptexts[$__i]} "
+
+				# append required and default
 				if [[ "${__koirequireds[$__i]}" == "optional" ]] ; then
 					__output="${__output}(optional) "
 					if [[ "${__koidefaults[$__i]}" != "" ]] ; then
-						__output="${__output}(default: ${__koidefaults[$__i]})\n"
-					else
-						__output="${__output}\n"
+						__output="${__output}(default: ${__koidefaults[$__i]}) "
 					fi
-				else
-					__output="${__output}\n"
 				fi
+
+				# append dependent arguments
+				local __dependentarg __dependencyarg __depslist __depsstr
+				__depslist=()
+				for __dependentarg in "${__koidependencies[@]}" ; do
+					if [[ "${__dependentarg%:*}" == "${__koilongoptions[$__i]}" ]] ; then
+						for __dependencyarg in "${__koilongoptions[@]}" ; do
+							if [[ "${__dependentarg#*:}" == "$__dependencyarg" ]] ; then
+								__depslist=( "${__depslist[@]}" "$__dependencyarg" )
+								break
+							fi
+						done
+					fi
+				done
+
+				__depsstr="$(sed 's/,/, /g' <<< "$(__join ',' "${__depslist[@]}")")"
+				if [[ "${#__depslist[@]}" -gt 0 ]] ; then
+					__output="${__output}(depends on: "$__depsstr") "
+				fi
+
+				__output="${__output}\n"
 
 				__finaloutput="${__finaloutput}$(__helptext argtext "$__maxindent" "\n$__output")"
 			done
@@ -1026,6 +1047,32 @@ function __parseargs {
 					read -r $__varname <<< "${__koidefaults[$__index]}"
 				fi
 			fi				
+		fi
+	done
+
+	# handle dependent arguments
+	local __deparg __dependent __dependency __founddependent __founddependency __parsedarg
+	for __deparg in "${__koidependencies[@]}" ; do
+		__dependent="${__deparg%:*}"
+		__dependency="${__deparg#*:}"
+		__founddependent=0
+		__founddependency=0
+		for __parsedarg in "${__koiparsedargs[@]}" ; do
+			if [[ "$__parsedarg" == "$__dependent" ]] ; then
+				__founddependent=1
+			elif [[ "$__parsedarg" == "$__dependency" ]] ; then
+				__founddependency=1
+			fi
+
+			if [[ $__founddependent -eq 1 && $__founddependency -eq 1 ]] ; then
+				break
+			fi
+		done
+
+		# it is illegal for a dependent to be present without its dependency
+		if [[ $__founddependent -eq 1 && $__founddependency -eq 0 ]] ; then
+			__errortext "$koiname: err: '$__dependent' must be used with '$__dependency'"
+			return 1
 		fi
 	done
 
