@@ -36,6 +36,7 @@ __koiverifyingfunctions=()
 __koigroupmeta=()
 __koigroupvalues=()
 __koiparsedargs=()
+__koidependencies=()
 
 # ============ CLI FUNCTIONS ============ #
 function list {
@@ -422,7 +423,11 @@ function __addgroup {
 
 		# argument must be registered with __addarg
 		if [[ $__found -eq 0 ]] ; then
-			__errortext -c "$koiname: __addgroup err: no such registered argument '$__arg'"
+			if [[ "${__arg:0:1}" == "-" && "${__arg:0:2}" != "--" ]] ; then
+				__errortext -c "$koiname: __addgroup err: must use long options when adding arguments to a group"
+			else
+				__errortext -c "$koiname: __addgroup err: no such registered argument '$__arg'"
+			fi
 			return 1
 		fi
 
@@ -441,6 +446,118 @@ function __addgroup {
 	done
 
 	__koigroupmeta=( "${__koigroupmeta[@]}" "${__name}:${__count}:${__grouprequired}:${__property}" )
+}
+
+function __adddep {
+	: <<- COMMENT
+	Register argument dependencies
+		$1+                - the dependent arguments (required)
+		second to last arg - the dependency property (required)
+		last arg           - the dependency argument (required)
+	COMMENT
+
+	# dependent and dependency cannot be in an XOR group
+	# both dependent and dependency must be registered with __addarg
+	# property must be 'dependson'
+	# read into array like 'dependent:dependency'
+	# arguments cannot depend on themselves
+	# can only be for flag, storevalue, and storearray
+
+	# verify usage
+	if [[ $# -lt 3 ]] ; then
+		__errortext -c "$koiname: __adddep err: incorrect usage, at least 3 arguments are required"
+		return 1
+	fi
+
+	# loop through arguments
+	local __entity __i __arg __found __prevarg __depargs __founddep __action
+	__depargs=()
+	__founddep=0
+
+	for __entity in "$@" ; do
+
+		# verify argument is registered via __addarg
+		__found=0
+		for __i in "${!__koilongoptions[@]}" ; do
+			__arg="${__koilongoptions[$__i]}"
+			if [[ "$__arg" == "$__entity" ]] ; then
+				__found=1
+				__action="${__koiactions[$__i]}"
+				break
+			fi
+		done
+
+		if [[ $__found -eq 0 ]] ; then
+			# verify property
+			if [[ "$__entity" == 'dependson' ]] ; then
+				shift
+				__founddep=1
+				continue
+			else
+				if [[ "${__entity:0:1}" == "-" && "${__entity:0:2}" != "--" ]] ; then
+					__errortext -c "$koiname: __adddep err: must use long options when adding dependencies"
+				else
+					__errortext -c "$koiname: __adddep err: no such registered argument '$__entity'"
+				fi
+				return 1
+			fi
+		fi
+
+		# can only use flag, storevalue, storearray actions
+		if [[ "$__action" != "flag" && "$__action" != "storevalue" && "$__action" != "storearray" ]] ; then
+			__errortext -c "$koiname: __adddep err: cannot add dependency for $__action argument"
+			return 1
+		fi
+
+		# add to registered dependencies
+		if [[ $__founddep -eq 0 ]] ; then
+			__depargs=( "${__depargs[@]}" "$__entity" )
+		fi
+		shift
+	done
+
+	# verify property was found
+	if [[ $__founddep -eq 0 ]] ; then
+		__errortext -c "$koiname: __adddep err: missing dependency property, must be 'dependson'"
+		return 1
+	fi
+
+	# add to list of dependencies
+	local __grouparg __dependencygroup __dependentgroup __group __grouparray
+	for __arg in "${__depargs[@]}" ; do
+
+		__dependentgroup=
+		__dependencygroup=
+
+		# verify dependent and dependencies are not in an XOR group together
+		for __grouparg in "${__koigroupvalues[@]}" ; do
+			if [[ "${__grouparg%:*}" == "$__arg" ]] ; then
+				__dependentgroup="${__grouparg#*:}"
+			elif [[ "${__grouparg%:*}" == "$__entity" ]] ; then
+				__dependencygroup="${__grouparg#*:}"
+			fi
+
+			if [[ "$__dependentgroup" == "$__dependencygroup" ]] ; then
+				for __group in "${__koigroupmeta[@]}" ; do
+					__grouparray=( ${__group//:/ } )
+					if [[ "${__grouparray[0]}" == "$__dependentgroup" && "${__grouparray[0]}" == "$__dependencygroup" ]] ; then
+						if [[ "${__grouparray[3]}" == "XOR" ]] ; then
+							__errortext -c "$koiname: __adddep err: cannot add dependency, '$__arg' and '$__entity' are in the mutually exclusive group '${__grouparray[0]}'"
+							return 1
+						fi
+						break
+					fi
+				done
+			fi
+		done
+
+		# add to dependencies
+		if [[ "$__arg" == "$__entity" ]] ; then
+			__errortext -c "$koiname: __adddep err: '$__arg' cannot depend on itself"
+			return 1
+		fi
+		__koidependencies=( "${__koidependencies[@]}" "${__arg}:${__entity}" )
+	done
 }
 
 function __parseargs {
