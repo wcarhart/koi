@@ -79,6 +79,7 @@ function help {
 	# optional help menu additions
 	# shellcheck disable=SC2154
 	if [[ "$verbose" -eq 1 ]] ; then
+		echo -e "${koicolorprimary}Command documentation:${__reset}"
 		__commanddocs
 	else
 		if [[ "$koishowhints" -eq 1 ]] ; then
@@ -144,7 +145,7 @@ function __verifyfiletype {
 # ============ META FUNCTIONS ============ #
 function __commanddocs {
 	local __stdout __stderr __helpoutput __cmd
-	__helpoutput="${koicolorprimary}Command documentation:${__reset}"
+	__helpoutput=
 	for __cmd in $(__listfunctions) ; do
 		{
 			IFS=$'\n' read -r -d '' __stderr;
@@ -155,7 +156,12 @@ function __commanddocs {
 			__errortext "$__stderr"
 			return 1
 		fi
-		__helpoutput="${__helpoutput}\n${__stdout}\n"
+
+		if [[ "$__helpoutput" == "" ]] ; then
+			__helpoutput="${__helpoutput}${__stdout}\n"
+		else
+			__helpoutput="${__helpoutput}\n${__stdout}\n"
+		fi
 		__stdout=
 	done
 
