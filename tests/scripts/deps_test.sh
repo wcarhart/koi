@@ -12,7 +12,6 @@ function testfunc {
 	__addarg "-g" "--glad" "flag" "optional" "" "help text"
 	__addgroup "flags" "XOR" "optional" "--flag" "--glad"
 	__adddep "--flag" "--glad" "dependson" "--arg"
-	__adddep "--flag" "dependson" "--arg"
 	__adddep "--flag" "dependson" "--barg"
 	__adddep "--glad" "dependson" "--barg"
 	__parseargs "$@"

@@ -107,13 +107,27 @@ function test_dependencies_invalid_help_b {
 	echo "$flag $help"
 }
 
-function test_dependencies_invalid_duplicate_adddep_entries {
+function test_dependencies_invalid_duplicate_adddep_entries_simple {
 	__addarg "-f" "--flag" "flag" "optional" "" "help text"
 	__addarg "-g" "--glad" "flag" "optional" "" "help text"
 	__adddep "--flag" "dependson" "--glad"
 	__adddep "--flag" "dependson" "--glad"
 	__parseargs "$@"
 	echo "$flag $glad"
+}
+
+function test_dependencies_invalid_duplicate_adddep_entries_complex {
+	__addarg "-a" "--arg" "storevalue" "optional" "" "help text"
+	__addarg "-b" "--barg" "storevalue" "optional" "" "help text"
+	__addarg "-f" "--flag" "flag" "optional" "" "help text"
+	__addarg "-g" "--glad" "flag" "optional" "" "help text"
+	__addgroup "flags" "XOR" "optional" "--flag" "--glad"
+	__adddep "--flag" "--glad" "dependson" "--arg"
+	__adddep "--flag" "dependson" "--arg"
+	__adddep "--flag" "dependson" "--barg"
+	__adddep "--glad" "dependson" "--barg"
+	__parseargs "$@"
+	echo "$arg $barg $flag $glad"
 }
 
 function test_dependencies_invalid_use_shortoption_a {
@@ -145,7 +159,8 @@ function koitest_run {
 	runtest test_dependencies_invalid_positionalarray_b __error__ "f"
 	runtest test_dependencies_invalid_help_a __error__ "-h"
 	runtest test_dependencies_invalid_help_b __error__ "-f"
-	runtest test_dependencies_invalid_duplicate_adddep_entries __error__ "-g"
+	runtest test_dependencies_invalid_duplicate_adddep_entries_simple __error__ "-g"
+	runtest test_dependencies_invalid_duplicate_adddep_entries_complex __error__ "-g"
 	runtest test_dependencies_invalid_use_shortoption_a __error__ "-g"
-	runtest test_dependencies_invalid_use_shortoption_b __error__ "-g"
+	runtest test_dependencies_invalid_use_shortoption_b __error__ "-g" "-b" "barg" "-a" "arg"
 }

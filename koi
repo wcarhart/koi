@@ -238,7 +238,7 @@ function __addarg {
 
 	# action
 	local __availableactions
-	__availableactions=( help storevalue storearray positionalvalue positionalarray flag)
+	__availableactions=( help storevalue storearray positionalvalue positionalarray flag )
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	local __found __action
 	__found=0
