@@ -72,6 +72,7 @@ function koitest_run {
 	test_general_valid_combinations_a
 	test_general_valid_combinations_b
 	test_general_valid_combinations_c
+	test_general_valid_combinations_d
 	test_general_valid_crash_on_empty_arguments_a
 	test_general_valid_crash_on_empty_arguments_b
 	EndOfExpected

@@ -404,8 +404,9 @@ function __addgroup {
 	shift 3
 
 	# group arguments
-	local __arg __count __i __action __required
+	local __arg __count __i __action __required __argsingroup
 	__count=0
+	__argsingroup=()
 	for __arg in "$@" ; do
 		__found=0
 		# shellcheck disable=SC2219
@@ -443,7 +444,45 @@ function __addgroup {
 			return 1
 		fi
 		__koigroupvalues=( "${__koigroupvalues[@]}" "${__arg}:${__name}" )
+
+		__argsingroup=( "${__argsingroup[@]}" "$__arg" )
 	done
+
+	# verify arguments in mutually exclusive group are not dependent on each other
+	local __argingroup __dep __founddependent __founddependency
+	if [[ "$__property" == "XOR" ]] ; then
+		__founddependent=0
+		__founddependency=0
+		for __dep in "${__koidependencies[@]}" ; do
+			for __argingroup in "${__argsingroup[@]}" ; do
+				if [[ "$__argingroup" == "${__dep%:*}" ]] ; then
+					__founddependent=1
+				elif [[ "$__argingroup" == "${__dep#*:}" ]] ; then
+					__founddependency=1
+				fi
+
+				if [[ $__founddependent -eq 1 && $__founddependency -eq 1 ]] ; then
+					__errortext -c "$koiname: __addgroup err: cannot add '${__dep%:*}' and '${__dep#*:}' to a mutually exclusive group because '${__dep%:*}' depends on '${__dep#*:}'"
+					return
+				fi
+			done
+		done
+
+		# for __argingroup in "${__argsingroup[@]}" ; do
+		# 	echo "arg in group: $__argingroup"
+		# 	echo "group name: $__name"
+		# 	for __dep in "${__koidependencies[@]}" ; do
+		# 		echo "dependent:   ${__dep%:*}"
+		# 		echo "depdendency: ${__dep#*:}"
+		# 		if [[ "${__dep%:*}" == "$__argingroup" ]] ; then
+		# 			if [[ "${__dep#*:}" == "$__name" ]] ; then
+		# 				__errortext -c "$koiname: __addgroup err: cannot add '$__argingroup' and '$__name' to a mutually exclusive group because they are dependent"
+		# 				return
+		# 			fi
+		# 		fi
+		# 	done
+		# done
+	fi
 
 	__koigroupmeta=( "${__koigroupmeta[@]}" "${__name}:${__count}:${__grouprequired}:${__property}" )
 }
@@ -470,7 +509,7 @@ function __adddep {
 	fi
 
 	# loop through arguments
-	local __entity __i __arg __found __prevarg __depargs __founddep __action
+	local __entity __i __arg __found __prevarg __depargs __founddep __action __deps
 	__depargs=()
 	__founddep=0
 
@@ -559,6 +598,13 @@ function __adddep {
 		fi
 		__koidependencies=( "${__koidependencies[@]}" "${__arg}:${__entity}" )
 	done
+
+	# verify uniqueness among defined dependencies
+	__deps=$(printf '%s\n' "${__koidependencies[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	if [[ "$__deps" != "${#__koidependencies[@]}" ]] ; then
+		__errortext -c "$koiname: __adddep err: dependencies must be unique"
+		return 1
+	fi
 }
 
 function __parseargs {
