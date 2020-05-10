@@ -238,13 +238,12 @@ function __addarg {
 
 	# action
 	local __availableactions
-	__availableactions="help storevalue storearray positionalvalue positionalarray flag"
+	__availableactions=( help storevalue storearray positionalvalue positionalarray flag)
 	if [[ "$3" == "" ]] ; then __errortext -c "$koiname: __addarg err: missing action for argument" ; return 1 ; fi
 	local __found __action
 	__found=0
-	for __action in $__availableactions ; do if [[ "$__action" == "$3" ]] ; then __found=1 ; break ; fi ; done
-	# shellcheck disable=SC2001
-	if [[ $__found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $(sed 's/,/, /g' <<< "$(__join ',' "$__availableactions")")" ; return 1 ; fi
+	for __action in "${__availableactions[@]}" ; do if [[ "$__action" == "$3" ]] ; then __found=1 ; break ; fi ; done
+	if [[ $__found -eq 0 ]] ; then __errortext -c "$koiname: __addarg err: action must be one of: $(__tmp=$(__join ',' "${__availableactions[@]}") ; echo "${__tmp//,/, }")" ; return 1 ; fi
 	if [[ "$3" == "positionalvalue" || "$3" == "positionalarray" ]] ; then
 		if [[ "$1" != "" ]] ; then __errortext -c "$koiname: __addarg err: positional arguments cannot have a short name" ; return 1 ; fi
 		if [[ "$2" == -* ]] ; then __errortext -c "$koiname: __addarg err: positional arguments long name cannot begin with a dash" ; return 1 ; fi
@@ -383,12 +382,11 @@ function __addgroup {
 
 	# group property
 	local __prop __validproperties __found
-	__validproperties="XOR OR AND"
+	__validproperties=( XOR OR AND )
 	__found=0
-	for __prop in $__validproperties ; do if [[ "$__prop" == "$2" ]] ; then __found=1 ; break ; fi ; done
+	for __prop in "${__validproperties[@]}" ; do if [[ "$__prop" == "$2" ]] ; then __found=1 ; break ; fi ; done
 	if [[ $__found -eq 0 ]] ; then
-		# shellcheck disable=SC2001
-		__errortext -c "$koiname: __addgroup err: group property must be one of: $(sed 's/,/, /g' <<< "$(__join ',' "$__validproperties")")"
+		__errortext -c "$koiname: __addgroup err: group property must be one of: $(__tmp=$(__join ',' "${__validproperties[@]}") ; echo "${__tmp//,/, }")"
 		return 1
 	fi
 
@@ -467,21 +465,6 @@ function __addgroup {
 				fi
 			done
 		done
-
-		# for __argingroup in "${__argsingroup[@]}" ; do
-		# 	echo "arg in group: $__argingroup"
-		# 	echo "group name: $__name"
-		# 	for __dep in "${__koidependencies[@]}" ; do
-		# 		echo "dependent:   ${__dep%:*}"
-		# 		echo "depdendency: ${__dep#*:}"
-		# 		if [[ "${__dep%:*}" == "$__argingroup" ]] ; then
-		# 			if [[ "${__dep#*:}" == "$__name" ]] ; then
-		# 				__errortext -c "$koiname: __addgroup err: cannot add '$__argingroup' and '$__name' to a mutually exclusive group because they are dependent"
-		# 				return
-		# 			fi
-		# 		fi
-		# 	done
-		# done
 	fi
 
 	__koigroupmeta=( "${__koigroupmeta[@]}" "${__name}:${__count}:${__grouprequired}:${__property}" )
@@ -495,13 +478,6 @@ function __adddep {
 		last arg           - the dependency argument (required)
 	COMMENT
 
-	# dependent and dependency cannot be in an XOR group
-	# both dependent and dependency must be registered with __addarg
-	# property must be 'dependson'
-	# read into array like 'dependent:dependency'
-	# arguments cannot depend on themselves
-	# can only be for flag, storevalue, and storearray
-
 	# verify usage
 	if [[ $# -lt 3 ]] ; then
 		__errortext -c "$koiname: __adddep err: incorrect usage, at least 3 arguments are required"
@@ -509,7 +485,7 @@ function __adddep {
 	fi
 
 	# loop through arguments
-	local __entity __i __arg __found __prevarg __depargs __founddep __action __deps
+	local __entity __i __arg __found __depargs __founddep __action __deps
 	__depargs=()
 	__founddep=0
 
@@ -578,6 +554,7 @@ function __adddep {
 
 			if [[ "$__dependentgroup" == "$__dependencygroup" ]] ; then
 				for __group in "${__koigroupmeta[@]}" ; do
+					# shellcheck disable=SC2206
 					__grouparray=( ${__group//:/ } )
 					if [[ "${__grouparray[0]}" == "$__dependentgroup" && "${__grouparray[0]}" == "$__dependencygroup" ]] ; then
 						if [[ "${__grouparray[3]}" == "XOR" ]] ; then
@@ -871,11 +848,9 @@ function __parseargs {
 				fi
 
 				if [[ "${__groupproperty}" == "XOR" || "${__groupproperty}" == "OR" ]] ; then
-					# shellcheck disable=SC2001
-					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(sed 's/|/ | /g' <<< "$(__join '|' "${__grouptext[@]}")")${__endrequiredtext} "
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(__tmp=$(__join '|' "${__grouptext[@]}") ; echo "${__tmp//|/ | }")${__endrequiredtext} "
 				elif [[ "${__groupproperty}" == "AND" ]] ; then
-					# shellcheck disable=SC2001
-					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(sed 's/&/ & /g' <<< "$(__join '&' "${__grouptext[@]}")")${__endrequiredtext} "
+					__argumentgrouphelptext="${__argumentgrouphelptext}${__startrequiredtext}$(__tmp=$(__join '&' "${__grouptext[@]}") ; echo "${__tmp//&/ & }")${__endrequiredtext} "
 				fi
 			done
 
@@ -1008,9 +983,9 @@ function __parseargs {
 					fi
 				done
 
-				__depsstr="$(sed 's/,/, /g' <<< "$(__join ',' "${__depslist[@]}")")"
+				__depsstr="$(__tmp=$(__join ',' "${__depslist[@]}") ; echo "${__tmp//,/, }")"
 				if [[ "${#__depslist[@]}" -gt 0 ]] ; then
-					__output="${__output}(depends on: "$__depsstr") "
+					__output="${__output}(depends on: $__depsstr) "
 				fi
 
 				__output="${__output}\n"
@@ -1173,8 +1148,7 @@ function __parseargs {
 		# determine if parsed args fit into group required
 		if [[ "${#__parsedargsingroup[@]}" -eq 0 ]] ; then
 			if [[ "$__grouprequired" == "required" ]] ; then
-				# shellcheck disable=SC2001
-				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' "${__argsingroup[@]}")")
+				__argsingroupstr=$(__tmp=$(__join ',' "${__argsingroup[@]}") ; echo "${__tmp//,/, }")
 				if [[ "$__groupproperty" == "XOR" ]] ; then
 					__errortext "$koiname: err: exactly one argument from the mutually exclusive group is required: ${__argsingroupstr}"
 					return 1
@@ -1193,8 +1167,7 @@ function __parseargs {
 		# determine if parsed args fit into defined groups
 		if [[ "$__groupproperty" == "XOR" ]] ; then
 			if [[ "${#__parsedargsingroup[@]}" -ne 1 ]] ; then
-				# shellcheck disable=SC2001
-				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' "${__argsingroup[@]}")")
+				__argsingroupstr=$(__tmp=$(__join ',' "${__argsingroup[@]}") ; echo "${__tmp//,/, }")
 				__errortext "$koiname: err: only one argument in the mutually exclusive group is allowed: ${__argsingroupstr}"
 				return 1
 			fi
@@ -1202,8 +1175,7 @@ function __parseargs {
 			:
 		elif [[ "$__groupproperty" == "AND" ]] ; then
 			if [[ "${#__parsedargsingroup[@]}" -ne "${__groupsize}" ]] ; then
-				# shellcheck disable=SC2001
-				__argsingroupstr=$(sed 's/,/, /g' <<< "$(__join ',' "${__argsingroup[@]}")")
+				__argsingroupstr=$(__tmp=$(__join ',' "${__argsingroup[@]}") ; echo "${__tmp//,/, }")
 				__errortext "$koiname: err: all of the arguments in the mutually inclusive group are required, if any are provided: ${__argsingroupstr}"
 				return 1
 			fi
