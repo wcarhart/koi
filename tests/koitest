@@ -1,4 +1,5 @@
 #!/bin/bash
+# run tests for koi
 
 # ========= set up configs ========= #
 if [[ $# -eq 0 ]] ; then
@@ -35,8 +36,29 @@ function runtest {
 	# $1 is the test to run
 	# $2 is the expected return value
 	# $3+ are the arguments for the test
-	local testfunction="$1"
-	local expectedvalue="$2"
+	local print testfunction expectedvalue errcode
+	print=0
+	if [[ "$1" == "-p" || "$1" == "--print" ]] ; then
+		print=1
+		shift
+	fi
+
+	if [[ $# -lt 2 ]] ; then
+		if [[ $# -eq 1 ]] ; then
+			indendedtext 2 "$1"
+			indendedtext 4 "${red}invalid test definition${reset}"
+			echo "$testfunction" >> .koitest_failed
+			echo "$testfunction" >> .koitest_run
+		else
+			indendedtext 2 "${red}invalid runtest usage${reset}"
+			echo "null" >> .koitest_failed
+			echo "null" >> .koitest_run
+		fi
+		return 0
+	fi
+
+	testfunction="$1"
+	expectedvalue="$2"
 	shift
 	shift
 	indendedtext 2 "$testfunction"
@@ -54,7 +76,7 @@ function runtest {
 		# shellcheck disable=SC2086
 		(IFS=$'\n' read -r -d '' exitcode; exit ${exitcode});
 	} < <((printf '\0%s\0%d\0' "$($testfunction "$@")" "${?}" 1>&2) 2>&1)
-	local errcode=$?
+	errcode=$?
 
 	if [[ "$expectedvalue" == "__error__" ]] ; then
 		if [[ "$errcode" -ne 0 ]] ; then
@@ -64,7 +86,7 @@ function runtest {
 			indendedtext 4 "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		else
-			indendedtext "${red}FAIL${reset} expected error, but exited cleanly"
+			indendedtext 4 "${red}FAIL${reset} expected error, but exited cleanly"
 			indendedtext 6 "${red}stderr:${reset} $stderr"
 			echo "$testfunction" >> .koitest_failed
 		fi
@@ -84,6 +106,11 @@ function runtest {
 			indendedtext 4 "${green}PASS${reset}"
 			echo "$testfunction" >> .koitest_passed
 		fi
+	fi
+
+	if [[ $print -eq 1 ]] ; then
+		indendedtext 6 "printed stdout: $stdout"
+		indendedtext 6 "printed stderr: $stderr"
 	fi
 
 	echo "$testfunction" >> .koitest_run
@@ -125,51 +152,50 @@ if [[ -f .koitest_run ]] ; then
 else
 	tests_run=0
 fi
-if [[ "$1" != "-o" && "$1" != "--omit-metrics" ]] ; then
-	if [[ -f .koitest_passed ]] ; then
-		tests_passed=$(grep -c ^ .koitest_passed)
-	else
-		tests_passed=0
-	fi
-	if [[ -f .koitest_failed ]] ; then
-		tests_failed=$(grep -c ^ .koitest_failed)
-	else
-		tests_failed=0
-	fi
 
-	passed_text="test"
-	failed_text="test"
-	run_text="test"
-	if [[ "$tests_passed" -ne 1 ]] ; then passed_text="${passed_text}s" ; fi
-	if [[ "$tests_failed" -ne 1 ]] ; then failed_text="${failed_text}s" ; fi
-	if [[ "$tests_run" -ne 1 ]] ; then run_text="${run_text}s" ; fi
-
-	if [[ "$tests_run" -eq 0 ]] ; then
-		test_divide_by=1
-	else
-		test_divide_by="$tests_run"
-	fi
-
-	passed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_passed}/${test_divide_by}) * 100")")
-	failed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_failed}/${test_divide_by}) * 100")")
-
-	if [[ "$passed_percentage" == "100.00" ]] ; then
-		passed_percentage="100"
-	elif [[ "$passed_percentage" == "0.00" ]] ; then
-		passed_percentage="0"
-	fi
-	if [[ "$failed_percentage" == "100.00" ]] ; then
-		failed_percentage="100"
-	elif [[ "$failed_percentage" == "0.00" ]] ; then
-		failed_percentage="0"
-	fi
-
-	echo
-	echo -e "${yellow}Metrics:${reset}"
-	echo -e " - $tests_passed ${passed_text} ${green}passed${reset} ($passed_percentage%)"
-	echo -e " - $tests_failed ${failed_text} ${red}failed${reset} ($failed_percentage%)"
-	echo -e " - $tests_run ${run_text} ${blue}run${reset} (~$runtime seconds)"
+if [[ -f .koitest_passed ]] ; then
+	tests_passed=$(grep -c ^ .koitest_passed)
+else
+	tests_passed=0
 fi
+if [[ -f .koitest_failed ]] ; then
+	tests_failed=$(grep -c ^ .koitest_failed)
+else
+	tests_failed=0
+fi
+
+passed_text="test"
+failed_text="test"
+run_text="test"
+if [[ "$tests_passed" -ne 1 ]] ; then passed_text="${passed_text}s" ; fi
+if [[ "$tests_failed" -ne 1 ]] ; then failed_text="${failed_text}s" ; fi
+if [[ "$tests_run" -ne 1 ]] ; then run_text="${run_text}s" ; fi
+
+if [[ "$tests_run" -eq 0 ]] ; then
+	test_divide_by=1
+else
+	test_divide_by="$tests_run"
+fi
+
+passed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_passed}/${test_divide_by}) * 100")")
+failed_percentage=$(printf %.2f\\n "$(bc -l <<< "(${tests_failed}/${test_divide_by}) * 100")")
+
+if [[ "$passed_percentage" == "100.00" ]] ; then
+	passed_percentage="100"
+elif [[ "$passed_percentage" == "0.00" ]] ; then
+	passed_percentage="0"
+fi
+if [[ "$failed_percentage" == "100.00" ]] ; then
+	failed_percentage="100"
+elif [[ "$failed_percentage" == "0.00" ]] ; then
+	failed_percentage="0"
+fi
+
+echo
+echo -e "${yellow}Metrics:${reset}"
+echo -e " - $tests_passed ${passed_text} ${green}passed${reset} ($passed_percentage%)"
+echo -e " - $tests_failed ${failed_text} ${red}failed${reset} ($failed_percentage%)"
+echo -e " - $tests_run ${run_text} ${blue}run${reset} (~$runtime seconds)"
 
 if [[ $tests_failed -ne 0 ]] ; then
 	exit 1
