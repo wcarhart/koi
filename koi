@@ -446,6 +446,13 @@ function __addgroup {
 		__argsingroup=( "${__argsingroup[@]}" "$__arg" )
 	done
 
+	local __argingroupduplicates
+	__argingroupduplicates=$(printf '%s\n' "${__argsingroup[@]}" | awk '!($0 in seen){seen[$0];c++} END {print c}')
+	if [[ "$__argingroupduplicates" != "${#__argsingroup[@]}" ]] ; then
+		__errortext -c "$koiname: __addgroup err: arguments in group must be unique"
+		return 1
+	fi
+
 	# verify arguments in mutually exclusive group are not dependent on each other
 	local __argingroup __dep __founddependent __founddependency
 	if [[ "$__property" == "XOR" ]] ; then

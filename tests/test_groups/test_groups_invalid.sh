@@ -114,6 +114,14 @@ function test_groups_invalid_shortoptions_only {
 	echo "$flag $glad $pos"
 }
 
+function test_groups_invalid_duplicate_arguments {
+	__addarg "-a" "--aaa" "flag" "optional" "" "help text"
+	__addgroup "wrong" "XOR" "optional" "--aaa" "--aaa"
+	__parseargs "$@"
+
+	echo "$aaa"
+}
+
 # ========= ASSERTIONS ========= #
 function koitest_run {
 	runtest test_groups_invalid_too_few_arguments __error__ "--flag"
@@ -128,4 +136,5 @@ function koitest_run {
 	runtest test_groups_invalid_action_positionalarray __error__ "-f" "arg" "arg"
 	runtest test_groups_invalid_argument_required __error__ "--glad"
 	runtest test_groups_invalid_shortoptions_only __error__ "-f" "-g"
+	runtest test_groups_invalid_duplicate_arguments __error__ "-aaa"
 }
