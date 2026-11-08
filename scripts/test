@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+if ! command -v bats >/dev/null 2>&1; then
+    printf '%s\n' 'Tests require bats. Install with: brew install bats-core' >&2
+    exit 1
+fi
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." || exit 1
+exec bats tests

@@ -1,19 +1,24 @@
 name: CI
-on: [ push, pull_request ]
+on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
-    - name: shellcheck
-      shell: bash
-      run: |
-        echo "Running shellcheck..."
-        shellcheck koi
-        shellcheck tests/koitest
-    - name: tests
-      shell: bash
-      run: |
-        echo "Running tests..."
-        cd tests
-        ./koitest
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Linux tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y bats shellcheck
+      - name: macOS tools
+        if: runner.os == 'macOS'
+        run: |
+          brew install bash bats-core shellcheck
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+      - name: Check and test
+        shell: bash
+        run: |
+          bash -n koi scripts/test tests/fixtures/commands.sh
+          shellcheck koi scripts/test tests/fixtures/commands.sh
+          ./scripts/test
