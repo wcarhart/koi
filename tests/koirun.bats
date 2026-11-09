@@ -52,3 +52,18 @@ setup() {
     [ "$output" = infra ]
     [ -z "$stderr" ]
 }
+
+@test "invalid specs still list commands without repeating diagnostics" {
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY" || exit
+        __addcommand deploy -f handler -d Deploy || exit
+        __addcommand
+        result=$?
+        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        __koirun || exit
+        [[ $__koi_spec_valid == 0 ]]
+    '
+    [ "$status" -eq 0 ]
+    [ "$output" = deploy ]
+    [ "$stderr" = 'koi: __addcommand: command name required' ]
+}

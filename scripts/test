@@ -4,4 +4,4 @@ if ! command -v bats >/dev/null 2>&1; then
     exit 1
 fi
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." || exit 1
-exec bats tests
+exec bats --formatter pretty tests

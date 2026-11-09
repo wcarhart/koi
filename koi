@@ -30,8 +30,36 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     # __koi_description - the associated descriptions for registered commands
     declare -ga __koi_commands=()
     declare -gA __koi_handlers=() __koi_descriptions=()
+
+    # the actual structure of argument registration is a set of associated arrays keyed by destination
+    # __koi_args             - the list of actual argument names (destination variable names)
+    # __koi_arg_shorts       - the registration of short abbreviations (e.g. '-a')
+    # __koi_arg_longs        - the registration of full argument names (e.g. '--arg')
+    # __koi_arg_kinds        - the registration of argument kinds (e.g. flag)
+    # __koi_arg_descriptions - the registration of argument descriptions
+    # __koi_arg_requireds    - the registration of which arguments are required
+    # __koi_arg_defaults     - the registration of default values for arguments
+    # Argument destinations in registration order, with metadata keyed by destination.
+    declare -ga __koi_args=()
+    declare -gA __koi_arg_shorts=() __koi_arg_longs=() __koi_arg_kinds=()
+    declare -gA __koi_arg_descriptions=() __koi_arg_requireds=() __koi_arg_defaults=()
+
+    # __addarg can identify spec errors but cannot itself halt execution flow
+    # so, __addarg marks the spec as invalid if it detects an error, and the handling of
+    # __parseargs later handles control flow when the spec is invalid
+    declare -gi __koi_spec_valid=1
     __koi_initialized=1
 fi
+
+# Mark the current spec invalid and report a registration error immediately
+# Usage: __koi_spec_error "$@"
+#   $@  the diagnostic text
+# Returns 2, future parsing will check the sticky validity bit
+__koi_spec_error() {
+    __koi_spec_valid=0
+    __koi_error "$@"
+    return 2
+}
 
 # Register a command with koi
 # Usage: __addcommand NAME [-f] [-d]
@@ -43,13 +71,13 @@ __addcommand() {
     local __koi_seen_function=0 __koi_seen_description=0
 
     if (( $# == 0 )); then
-        __koi_error '__addcommand: command name required'
+        __koi_spec_error '__addcommand: command name required'
         return 2
     fi
     shift
 
     if [[ ! $__koi_name =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
-        __koi_error "__addcommand: invalid command name: '$__koi_name'"
+        __koi_spec_error "__addcommand: invalid command name: '$__koi_name'"
         return 2
     fi
 
@@ -57,7 +85,7 @@ __addcommand() {
         case $1 in
             -f|--function)
                 if (( __koi_seen_function || $# < 2 )); then
-                    __koi_error '__addcommand: invalid --function'
+                    __koi_spec_error '__addcommand: invalid --function'
                     return 2
                 fi
                 __koi_seen_function=1
@@ -65,14 +93,14 @@ __addcommand() {
                 ;;
             -d|--description)
                 if (( __koi_seen_description || $# < 2 )); then
-                    __koi_error '__addcommand: invalid --description'
+                    __koi_spec_error '__addcommand: invalid --description'
                     return 2
                 fi
                 __koi_seen_description=1
                 __koi_description=$2
                 ;;
             *)
-                __koi_error "__addcommand: unknown registration parameter: $1"
+                __koi_spec_error "__addcommand: unknown registration parameter: $1"
                 return 2
                 ;;
         esac
@@ -80,23 +108,183 @@ __addcommand() {
     done
 
     if [[ ! $__koi_handler =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-        __koi_error '__addcommand: handler identifier required'
+        __koi_spec_error '__addcommand: handler identifier required'
         return 2
     fi
 
     if [[ -z $__koi_description ]]; then
-        __koi_error '__addcommand: nonempty description required'
+        __koi_spec_error '__addcommand: nonempty description required'
         return 2
     fi
 
     if [[ -v __koi_handlers[$__koi_name] ]]; then
-        __koi_error "duplicate command: $__koi_name"
+        __koi_spec_error "duplicate command: $__koi_name"
         return 2
     fi
 
     __koi_commands+=("$__koi_name")
     __koi_handlers[$__koi_name]=$__koi_handler
     __koi_descriptions[$__koi_name]=$__koi_description
+}
+
+# Register a scalar option or boolean flag without assigning its destination
+# Usage: __addarg DEST (-f|-o) (-s SHORT||-l LONG) -d DESCRIPTION [-r] [-D DEFAULT]
+#   DEST               the Bash destination variable name
+#   -f, --flag         register a boolean flag (e.g. '-f')
+#   -o, --option       register an option that consumes one value (e.g. '-o value')
+#   -s, --short        short spelling without its dash (one letter)
+#   -l, --long         long spelling without its dashes
+#   -d, --description  nonempty argument description
+#   -r, --required     require explicit presence when parsing
+#   -D, --default      default for an optional option (empty text allowed)
+# Returns 2 on invalid declarations with the registry unchanged
+__addarg() {
+    local __koi_dest=${1-} __koi_parameter __koi_value __koi_existing __koi_reserved
+    local -A __koi_values=([short]='' [long]='' [kind]='' [description]='' [required]=0)
+    local -A __koi_seen=()
+    local -a __koi_reserved_names=(
+        BASH BASH_ENV BASH_SUBSHELL BASHPID BASH_VERSINFO BASH_VERSION CDPATH
+        DIRSTACK EDITOR EUID FUNCNAME GLOBIGNORE GROUPS HOME HOSTNAME
+        HOSTTYPE IFS IGNOREEOF LC_COLLATE LC_CTYPE LINENO MACHTYPE OLDPWD
+        OSTYPE PATH PIPESTATUS PPID PROMPT_COMMAND PS1 PS2 PS3 PS4 PWD
+        REPLY SECONDS SHELLOPTS SHLVL TMOUT UID
+    )
+
+    if (( $# == 0 )); then
+        __koi_spec_error '__addarg: destination required'
+        return 2
+    fi
+    shift
+
+    if [[ ! $__koi_dest =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ || $__koi_dest == __koi_* ]]; then
+        __koi_spec_error "__addarg: invalid destination: '$__koi_dest'"
+        return 2
+    fi
+
+    for __koi_reserved in "${__koi_reserved_names[@]}"; do
+        if [[ $__koi_dest == "$__koi_reserved" ]]; then
+            __koi_spec_error "__addarg: reserved destination: '$__koi_dest'"
+            return 2
+        fi
+    done
+
+    while (( $# )); do
+        case $1 in
+            -f|--flag)
+                __koi_parameter=kind
+                __koi_value=flag
+                ;;
+            -o|--option)
+                __koi_parameter=kind
+                __koi_value=option
+                ;;
+            -r|--required)
+                __koi_parameter=required
+                __koi_value=1
+                ;;
+            -s|--short)
+                __koi_parameter=short
+                ;;
+            -l|--long)
+                __koi_parameter=long
+                ;;
+            -d|--description)
+                __koi_parameter=description
+                ;;
+            -D|--default)
+                __koi_parameter=default
+                ;;
+            *)
+                __koi_spec_error "__addarg: unknown declaration parameter: $1"
+                return 2
+                ;;
+        esac
+
+        if [[ -v __koi_seen[$__koi_parameter] ]]; then
+            __koi_spec_error "__addarg: repeated or conflicting parameter: $__koi_parameter"
+            return 2
+        fi
+
+        case $__koi_parameter in
+            kind|required)
+                shift
+                ;;
+            *)
+                if (( $# < 2 )); then
+                    __koi_spec_error "__addarg: missing value for $1"
+                    return 2
+                fi
+                __koi_value=$2
+                shift 2
+                ;;
+        esac
+
+        __koi_seen[$__koi_parameter]=1
+        __koi_values[$__koi_parameter]=$__koi_value
+    done
+
+    if [[ -z ${__koi_values[kind]} ]]; then
+        __koi_spec_error '__addarg: exactly one of --flag or --option is required'
+        return 2
+    fi
+
+    if [[ -z ${__koi_values[description]} ]]; then
+        __koi_spec_error '__addarg: nonempty description required'
+        return 2
+    fi
+
+    if [[ ! -v __koi_seen[short] && ! -v __koi_seen[long] ]]; then
+        __koi_spec_error '__addarg: short or long spelling required'
+        return 2
+    fi
+
+    if [[ -v __koi_seen[short] ]]; then
+        if [[ ! ${__koi_values[short]} =~ ^[a-zA-Z]$ || ${__koi_values[short]} == h ]]; then
+            __koi_spec_error "__addarg: invalid or reserved short spelling: '${__koi_values[short]}'"
+            return 2
+        fi
+    fi
+
+    if [[ -v __koi_seen[long] ]]; then
+        if [[ ! ${__koi_values[long]} =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ || ${__koi_values[long]} == help ]]; then
+            __koi_spec_error "__addarg: invalid or reserved long spelling: '${__koi_values[long]}'"
+            return 2
+        fi
+    fi
+
+    if [[ -v __koi_seen[default] ]]; then
+        if [[ ${__koi_values[kind]} != option || ${__koi_values[required]} == 1 ]]; then
+            __koi_spec_error '__addarg: defaults require an optional option'
+            return 2
+        fi
+    fi
+
+    if [[ -v __koi_arg_kinds[$__koi_dest] ]]; then
+        __koi_spec_error "__addarg: duplicate destination: '$__koi_dest'"
+        return 2
+    fi
+
+    for __koi_existing in "${__koi_args[@]}"; do
+        if [[ -n ${__koi_values[short]} && ${__koi_values[short]} == "${__koi_arg_shorts[$__koi_existing]}" ]]; then
+            __koi_spec_error "__addarg: duplicate short spelling: '${__koi_values[short]}'"
+            return 2
+        fi
+        if [[ -n ${__koi_values[long]} && ${__koi_values[long]} == "${__koi_arg_longs[$__koi_existing]}" ]]; then
+            __koi_spec_error "__addarg: duplicate long spelling: '${__koi_values[long]}'"
+            return 2
+        fi
+    done
+
+    __koi_args+=("$__koi_dest")
+    __koi_arg_shorts[$__koi_dest]=${__koi_values[short]}
+    __koi_arg_longs[$__koi_dest]=${__koi_values[long]}
+    __koi_arg_kinds[$__koi_dest]=${__koi_values[kind]}
+    __koi_arg_descriptions[$__koi_dest]=${__koi_values[description]}
+    __koi_arg_requireds[$__koi_dest]=${__koi_values[required]}
+    if [[ -v __koi_seen[default] ]]; then
+        __koi_arg_defaults[$__koi_dest]=${__koi_values[default]}
+    fi
+    return 0
 }
 
 # Main koi entrypoint

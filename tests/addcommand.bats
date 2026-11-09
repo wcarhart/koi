@@ -3,8 +3,9 @@
 bats_require_minimum_version 1.5.0
 
 setup() {
+    export KOI_LIBRARY="$BATS_TEST_DIRNAME/../koi"
     # shellcheck source=koi
-    source "$BATS_TEST_DIRNAME/../koi"
+    source "$KOI_LIBRARY"
 }
 
 # Attempt an invalid declaration and verify it leaves the registry unchanged.
@@ -20,11 +21,16 @@ reject_registration() {
         printf 'Registry changed after rejection\n' >&2
         return 1
     fi
+    if [[ $result != 0 && $__koi_spec_valid != 0 ]]; then
+        printf 'Registration failure did not invalidate the spec\n' >&2
+        return 1
+    fi
     return "$result"
 }
 
 @test "long options register command metadata" {
     __addcommand deploy --function deploy_application --description "Deploy application"
+    [ "$__koi_spec_valid" -eq 1 ]
     [ "${__koi_commands[0]}" = deploy ]
     [ "${__koi_handlers[deploy]}" = deploy_application ]
     [ "${__koi_descriptions[deploy]}" = 'Deploy application' ]
@@ -153,4 +159,19 @@ reject_registration() {
         [ -z "$output" ]
         [ "$stderr" = "koi: __addcommand: unknown registration parameter: $option" ]
     done
+}
+
+@test "successful argument registration cannot clear a command registration failure" {
+    # shellcheck disable=SC2016
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY" || exit
+        __addcommand
+        result=$?
+        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        __addarg mode -o -l mode -d Mode || exit
+        [[ $__koi_spec_valid == 0 && ${__koi_args[0]} == mode ]]
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$stderr" = 'koi: __addcommand: command name required' ]
 }
