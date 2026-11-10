@@ -8,7 +8,6 @@ class Koi < Formula
 
   def install
     inreplace "bin/koi", "#!/usr/bin/env bash", "#!#{formula_opt_bin("bash")}/bash"
-    inreplace "bin/koi", "@KOI_LIBRARY@", "#{opt_prefix}/share/koi/koi"
     pkgshare.install "koi"
     bin.install "bin/koi"
   end
@@ -20,7 +19,15 @@ class Koi < Formula
       demo() { echo "handler should not run"; }
       __koirun "$@"
     BASH
-    assert_equal "demo\n",
-                 shell_output("#{formula_opt_bin("bash")}/bash #{testpath}/example.sh")
+    expected = <<~OUTPUT
+      Usage: example.sh COMMAND [args]
+
+      Commands:
+        demo  Demo command
+
+      Options:
+        -h, --help  Show this help
+    OUTPUT
+    assert_equal expected, shell_output("#{formula_opt_bin("bash")}/bash #{testpath}/example.sh")
   end
 end

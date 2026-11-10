@@ -2,7 +2,7 @@
 
 # actual init logic starts in the bottom CONTROL FLOW section
 
-# --------- PUBLIC API ---------
+# ------------------ PUBLIC API ------------------
 
 # Register a command with koi
 # Usage: __addcommand NAME [-f] [-d]
@@ -249,17 +249,92 @@ __parseargs() {
     return 0
 }
 
-# Main koi entrypoint
-# Usage: __koirun $@
-#   $@  the command line arguments
+# Route a root command or show the registered command menu
+# Usage: __koirun [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] "$@"
+#   --koi-zero-argument-message MESSAGE  report MESSAGE instead of help when no command is given
+#   --koi-enable-help-on-unknown-commands  allow unknown commands with -h/--help to show root help
+#   $@                                   the command name and its arguments
+# Returns the handler's status, 0 for root help, or 2 for runner errors
 __koirun() {
-    local __koi_command
-    for __koi_command in "${__koi_commands[@]}"; do
-        printf '%s\n' "$__koi_command"
+    # always start by checking the spec - if invalid, we don't continue
+    if (( ! __koi_spec_valid )); then
+        return 2
+    fi
+
+    local __koi_run_message='' __koi_run_message_set=0 __koi_run_unknown_help=0
+    local __koi_run_command='' __koi_run_handler __koi_run_token
+
+    # handle admin flags first
+    while (( $# )); do
+        case $1 in
+            --koi-zero-argument-message)
+                if (( __koi_run_message_set || $# < 2 )) || [[ -z $2 ]]; then
+                    __koi_run_error 'invalid or repeated --koi-zero-argument-message'
+                    return 2
+                fi
+                __koi_run_message=$2
+                __koi_run_message_set=1
+                shift 2
+                ;;
+            --koi-enable-help-on-unknown-commands)
+                if (( __koi_run_unknown_help )); then
+                    __koi_run_error 'repeated --koi-enable-help-on-unknown-commands'
+                    return 2
+                fi
+                __koi_run_unknown_help=1
+                shift
+                ;;
+            -h|--help)
+                __koi_print_root_help
+                return 0
+                ;;
+            *)
+                break
+                ;;
+        esac
     done
+
+    if (( $# == 0 )); then
+        if (( __koi_run_message_set )); then
+            __koi_run_error "$__koi_run_message"
+            return 2
+        fi
+        __koi_print_root_help
+        return 0
+    fi
+
+    __koi_run_command=$1
+    shift
+    if [[ -z $__koi_run_command || ! ${__koi_handlers[$__koi_run_command]+present} ]]; then
+        # unknown commands have no spec, so only standalone help is recognized
+        if (( __koi_run_unknown_help )); then
+            for __koi_run_token in "$@"; do
+                case $__koi_run_token in
+                    --)
+                        break
+                        ;;
+                    -h|--help)
+                        __koi_print_root_help
+                        return 0
+                        ;;
+                esac
+            done
+        fi
+        __koi_run_error "unknown command '$__koi_run_command'"
+        return 2
+    fi
+
+    __koi_run_handler=${__koi_handlers[$__koi_run_command]}
+    if ! declare -F -- "$__koi_run_handler" >/dev/null; then
+        __koi_run_error "missing handler '$__koi_run_handler' for command '$__koi_run_command'"
+        return 2
+    fi
+
+    # keep this last to preserve the handler's status and normal errexit behavior
+    "$__koi_run_handler" "$@"
 }
 
-# --------- INTERNAL ---------
+# ------------------ INTERNAL ------------------
 
 # Print formatted error to stderr
 # Usage: __koi_error $*
@@ -529,6 +604,37 @@ __koi_scan_args() {
     return 0
 }
 
+# Print a runner diagnostic with the invoking script's name
+# Usage: __koi_run_error "$@"
+#   $@  the diagnostic text
+__koi_run_error() {
+    printf '%s: %s\n' "${0##*/}" "$*" >&2
+    return 2
+}
+
+# Print root help from registrations without entering command functions
+# Usage: __koi_print_root_help
+__koi_print_root_help() {
+    local __koi_root_command __koi_root_description __koi_root_indent
+    local __koi_root_width=0
+    for __koi_root_command in "${__koi_commands[@]}"; do
+        if (( ${#__koi_root_command} > __koi_root_width )); then
+            __koi_root_width=${#__koi_root_command}
+        fi
+    done
+    printf -v __koi_root_indent '%*s' "$((__koi_root_width + 4))" ''
+    printf 'Usage: %s COMMAND [args]\n\nCommands:\n' "${0##*/}"
+    if (( ${#__koi_commands[@]} == 0 )); then
+        printf '  (none)\n'
+    fi
+    for __koi_root_command in "${__koi_commands[@]}"; do
+        __koi_root_description=${__koi_descriptions[$__koi_root_command]}
+        __koi_root_description=${__koi_root_description//$'\n'/$'\n'"$__koi_root_indent"}
+        printf '  %-*s  %s\n' "$__koi_root_width" "$__koi_root_command" "$__koi_root_description"
+    done
+    printf '\nOptions:\n  -h, --help  Show this help\n'
+}
+
 # Print basic help for the current global argument spec
 # Usage: __koi_print_help
 __koi_print_help() {
@@ -538,7 +644,11 @@ __koi_print_help() {
     __koi_help_width=${#__koi_help_labels[0]}
     local __koi_help_index=1
 
-    printf 'Usage: %s [-h]' "${0##*/}"
+    printf 'Usage: %s' "${0##*/}"
+    if [[ -n ${__koi_run_command-} ]]; then
+        printf ' %s' "$__koi_run_command"
+    fi
+    printf ' [-h]'
 
     for __koi_help_dest in "${__koi_args[@]}"; do
         # prefer short spelling in usage, fall back to long if absent
@@ -608,7 +718,7 @@ __koi_print_help() {
     done
 }
 
-# --------- CONTROL FLOW ---------
+# ------------------ CONTROL FLOW ------------------
 
 # prevent usage below Bash 5.2
 __koi_bash_major_version=5
