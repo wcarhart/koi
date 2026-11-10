@@ -13,15 +13,15 @@ setup() {
 #   $@  the declaration arguments
 reject_registration() {
     local before after result
-    before=$(declare -p __koi_commands __koi_handlers __koi_descriptions)
+    before=$(declare -p __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
     __addcommand "$@"
     result=$?
-    after=$(declare -p __koi_commands __koi_handlers __koi_descriptions)
+    after=$(declare -p __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
     if [[ $before != "$after" ]]; then
         printf 'Registry changed after rejection\n' >&2
         return 1
     fi
-    if [[ $result != 0 && $__koi_spec_valid != 0 ]]; then
+    if [[ $result != 0 && $__koi_pending_spec_valid != 0 ]]; then
         printf 'Registration failure did not invalidate the spec\n' >&2
         return 1
     fi
@@ -30,23 +30,23 @@ reject_registration() {
 
 @test "long options register command metadata" {
     __addcommand deploy --function deploy_application --description "Deploy application"
-    [ "$__koi_spec_valid" -eq 1 ]
-    [ "${__koi_commands[0]}" = deploy ]
-    [ "${__koi_handlers[deploy]}" = deploy_application ]
-    [ "${__koi_descriptions[deploy]}" = 'Deploy application' ]
+    [ "$__koi_pending_spec_valid" -eq 1 ]
+    [ "${__koi_pending_commands[0]}" = deploy ]
+    [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
+    [ "${__koi_pending_descriptions[deploy]}" = 'Deploy application' ]
 }
 
 @test "short options register command metadata" {
     __addcommand deploy -f deploy_application -d 'Deploy application'
-    [ "${__koi_commands[0]}" = deploy ]
-    [ "${__koi_handlers[deploy]}" = deploy_application ]
-    [ "${__koi_descriptions[deploy]}" = 'Deploy application' ]
+    [ "${__koi_pending_commands[0]}" = deploy ]
+    [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
+    [ "${__koi_pending_descriptions[deploy]}" = 'Deploy application' ]
 }
 
 @test "option aliases can be mixed and supplied in either order" {
     __addcommand deploy -d 'Deploy application' --function deploy_application
-    [ "${__koi_handlers[deploy]}" = deploy_application ]
-    [ "${__koi_descriptions[deploy]}" = 'Deploy application' ]
+    [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
+    [ "${__koi_pending_descriptions[deploy]}" = 'Deploy application' ]
 }
 
 @test "registration is silent and does not require a defined handler" {
@@ -58,14 +58,14 @@ reject_registration() {
 
 @test "command names accept digits, hyphens and underscores" {
     __addcommand 1-deploy_job -f _deploy_job2 -d Deploy
-    [ "${__koi_commands[0]}" = 1-deploy_job ]
-    [ "${__koi_handlers[1-deploy_job]}" = _deploy_job2 ]
+    [ "${__koi_pending_commands[0]}" = 1-deploy_job ]
+    [ "${__koi_pending_handlers[1-deploy_job]}" = _deploy_job2 ]
 }
 
 @test "description preserves whitespace and shell-looking text literally" {
     local description=$'  first line\nsecond "$value" \\ end  '
     __addcommand deploy -f deploy -d "$description"
-    [ "${__koi_descriptions[deploy]}" = "$description" ]
+    [ "${__koi_pending_descriptions[deploy]}" = "$description" ]
 }
 
 @test "missing command name fails without registration" {
@@ -167,9 +167,9 @@ reject_registration() {
         source "$KOI_LIBRARY" || exit
         __addcommand
         result=$?
-        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         __addarg mode -o -l mode -d Mode || exit
-        [[ $__koi_spec_valid == 0 && ${__koi_args[0]} == mode ]]
+        [[ $__koi_root_spec_valid == 0 && ${__koi_root_args[0]} == mode ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]

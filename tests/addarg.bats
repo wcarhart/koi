@@ -15,19 +15,19 @@ setup() {
 #   $@  the declaration arguments
 attempt_argument() {
     local before after result
-    before=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names \
-        __koi_commands __koi_handlers __koi_descriptions)
+    before=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
+        __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names \
+        __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
     __addarg "$@"
     result=$?
-    after=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names \
-        __koi_commands __koi_handlers __koi_descriptions)
+    after=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
+        __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names \
+        __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
     if [[ $result != 0 && $before != "$after" ]]; then
         printf 'Registry changed after rejection\n' >&2
         return 1
     fi
-    if [[ $result != 0 && $__koi_spec_valid != 0 ]]; then
+    if [[ $result != 0 && $__koi_pending_spec_valid != 0 ]]; then
         printf 'Registration failure did not invalidate the spec\n' >&2
         return 1
     fi
@@ -46,50 +46,50 @@ assert_invalid() {
 
 @test "long aliases register an optional scalar option" {
     __addarg output_file --option --short o --long output-file --description 'Output path'
-    [ "$__koi_spec_valid" -eq 1 ]
-    [ "${__koi_args[0]}" = output_file ]
-    [ "${__koi_arg_kinds[output_file]}" = option ]
-    [ "${__koi_arg_shorts[output_file]}" = o ]
-    [ "${__koi_arg_longs[output_file]}" = output-file ]
-    [ "${__koi_arg_descriptions[output_file]}" = 'Output path' ]
-    [ "${__koi_arg_requireds[output_file]}" = 0 ]
-    [[ ! -v __koi_arg_defaults[output_file] ]]
+    [ "$__koi_pending_spec_valid" -eq 1 ]
+    [ "${__koi_pending_args[0]}" = output_file ]
+    [ "${__koi_pending_arg_kinds[output_file]}" = option ]
+    [ "${__koi_pending_arg_shorts[output_file]}" = o ]
+    [ "${__koi_pending_arg_longs[output_file]}" = output-file ]
+    [ "${__koi_pending_arg_descriptions[output_file]}" = 'Output path' ]
+    [ "${__koi_pending_arg_requireds[output_file]}" = 0 ]
+    [[ ! -v __koi_pending_arg_defaults[output_file] ]]
 }
 
 @test "short aliases register a required flag" {
     __addarg verbose -f -s v -l verbose -d 'Print progress' -r
-    [ "${__koi_arg_kinds[verbose]}" = flag ]
-    [ "${__koi_arg_requireds[verbose]}" = 1 ]
-    [ "${__koi_arg_shorts[verbose]}" = v ]
-    [ "${__koi_arg_longs[verbose]}" = verbose ]
-    [ "${__koi_arg_descriptions[verbose]}" = 'Print progress' ]
+    [ "${__koi_pending_arg_kinds[verbose]}" = flag ]
+    [ "${__koi_pending_arg_requireds[verbose]}" = 1 ]
+    [ "${__koi_pending_arg_shorts[verbose]}" = v ]
+    [ "${__koi_pending_arg_longs[verbose]}" = verbose ]
+    [ "${__koi_pending_arg_descriptions[verbose]}" = 'Print progress' ]
 }
 
 @test "short option and long flag selectors work" {
     __addarg mode -o -l mode -d Mode
     __addarg verbose --flag -s v -d Verbose
-    [ "${__koi_arg_kinds[mode]}" = option ]
-    [ "${__koi_arg_kinds[verbose]}" = flag ]
-    [ "${__koi_arg_requireds[verbose]}" = 0 ]
+    [ "${__koi_pending_arg_kinds[mode]}" = option ]
+    [ "${__koi_pending_arg_kinds[verbose]}" = flag ]
+    [ "${__koi_pending_arg_requireds[verbose]}" = 0 ]
 }
 
 @test "short-only and long-only declarations do not infer other spellings" {
     __addarg mode -o -s m -d Mode
     __addarg verbose -f -l verbose -d Verbose
-    [ "${__koi_arg_longs[mode]}" = '' ]
-    [ "${__koi_arg_shorts[verbose]}" = '' ]
+    [ "${__koi_pending_arg_longs[mode]}" = '' ]
+    [ "${__koi_pending_arg_shorts[verbose]}" = '' ]
 }
 
 @test "mixed aliases and arbitrary declaration order are accepted" {
     __addarg mode --description Mode -D safe --long mode -s m --option
-    [ "${__koi_arg_defaults[mode]}" = safe ]
-    [ "${__koi_arg_longs[mode]}" = mode ]
-    [ "${__koi_arg_shorts[mode]}" = m ]
+    [ "${__koi_pending_arg_defaults[mode]}" = safe ]
+    [ "${__koi_pending_arg_longs[mode]}" = mode ]
+    [ "${__koi_pending_arg_shorts[mode]}" = m ]
 }
 
 @test "required option metadata is recorded" {
     __addarg token -o -l token --required -d Token
-    [ "${__koi_arg_requireds[token]}" = 1 ]
+    [ "${__koi_pending_arg_requireds[token]}" = 1 ]
 }
 
 @test "registration succeeds silently" {
@@ -103,50 +103,50 @@ assert_invalid() {
     __addcommand mode -f handler -d Command
     __addarg mode -o -l mode -d Mode
     __addarg verbose -f -s v -d Verbose
-    [ "${__koi_args[*]}" = 'mode verbose' ]
-    [ "${__koi_commands[*]}" = mode ]
-    [ "${__koi_handlers[mode]}" = handler ]
-    [ "${__koi_descriptions[mode]}" = Command ]
+    [ "${__koi_pending_args[*]}" = 'mode verbose' ]
+    [ "${__koi_pending_commands[*]}" = mode ]
+    [ "${__koi_pending_handlers[mode]}" = handler ]
+    [ "${__koi_pending_descriptions[mode]}" = Command ]
 }
 
 @test "repeated sourcing preserves all argument metadata" {
     __addarg mode -o -s m -l mode -d Mode -D safe
     local before after
-    before=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names)
+    before=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
+        __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names)
     # shellcheck source=koi
     source "$KOI_LIBRARY"
-    after=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names)
+    after=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
+        __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names)
     [ "$before" = "$after" ]
 }
 
 @test "valid identifiers and mixed-case hyphenated and underscored long names work" {
     __addarg _file2 -o -s H -l Output-file_2 -d File
-    [ "${__koi_arg_longs[_file2]}" = Output-file_2 ]
-    [ "${__koi_arg_shorts[_file2]}" = H ]
+    [ "${__koi_pending_arg_longs[_file2]}" = Output-file_2 ]
+    [ "${__koi_pending_arg_shorts[_file2]}" = H ]
 }
 
 @test "short and long spellings occupy separate case-sensitive namespaces" {
     __addarg first -o -s m -l Mode -d First
     __addarg second -f -s M -l m -d Second
     __addarg third -o -l mode -d Third
-    [ "${#__koi_args[@]}" -eq 3 ]
+    [ "${#__koi_pending_args[@]}" -eq 3 ]
 }
 
 @test "absent and explicitly empty defaults are distinct" {
     __addarg first -o -l first -d First
     __addarg second -o -l second -d Second --default ''
-    [[ ! -v __koi_arg_defaults[first] ]]
-    [[ -v __koi_arg_defaults[second] ]]
-    [ "${__koi_arg_defaults[second]}" = '' ]
+    [[ ! -v __koi_pending_arg_defaults[first] ]]
+    [[ -v __koi_pending_arg_defaults[second] ]]
+    [ "${__koi_pending_arg_defaults[second]}" = '' ]
 }
 
 @test "metadata is stored literally without evaluating shell-looking text" {
     local text=$'  a\n"quoted" $value $(false) `false` \\ %s  '
     __addarg mode -o -l mode -d "$text" -D "$text"
-    [ "${__koi_arg_descriptions[mode]}" = "$text" ]
-    [ "${__koi_arg_defaults[mode]}" = "$text" ]
+    [ "${__koi_pending_arg_descriptions[mode]}" = "$text" ]
+    [ "${__koi_pending_arg_defaults[mode]}" = "$text" ]
 }
 
 @test "registration does not initialize unset destinations" {
@@ -298,7 +298,7 @@ assert_invalid() {
     assert_invalid other -f -s m -d Other
     assert_invalid other -o -l mode -d Other
     __addarg other -f -s v -d Other
-    [ "${__koi_args[*]}" = 'original other' ]
+    [ "${__koi_pending_args[*]}" = 'original other' ]
 }
 
 @test "successful command registration cannot clear an argument registration failure" {
@@ -307,9 +307,9 @@ assert_invalid() {
         source "$KOI_LIBRARY" || exit
         __addarg
         result=$?
-        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         __addcommand deploy -f handler -d Deploy || exit
-        [[ $__koi_spec_valid == 0 && ${__koi_commands[0]} == deploy ]]
+        [[ $__koi_root_spec_valid == 0 && ${__koi_root_commands[0]} == deploy ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -323,12 +323,12 @@ assert_invalid() {
         source "$KOI_LIBRARY" || exit
         __addarg
         result=$?
-        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         __addarg mode -o -l mode -d Mode || exit
-        [[ $__koi_spec_valid == 0 ]] || exit 1
+        [[ $__koi_root_spec_valid == 0 ]] || exit 1
         __addarg mode -f -s m -d Duplicate
         result=$?
-        [[ $result == 2 && $__koi_spec_valid == 0 ]] || exit 1
+        [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         printf "continued\n"
     '
     [ "$status" -eq 0 ]
@@ -346,7 +346,7 @@ assert_invalid() {
             printf "continued\n"
         }
         if register_spec; then
-            [[ $__koi_spec_valid == 0 ]]
+            [[ $__koi_pending_spec_valid == 0 ]]
         else
             exit 1
         fi
@@ -364,8 +364,8 @@ assert_invalid() {
 @test "option display name supports short and long aliases" {
     __addarg env -o -l environment -n env -d Environment
     __addarg file -o -s F --display-name path -d File
-    [ "${__koi_arg_display_names[env]}" = env ]
-    [ "${__koi_arg_display_names[file]}" = path ]
+    [ "${__koi_pending_arg_display_names[env]}" = env ]
+    [ "${__koi_pending_arg_display_names[file]}" = path ]
 }
 
 @test "display names are rejected on flags and cannot be empty or missing" {
@@ -390,7 +390,7 @@ assert_invalid() {
         source "$KOI_LIBRARY" || exit
         __addarg env -o -l environment -d Environment -n env || exit
         source "$KOI_LIBRARY" || exit
-        [[ ${__koi_arg_display_names[env]} == env ]]
+        [[ ${__koi_root_arg_display_names[env]} == env ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]

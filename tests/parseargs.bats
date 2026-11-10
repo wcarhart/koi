@@ -82,6 +82,9 @@ parse_without_mutation() {
 @test "option values may match registered spellings or the separator" {
     local name verbose quiet value
     for value in -n --name -v --verbose -10 --; do
+        if [[ $value != -n ]]; then
+            setup
+        fi
         __parseargs -n "$value"
         [ "$name" = "$value" ]
         [ "$verbose" = 0 ]
@@ -135,6 +138,7 @@ parse_without_mutation() {
     local name verbose quiet
     __parseargs
     [ "$koi_status" -eq 0 ]
+    setup
     __parseargs --koi-error-on-duplicates -n Alice
     [ "$name" = Alice ]
     assert_parse_error --koi-error-on-duplicates --koi-error-on-duplicates
@@ -145,6 +149,7 @@ parse_without_mutation() {
     local example
     __parseargs -e
     [ "$example" = 1 ]
+    __addarg example -f -s e -l error-on-duplicates -d Example
     __parseargs --koi-error-on-duplicates --error-on-duplicates
     [ "$example" = 1 ]
 }
@@ -263,6 +268,9 @@ parse_without_mutation() {
     local name verbose quiet mode blank
     __parseargs -n Alice -v --mode fast --blank value
     [ "$mode" = fast ]
+    setup
+    __addarg mode -o -l mode -d Mode -D safe
+    __addarg blank -o -l blank -d Blank -D ''
     __parseargs
     [ "$name" = '' ]
     [ "$verbose" = 0 ]
@@ -324,13 +332,13 @@ parse_without_mutation() {
     done
 }
 
-@test "invalid specs fail silently even for help and never clear validity" {
+@test "invalid specs fail silently even for help and consume registration" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
         __addarg 2>/dev/null
         __parseargs --help
         result=$?
-        [[ $koi_status == 2 && $__koi_spec_valid == 0 ]] || exit 9
+        [[ $koi_status == 2 && $__koi_root_spec_valid == 1 && ${#__koi_root_args[@]} == 0 ]] || exit 9
         exit "$result"
     '
     [ "$status" -eq 2 ]
@@ -345,23 +353,21 @@ parse_without_mutation() {
     [ -z "$stderr" ]
 }
 
-@test "parsing never changes registry metadata or sticky validity" {
-    local before after
-    before=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names __koi_spec_valid)
+@test "parsing consumes metadata and a later cycle starts valid" {
+    local name verbose quiet
     __parseargs -n Alice
-    after=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names __koi_spec_valid)
-    [ "$before" = "$after" ]
+    [ "${#__koi_pending_args[@]}" -eq 0 ]
+    [ "${#__koi_pending_arg_kinds[@]}" -eq 0 ]
+    [ "$__koi_pending_spec_valid" -eq 1 ]
+    setup
     assert_parse_error --unknown
-    [ "$__koi_spec_valid" -eq 1 ]
 }
 
 @test "guard stops business logic on help and errors without author status locals" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addarg name -o -l name -d Name || exit
         business() {
+            __addarg name -o -l name -d Name
             __parseargs "$@" || return "$koi_status"
             printf "business:%s\\n" "$name"
         }
@@ -383,8 +389,8 @@ parse_without_mutation() {
     run --separate-stderr bash -c '
         set -e
         source "$KOI_LIBRARY"
-        __addarg name -o -l name -d Name
         business() {
+            __addarg name -o -l name -d Name
             __parseargs "$@" || return "$koi_status"
             printf "BAD\\n"
         }
@@ -402,17 +408,19 @@ parse_without_mutation() {
 
 @test "parse outcomes overwrite stale status and preserve optional caller-local status" {
     local koi_status=99
-    __parseargs
+    empty() {
+        __parseargs "$@" || return "$koi_status"
+    }
+    # Consume setup's interface before the empty invocations.
+    empty
     [ "$koi_status" -eq 0 ]
-    if __parseargs --help > /dev/null; then
-        return 1
-    fi
+    empty --help > /dev/null
     [ "$koi_status" -eq 0 ]
-    if __parseargs --unknown 2>/dev/null; then
+    if empty --unknown 2>/dev/null; then
         return 1
     fi
     [ "$koi_status" -eq 2 ]
-    __parseargs
+    empty
     [ "$koi_status" -eq 0 ]
 }
 
@@ -431,9 +439,9 @@ parse_without_mutation() {
 @test "help lists short spellings in usage and aligns descriptions after full labels" {
     cat > "$BATS_TEST_TMPDIR/test.sh" <<'SCRIPT'
 source "$KOI_LIBRARY"
-__addarg env -o -s e -l environment -d 'Deploy environment'
-__addarg dry -f -s d -l dry-run -d 'Dry run'
 main() {
+    __addarg env -o -s e -l environment -d 'Deploy environment'
+    __addarg dry -f -s d -l dry-run -d 'Dry run'
     __parseargs "$@" || return "$koi_status"
 }
 main "$@"
@@ -496,9 +504,9 @@ Options:
 @test "custom display names are uppercased in usage and the aligned help table" {
     cat > "$BATS_TEST_TMPDIR/test.sh" <<'SCRIPT'
 source "$KOI_LIBRARY"
-__addarg env -o -s e -l environment -d 'Deploy environment' -n env
-__addarg dry -f -s d -l dry-run -d 'Dry run'
 main() {
+    __addarg env -o -s e -l environment -d 'Deploy environment' -n env
+    __addarg dry -f -s d -l dry-run -d 'Dry run'
     __parseargs "$@" || return "$koi_status"
 }
 main "$@"

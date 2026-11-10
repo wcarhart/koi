@@ -28,10 +28,10 @@ setup() {
     for validity in 1 0; do
         run --separate-stderr bash -c '
             source "$KOI_LIBRARY" || exit
-            __koi_spec_valid=$1
+            __koi_pending_spec_valid=$1
             __koi_error Example
             result=$?
-            [[ $result == 2 && $__koi_spec_valid == "$1" ]]
+            [[ $result == 2 && $__koi_pending_spec_valid == "$1" ]]
         ' bash "$validity"
         [ "$status" -eq 0 ]
         [ -z "$output" ]

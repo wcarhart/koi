@@ -44,8 +44,9 @@ redesign and bug fixes, rather than only modernization of the existing code.
 
 - At a given command context, koi knows its registered immediate children.
   Descendants become known when their owning functions execute registrations.
-- Retain ancestor contexts and the full traversed path for routing and usage
-  text; do not confuse incremental discovery with forgetting ancestors.
+- Retain the full traversed command path for routing and usage text. Consume
+  and discard each spec once its arguments and selected child have been resolved;
+  ancestor declaration arrays do not need to survive child dispatch.
 - For `script a b c`, the proposed route is runner -> `a` -> its parser -> `b`
   -> its parser -> `c` -> its parser.
 - Complete recursive help or inspection requires visiting registered branches;
@@ -62,15 +63,21 @@ redesign and bug fixes, rather than only modernization of the existing code.
   Selecting a child must not also run the parent's default business logic.
 - An ordinary helper function cannot return from its caller. Moving the guard
   into another function does not remove this requirement.
-- Exact guard syntax and the representation of outcome versus exit status are
-  unresolved. `__parseargs "$@" || return "$koi_status"` is illustrative, not a
-  finalized API. A bare `|| return $?` cannot express successful early completion
-  unless the outcome protocol explicitly provides for it.
+- Use `__parseargs "$@" || return "$koi_status"`. The parser returns 0 to
+  continue, 1 after help or child dispatch, and 2 on error. Immediately before
+  returning it sets `koi_status` to 0 for help/success, 2 for parsing errors, or
+  the child's actual exit status after dispatch. Authors need not initialize it.
+  A bare `|| return $?` incorrectly turns successful help into failure.
+- `koi_status` is a transient output for the immediate guard, not retained
+  per-invocation history. A later parser may overwrite it.
 - Teach the guard prominently in human and agent documentation, examples, and
   templates. Unguarded parsing is unsupported and should be diagnosed by tooling.
 - Koi must not depend on `set -e` for internal error propagation. The effect of
-  conditional calls on Bash's `errexit`, including child dispatch from a guarded
-  parser, needs explicit design, documentation, and verification.
+  conditional calls on Bash's `errexit` also applies to child business logic
+  dispatched from a guarded parser: Bash suppresses `errexit` there. Authors
+  must handle business-operation failures explicitly. Root runner dispatch is
+  unconditional and preserves normal `errexit` behavior unless its caller also
+  invokes the runner conditionally.
 
 ### 5. Help is built in
 
@@ -92,11 +99,68 @@ redesign and bug fixes, rather than only modernization of the existing code.
 - A function may call another koi-powered function directly with flags, options,
   and positional arguments. The callee registers and parses its own interface.
 - Direct function calls do not require command registration or runner wrappers.
-- Isolate koi's spec, presence tracking, results bookkeeping, and routing state
-  per invocation. Support repeated calls, nested calls, and recursion without
-  leaking registrations or stale values between invocations.
-- Completing a parse must leave subsequent independent registration usable.
-  Shared mutable global registration arrays are not an acceptable isolation model.
+- A function owns one uninterrupted registration block: zero or more `__addarg`
+  and `__addcommand` calls followed by exactly one guarded `__parseargs`.
+  Preparation may execute before the block; business logic executes after it.
+  Conditional declarations are supported. Registration helpers that contribute
+  another function's interface are unsupported.
+- Once registration starts, do not return, omit parsing, or call another
+  function that builds/parses an interface before reaching `__parseargs`.
+  Abandoned or interleaved registration is unsupported and may malfunction;
+  koi does not promise a dedicated diagnostic for this misuse.
+- Repeated calls, nested calls, and recursion are supported when each registration
+  block is uninterrupted. Nest parsing functions before registration starts or
+  after parsing completes.
+- Function declarations accumulate in one pending buffer, separate from root
+  registration. Parsing consumes and clears it before validation, help, or child
+  dispatch. Declaration failures invalidate only that block; every new block
+  starts valid, including after an earlier help or error outcome.
+- Consumed specs and temporary parsing results are discarded. Destination
+  variables are the only persistent parsing artifact. There is no spec cache,
+  history, caller-local context requirement, trap installation, or function-return
+  tracking.
+
+### Root lifecycle and option ownership
+
+- Script-scope declarations, including files sourced at script scope, build the
+  persistent root registration buffer. Function declarations use the separate
+  pending function buffer, even when the library itself was loaded in a function.
+- Call `__koirun [supported admin flags] "$@"` once per library initialization.
+  The first attempt consumes root registration even on help or error. A second
+  call or later root declaration reports an error. Re-sourcing does not reset
+  this state; no reset API is currently provided.
+- A script may instead consume root registration with script-scope `__parseargs`.
+  It must handle the parser's outcome at its own entrypoint; it cannot then run
+  `__koirun` against the consumed root.
+- Each context recognizes its options before selecting a child. For example,
+  `app -v deploy -e production` parses root `-v`, then forwards `-e production`
+  to `deploy`. Parent option spellings are not inherited by child parsers.
+  Root destination variables remain visible through ordinary Bash scope.
+- Help lists only the current context's arguments and immediate children. A
+  routed handler uses its selected CLI path; directly called parsing functions
+  use script-only usage text. A helper called during a routed handler's
+  preparation must not inherit that handler's path.
+- Route association uses only the selected handler's immediate caller name and
+  expected call depth, not an invocation-frame registry. Aliases use CLI command
+  names rather than handler names in usage text.
+
+```bash
+source ./koi
+
+__addarg verbose -f -s v -d 'Print progress'
+__addcommand deploy -f deploy -d 'Deploy application'
+
+deploy() {
+    local environment
+    __addarg environment -o -s e -d Environment -D production
+    __parseargs "$@" || return "$koi_status"
+
+    printf 'Deploying to %s (verbose=%s)\n' "$environment" "$verbose"
+}
+
+# Example invocation: ./app -v deploy -e staging
+__koirun "$@"
+```
 
 ### 7. Authors control destination variable scope
 
@@ -142,10 +206,12 @@ remain a bootstrap step.
 
 ### Spec inspection and debugging
 
-- Provide insight into a command/function's effective spec and parser decisions.
-  `__dumpspec` is a working name, not a settled spelling.
-- Keep runtime introspection available from the library so internal functions can
-  inspect their actual invocation context, not only CLI-reachable commands.
+- A future inspection API may provide insight into effective specs and parser
+  decisions. `__dumpspec` means printing a spec, not deleting one; its interface
+  is deferred. Current parsing consumes and discards specs, so post-parse
+  inspection or explicit retention would require a future API addition.
+- Future runtime introspection should also serve directly called parsing
+  functions, not only CLI-reachable commands.
 - Let the CLI expose that capability through a defined inspection protocol.
 - Clearly distinguish static reports from runtime inspection. Effective JIT spec
   inspection executes registrations and may execute top-level or pre-parse code.
@@ -221,12 +287,12 @@ choices have less design consensus than the API axioms and may change.
 
 ## Next design decisions
 
-1. Specify the guard/outcome protocol, child status propagation, and command
-   context lifecycle, including the implications for `errexit`.
+1. Extend the implemented registration lifecycle and guard protocol only when
+   concrete inspection or reuse requirements justify additional APIs.
 2. Specify declaration signatures, destinations, command metadata, automatic help,
    and configuration without expanding the API unnecessarily.
 3. Define token semantics and parent/child option scope and inheritance.
-4. Design per-invocation state isolation for CLI dispatch and direct calls.
+4. Preserve consume-and-discard isolation for CLI dispatch and direct calls.
 5. Define static-check coverage and the runtime inspection protocol before
    selecting CLI implementation dependencies.
 6. Confirm Bash baseline, test tooling, installation paths, docs generator, and
