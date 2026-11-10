@@ -369,8 +369,7 @@ __koi_select_registration_buffer() {
                 continue
                 ;;
             main)
-                # TODO: can we do this without frame inspection and line numbers?
-                # Bash's script entry has no calling line; a function named main does.
+                # Bash's script entry has no calling line, a function named main does
                 if (( __koi_frame == ${#FUNCNAME[@]} - 1 && ${BASH_LINENO[__koi_frame]} == 0 )); then
                     continue
                 fi
