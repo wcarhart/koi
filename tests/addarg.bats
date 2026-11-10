@@ -16,12 +16,12 @@ setup() {
 attempt_argument() {
     local before after result
     before=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults \
+        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names \
         __koi_commands __koi_handlers __koi_descriptions)
     __addarg "$@"
     result=$?
     after=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults \
+        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names \
         __koi_commands __koi_handlers __koi_descriptions)
     if [[ $result != 0 && $before != "$after" ]]; then
         printf 'Registry changed after rejection\n' >&2
@@ -113,11 +113,11 @@ assert_invalid() {
     __addarg mode -o -s m -l mode -d Mode -D safe
     local before after
     before=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults)
+        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names)
     # shellcheck source=koi
     source "$KOI_LIBRARY"
     after=$(declare -p __koi_args __koi_arg_shorts __koi_arg_longs __koi_arg_kinds \
-        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults)
+        __koi_arg_descriptions __koi_arg_requireds __koi_arg_defaults __koi_arg_display_names)
     [ "$before" = "$after" ]
 }
 
@@ -185,7 +185,7 @@ assert_invalid() {
 
 @test "destination is required and must be a non-reserved Bash identifier" {
     assert_invalid
-    for name in '' '1name' 'two words' 'with-dash' 'x[0]' '__koi_private'; do
+    for name in '' '1name' 'two words' 'with-dash' 'x[0]' '__koi_private' koi_status; do
         assert_invalid "$name" -o -l mode -d Mode
     done
 }
@@ -243,7 +243,7 @@ assert_invalid() {
 
 @test "long spelling must be an unprefixed non-help name" {
     local spelling
-    for spelling in '' help --mode -mode _mode 1mode 'two words' 'mode!' 'mode/path'; do
+    for spelling in '' help koi-error-on-duplicates koi-error-on-duplicate --mode -mode _mode 1mode 'two words' 'mode!' 'mode/path'; do
         assert_invalid mode -o -l "$spelling" -d Mode
     done
 }
@@ -354,4 +354,45 @@ assert_invalid() {
     [ "$status" -eq 0 ]
     [ "$output" = continued ]
     [ "$stderr" = 'koi: __addarg: destination required' ]
+}
+
+@test "long spelling reservations use the shared list" {
+    __koi_reserved_longs+=(future-koi-setting)
+    assert_invalid setting -f -l future-koi-setting -d Setting
+}
+
+@test "option display name supports short and long aliases" {
+    __addarg env -o -l environment -n env -d Environment
+    __addarg file -o -s F --display-name path -d File
+    [ "${__koi_arg_display_names[env]}" = env ]
+    [ "${__koi_arg_display_names[file]}" = path ]
+}
+
+@test "display names are rejected on flags and cannot be empty or missing" {
+    assert_invalid env -f -l environment -n env -d Environment
+    assert_invalid env -o -l environment -n '' -d Environment
+    assert_invalid env -o -l environment -d Environment -n
+    assert_invalid env -o -l environment -d Environment --display-name
+}
+
+@test "display name aliases cannot be repeated" {
+    local first second
+    for first in -n --display-name; do
+        for second in -n --display-name; do
+            assert_invalid env -o -l environment -d Environment "$first" env "$second" other
+        done
+    done
+}
+
+@test "repeated sourcing preserves explicit display names" {
+    # shellcheck disable=SC2016
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY" || exit
+        __addarg env -o -l environment -d Environment -n env || exit
+        source "$KOI_LIBRARY" || exit
+        [[ ${__koi_arg_display_names[env]} == env ]]
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ -z "$stderr" ]
 }

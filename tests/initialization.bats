@@ -11,7 +11,7 @@ setup() {
 @test "sourcing is silent and initializes an empty registry" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        [[ $__koi_initialized == 1 && $__koi_spec_valid == 1 && ${#__koi_commands[@]} == 0 &&
+        [[ $koi_status == 0 && $__koi_initialized == 1 && $__koi_spec_valid == 1 && ${#__koi_commands[@]} == 0 &&
            ${#__koi_handlers[@]} == 0 && ${#__koi_descriptions[@]} == 0 ]]
     '
     [ "$status" -eq 0 ]

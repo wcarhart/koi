@@ -71,7 +71,7 @@ __addcommand() {
 }
 
 # Register a scalar option or boolean flag without assigning its destination
-# Usage: __addarg DEST (-f|-o) (-s SHORT||-l LONG) -d DESCRIPTION [-r] [-D DEFAULT]
+# Usage: __addarg DEST (-f|-o) (-s SHORT||-l LONG) -d DESCRIPTION [-r] [-D DEFAULT] [-n DISPLAY_NAME]
 #   DEST               the Bash destination variable name
 #   -f, --flag         register a boolean flag (e.g. '-f')
 #   -o, --option       register an option that consumes one value (e.g. '-o value')
@@ -80,6 +80,7 @@ __addcommand() {
 #   -d, --description  nonempty argument description
 #   -r, --required     require explicit presence when parsing
 #   -D, --default      default for an optional option (empty text allowed)
+#   -n, --display-name option value label
 # Returns 2 on invalid declarations with the registry unchanged
 __addarg() {
     local __koi_dest=${1-} __koi_parameter __koi_value
@@ -120,6 +121,9 @@ __addarg() {
             -D|--default)
                 __koi_parameter=default
                 ;;
+            -n|--display-name)
+                __koi_parameter=display_name
+                ;;
             *)
                 __koi_spec_error "__addarg: unknown declaration parameter: $1"
                 return 2
@@ -157,9 +161,91 @@ __addarg() {
     __koi_arg_kinds[$__koi_dest]=${__koi_values[kind]}
     __koi_arg_descriptions[$__koi_dest]=${__koi_values[description]}
     __koi_arg_requireds[$__koi_dest]=${__koi_values[required]}
+    if [[ ${__koi_seen[display_name]+present} ]]; then
+        __koi_arg_display_names[$__koi_dest]=${__koi_values[display_name]}
+    fi
     if [[ ${__koi_seen[default]+present} ]]; then
         __koi_arg_defaults[$__koi_dest]=${__koi_values[default]}
     fi
+    return 0
+}
+
+# Parse the registered global spec and assign literal scalar values
+# Usage: __parseargs [--koi-error-on-duplicates] "$@" || return "$koi_status"
+#   --koi-error-on-duplicates  reject repeated occurrences of a destination
+#   $@                         the script arguments to parse
+# Returns 0 to continue, 1 after help, or 2 on error - koi_status is 0 or 2
+__parseargs() {
+    # given Bash control flow (and we can't assume set -e), we must immediately
+    # return non-zero if any prior spec failure occurred (e.g. from __addarg)
+    koi_status=2
+    if (( ! __koi_spec_valid )); then
+        return 2
+    fi
+
+    # keep scanned values and presence separate until all checks pass
+    local __koi_parse_result
+    local __koi_parse_dest __koi_parse_error='' __koi_parse_declaration __koi_parse_attributes
+    local -A __koi_parse_values=() __koi_parse_seen=()
+    
+    # pass variable names so the scanner can fill these through namerefs
+    if __koi_scan_args __koi_parse_values __koi_parse_seen __koi_parse_error "$@"; then
+        __koi_parse_result=0
+    else
+        __koi_parse_result=$?
+    fi
+
+    # trigger the caller's guard while returning success from its function
+    if (( __koi_parse_result == 1 )); then
+        __koi_print_help
+        koi_status=0
+        return 1
+    fi
+
+    # report input errors only after giving help a chance to take precedence
+    if [[ -n $__koi_parse_error ]]; then
+        __koi_error "__parseargs: $__koi_parse_error"
+        return 2
+    fi
+
+    # check presence and fill omitted values without touching user variables
+    for __koi_parse_dest in "${__koi_args[@]}"; do
+        # check if required but was not included
+        if [[ ${__koi_arg_requireds[$__koi_parse_dest]} == 1 && ! ${__koi_parse_seen[$__koi_parse_dest]+present} ]]; then
+            __koi_error "__parseargs: missing required argument: '$__koi_parse_dest'"
+            return 2
+        fi
+
+        # determine default, if one is available
+        if [[ ! ${__koi_parse_seen[$__koi_parse_dest]+present} ]]; then
+            if [[ ${__koi_arg_kinds[$__koi_parse_dest]} == flag ]]; then
+                __koi_parse_values[$__koi_parse_dest]=0
+            else
+                __koi_parse_values[$__koi_parse_dest]=${__koi_arg_defaults[$__koi_parse_dest]-}
+            fi
+        fi
+
+        # only plain/exported scalars can preserve arbitrary literal values
+        if __koi_parse_declaration=$(declare -p "$__koi_parse_dest" 2>/dev/null); then
+            __koi_parse_attributes=${__koi_parse_declaration#declare -}
+            __koi_parse_attributes=${__koi_parse_attributes%% *}
+            if [[ $__koi_parse_attributes != - && $__koi_parse_attributes != x ]]; then
+                __koi_error "__parseargs: incompatible destination: '$__koi_parse_dest'"
+                return 2
+            fi
+        fi
+    done
+
+    # assign only after every value and destination has been checked
+    for __koi_parse_dest in "${__koi_args[@]}"; do
+        if ! printf -v "$__koi_parse_dest" '%s' "${__koi_parse_values[$__koi_parse_dest]}"; then
+            # in the rare case that we couldn't assign the destination's value
+            __koi_error "__parseargs: cannot assign destination: '$__koi_parse_dest'"
+            return 2
+        fi
+    done
+
+    koi_status=0
     return 0
 }
 
@@ -204,7 +290,7 @@ __koi_validate_arg_destination() {
         DIRSTACK EDITOR EUID FUNCNAME GLOBIGNORE GROUPS HOME HOSTNAME
         HOSTTYPE IFS IGNOREEOF LC_COLLATE LC_CTYPE LINENO MACHTYPE OLDPWD
         OSTYPE PATH PIPESTATUS PPID PROMPT_COMMAND PS1 PS2 PS3 PS4 PWD
-        REPLY SECONDS SHELLOPTS SHLVL TMOUT UID
+        REPLY SECONDS SHELLOPTS SHLVL TMOUT UID koi_status
     )
 
     if [[ ! $__koi_validation_dest =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ || $__koi_validation_dest == __koi_* ]]; then
@@ -228,7 +314,7 @@ __koi_validate_arg_destination() {
 #   SEEN_ARRAY    the name of the associative parameter-presence array
 # Returns 2 and marks the spec invalid on failure, does not modify metadata
 __koi_validate_arg_spec() {
-    local __koi_validation_dest=$1 __koi_validation_existing
+    local __koi_validation_dest=$1 __koi_validation_existing __koi_validation_reserved
     local -n __koi_validation_values=$2 __koi_validation_seen=$3
 
     if [[ -z ${__koi_validation_values[kind]} ]]; then
@@ -254,8 +340,21 @@ __koi_validate_arg_spec() {
     fi
 
     if [[ ${__koi_validation_seen[long]+present} ]]; then
-        if [[ ! ${__koi_validation_values[long]} =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ || ${__koi_validation_values[long]} == help ]]; then
+        if [[ ! ${__koi_validation_values[long]} =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]]; then
             __koi_spec_error "__addarg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
+            return 2
+        fi
+        for __koi_validation_reserved in "${__koi_reserved_longs[@]}"; do
+            if [[ ${__koi_validation_values[long]} == "$__koi_validation_reserved" ]]; then
+                __koi_spec_error "__addarg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
+                return 2
+            fi
+        done
+    fi
+
+    if [[ ${__koi_validation_seen[display_name]+present} ]]; then
+        if [[ ${__koi_validation_values[kind]} != option || -z ${__koi_validation_values[display_name]} ]]; then
+            __koi_spec_error '__addarg: nonempty display name requires an option'
             return 2
         fi
     fi
@@ -285,6 +384,230 @@ __koi_validate_arg_spec() {
     return 0
 }
 
+# Scan script tokens into temporary values while allowing help to override errors
+# Usage: __koi_scan_args VALUES_ARRAY SEEN_ARRAY ERROR_VAR "$@"
+#   VALUES_ARRAY  associative output array of supplied values
+#   SEEN_ARRAY    associative output array tracking explicit presence
+#   ERROR_VAR     first input diagnostic, or empty text
+#   $@            script arguments, including koi-reserved parser settings
+# Returns 1 for help or 0 after scanning without assigning user destinations
+# namerefs point to associative arrays whose keys require string expansion
+# shellcheck disable=SC2004
+__koi_scan_args() {
+    #these references write into the parser's temporary arrays and error message
+    local -n __koi_scan_values=$1 __koi_scan_seen=$2 __koi_scan_error=$3
+    local __koi_scan_duplicates=0 __koi_scan_duplicate=''
+    shift 3
+
+    local __koi_scan_dest __koi_scan_token __koi_scan_value __koi_scan_char
+    local __koi_scan_index __koi_scan_cluster_valid __koi_scan_cluster_help
+    local __koi_scan_positional=0
+    local -A __koi_scan_lookup=()
+    local -a __koi_scan_cluster=()
+
+    # map both spellings to the same destination for lookup and duplicate checks
+    for __koi_scan_dest in "${__koi_args[@]}"; do
+        if [[ -n ${__koi_arg_shorts[$__koi_scan_dest]} ]]; then
+            __koi_scan_lookup[-${__koi_arg_shorts[$__koi_scan_dest]}]=$__koi_scan_dest
+        fi
+
+        if [[ -n ${__koi_arg_longs[$__koi_scan_dest]} ]]; then
+            __koi_scan_lookup[--${__koi_arg_longs[$__koi_scan_dest]}]=$__koi_scan_dest
+        fi
+    done
+
+    # keep the first error but continue looking for a help request
+    while (( $# )); do
+        __koi_scan_token=$1
+        shift
+
+        if (( __koi_scan_positional )); then
+            # treat everything after -- as positional data
+            if [[ -z $__koi_scan_error ]]; then
+                __koi_scan_error="unsupported positional argument: '$__koi_scan_token'"
+            fi
+        elif [[ $__koi_scan_token == -h || $__koi_scan_token == --help ]]; then
+            # stop scanning and request help
+            return 1
+        elif [[ $__koi_scan_token == -- ]]; then
+            # end option recognition for the remaining tokens
+            __koi_scan_positional=1
+        elif [[ $__koi_scan_token == --koi-error-on-duplicates ]]; then
+            # enable strict duplicate checking
+            if (( __koi_scan_duplicates )) && [[ -z $__koi_scan_error ]]; then
+                __koi_scan_error='repeated --koi-error-on-duplicates setting'
+            fi
+            __koi_scan_duplicates=1
+        elif [[ -n $__koi_scan_token && ${__koi_scan_lookup[$__koi_scan_token]+present} ]]; then
+            # resolve an exact spelling to its destination and value
+            __koi_scan_dest=${__koi_scan_lookup[$__koi_scan_token]}
+            __koi_scan_value=1
+            if [[ ${__koi_arg_kinds[$__koi_scan_dest]} == option ]]; then
+                # options consume a value instead of storing 1
+                if (( $# == 0 )); then
+                    # reject an option with no remaining value token
+                    if [[ -z $__koi_scan_error ]]; then
+                        __koi_scan_error="missing value for '$__koi_scan_token'"
+                    fi
+                    continue
+                fi
+
+                if [[ $1 == -h || $1 == --help ]]; then
+                    # help overrides an apparent option value
+                    return 1
+                fi
+
+                # consume the next token literally, except for help
+                __koi_scan_value=$1
+                shift
+            fi
+
+            if [[ ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
+                # remember the first repeated destination
+                __koi_scan_duplicate=$__koi_scan_dest
+            fi
+            __koi_scan_values[$__koi_scan_dest]=$__koi_scan_value
+            __koi_scan_seen[$__koi_scan_dest]=1
+        elif [[ $__koi_scan_token == -?* && $__koi_scan_token != --* && ${#__koi_scan_token} -gt 2 ]]; then
+            # validate the whole cluster before accepting any of its flags
+            __koi_scan_cluster=()
+            __koi_scan_cluster_valid=1
+            __koi_scan_cluster_help=0
+
+            for (( __koi_scan_index=1; __koi_scan_index < ${#__koi_scan_token}; __koi_scan_index++ )); do
+                __koi_scan_char=${__koi_scan_token:__koi_scan_index:1}
+                if [[ $__koi_scan_char == h ]]; then
+                    # defer clustered help until the whole cluster is valid
+                    __koi_scan_cluster_help=1
+                elif [[ ${__koi_scan_lookup[-$__koi_scan_char]+present} ]]; then
+                    # resolve this cluster member to a registered argument
+                    __koi_scan_dest=${__koi_scan_lookup[-$__koi_scan_char]}
+                    if [[ ${__koi_arg_kinds[$__koi_scan_dest]} != flag ]]; then
+                        # value-taking options cannot appear in clusters
+                        __koi_scan_cluster_valid=0
+                    fi
+                    __koi_scan_cluster+=("$__koi_scan_dest")
+                else
+                    # unknown letters make the whole cluster invalid
+                    __koi_scan_cluster_valid=0
+                fi
+            done
+
+            if (( ! __koi_scan_cluster_valid )); then
+                # reject the cluster without accepting any members
+                if [[ -z $__koi_scan_error ]]; then
+                    __koi_scan_error="invalid or ambiguous short cluster: '$__koi_scan_token' (flags only)"
+                fi
+                continue
+            fi
+
+            if (( __koi_scan_cluster_help )); then
+                # request help from a valid flags-only cluster
+                return 1
+            fi
+
+            for __koi_scan_dest in "${__koi_scan_cluster[@]}"; do
+                if [[ ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
+                    # track duplicates within clusters and across spellings
+                    __koi_scan_duplicate=$__koi_scan_dest
+                fi
+                __koi_scan_values[$__koi_scan_dest]=1
+                __koi_scan_seen[$__koi_scan_dest]=1
+            done
+        else
+            # reject tokens that match neither an option nor a valid cluster
+            if [[ -z $__koi_scan_error ]]; then
+                __koi_scan_error="unsupported positional argument: '$__koi_scan_token'"
+            fi
+        fi
+    done
+
+    # the reserved setting can appear after the duplicate it should reject
+    if (( __koi_scan_duplicates )) && [[ -n $__koi_scan_duplicate && -z $__koi_scan_error ]]; then
+        __koi_scan_error="duplicate argument: '$__koi_scan_duplicate'"
+    fi
+    return 0
+}
+
+# Print basic help for the current global argument spec
+# Usage: __koi_print_help
+__koi_print_help() {
+    local __koi_help_dest __koi_help_spelling __koi_help_usage __koi_help_width
+    local __koi_help_value __koi_help_description __koi_help_indent
+    local -a __koi_help_labels=('-h, --help')
+    __koi_help_width=${#__koi_help_labels[0]}
+    local __koi_help_index=1
+
+    printf 'Usage: %s [-h]' "${0##*/}"
+
+    for __koi_help_dest in "${__koi_args[@]}"; do
+        # prefer short spelling in usage, fall back to long if absent
+        if [[ -n ${__koi_arg_shorts[$__koi_help_dest]} ]]; then
+            __koi_help_usage=-${__koi_arg_shorts[$__koi_help_dest]}
+        else
+            __koi_help_usage=--${__koi_arg_longs[$__koi_help_dest]}
+        fi
+
+        # uppercase the display name, falling back to long spelling then destination
+        __koi_help_value=${__koi_arg_display_names[$__koi_help_dest]:-${__koi_arg_longs[$__koi_help_dest]:-$__koi_help_dest}}
+        __koi_help_value=${__koi_help_value^^}
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+            __koi_help_usage+=" $__koi_help_value"
+        fi
+
+        # bracket optional arguments and leave required arguments unbracketed
+        if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
+            printf ' %s' "$__koi_help_usage"
+        else
+            printf ' [%s]' "$__koi_help_usage"
+        fi
+
+        # start the options-table label with the short spelling if present
+        __koi_help_spelling=''
+        if [[ -n ${__koi_arg_shorts[$__koi_help_dest]} ]]; then
+            __koi_help_spelling=-${__koi_arg_shorts[$__koi_help_dest]}
+        fi
+
+        # append the long spelling, separating aliases with a comma
+        if [[ -n ${__koi_arg_longs[$__koi_help_dest]} ]]; then
+            if [[ -n $__koi_help_spelling ]]; then
+                __koi_help_spelling+=', '
+            fi
+            __koi_help_spelling+=--${__koi_arg_longs[$__koi_help_dest]}
+        fi
+
+        # append a value label for options but not flags
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+            __koi_help_spelling+=" $__koi_help_value"
+        fi
+
+        # save the label and track the widest row for description alignment
+        __koi_help_labels+=("$__koi_help_spelling")
+        if (( ${#__koi_help_spelling} > __koi_help_width )); then
+            __koi_help_width=${#__koi_help_spelling}
+        fi
+    done
+
+    printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
+    printf '\n\nOptions:\n'
+    printf '  %-*s  %s\n' "$__koi_help_width" "${__koi_help_labels[0]}" 'Show this help'
+    for __koi_help_dest in "${__koi_args[@]}"; do
+        __koi_help_description=${__koi_arg_descriptions[$__koi_help_dest]}
+        if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
+            __koi_help_description+=' (required)'
+        fi
+
+        if [[ ${__koi_arg_defaults[$__koi_help_dest]+present} ]]; then
+            __koi_help_description+=" (default: ${__koi_arg_defaults[$__koi_help_dest]})"
+        fi
+
+        # keep explicit description continuations aligned with the first line
+        __koi_help_description=${__koi_help_description//$'\n'/$'\n'"$__koi_help_indent"}
+        printf '  %-*s  %s\n' "$__koi_help_width" "${__koi_help_labels[$__koi_help_index]}" "$__koi_help_description"
+        __koi_help_index=$((__koi_help_index + 1))
+    done
+}
+
 # --------- CONTROL FLOW ---------
 
 # prevent usage below Bash 5.2
@@ -311,21 +634,30 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_handlers=() __koi_descriptions=()
 
     # the actual structure of argument registration is a set of associated arrays keyed by destination
-    # __koi_args             - the list of actual argument names (destination variable names)
-    # __koi_arg_shorts       - the registration of short abbreviations (e.g. '-a')
-    # __koi_arg_longs        - the registration of full argument names (e.g. '--arg')
-    # __koi_arg_kinds        - the registration of argument kinds (e.g. flag)
-    # __koi_arg_descriptions - the registration of argument descriptions
-    # __koi_arg_requireds    - the registration of which arguments are required
-    # __koi_arg_defaults     - the registration of default values for arguments
-    # Argument destinations in registration order, with metadata keyed by destination.
+    # __koi_args              - the list of actual argument names (destination variable names)
+    # __koi_arg_shorts        - the registration of short abbreviations (e.g. '-a')
+    # __koi_arg_longs         - the registration of full argument names (e.g. '--arg')
+    # __koi_arg_kinds         - the registration of argument kinds (e.g. flag)
+    # __koi_arg_descriptions  - the registration of argument descriptions
+    # __koi_arg_requireds     - the registration of which arguments are required
+    # __koi_arg_defaults      - the registration of default values for arguments
+    # __koi_arg_display_names - the registration of optional explicit option-value labels
     declare -ga __koi_args=()
     declare -gA __koi_arg_shorts=() __koi_arg_longs=() __koi_arg_kinds=()
     declare -gA __koi_arg_descriptions=() __koi_arg_requireds=() __koi_arg_defaults=()
+    declare -gA __koi_arg_display_names=()
+
+    # long spellings reserved for built-in help and parser configuration
+    declare -ga __koi_reserved_longs=(help koi-error-on-duplicates koi-error-on-duplicate)
 
     # __addarg can identify spec errors but cannot itself halt execution flow
     # so, __addarg marks the spec as invalid if it detects an error, and the handling of
     # __parseargs later handles control flow when the spec is invalid
     declare -gi __koi_spec_valid=1
+
+    # this is the control flow mechanism set and utilized with __parseargs
+    # shellcheck disable=SC2034
+    declare -g koi_status=0
+
     __koi_initialized=1
 fi
