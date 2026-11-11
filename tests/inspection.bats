@@ -207,7 +207,7 @@ run_inspection() {
         [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED COMMAND'*'Usage: tool branch one [-h] -r REQUIRED [COMMAND]'*'Usage: tool branch two [-h] -r REQUIRED [COMMAND]'*'Usage: tool alias [-h] -r REQUIRED [COMMAND]'* ]]
+    [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED COMMAND'*'Usage: tool branch one [-h] -r REQUIRED'*'Usage: tool branch two [-h] -r REQUIRED'*'Usage: tool alias [-h] -r REQUIRED'* ]]
     [[ "$output" != *BAD* && "$output" != *Fallback* && "$output" != *Hints:* ]]
     [ -z "$stderr" ]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 5 ]
@@ -229,7 +229,7 @@ run_inspection() {
         __koirun --koi-enable-verbose-help help --verbose
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == *Helper*'Usage: app.sh [-h]'*Alias*'Usage: app.sh alias [-h] [COMMAND]'* ]]
+    [[ "$output" == *Helper*'Usage: app.sh [-h]'*Alias*'Usage: app.sh alias [-h]'* ]]
     [[ "$output" != *BAD* && "$output" != *Fallback* ]]
     [ -z "$stderr" ]
 }
@@ -291,8 +291,8 @@ run_inspection() {
     [[ "$stderr" == *'conflicts with built-in help'* ]]
 }
 
-@test "verbose root with no application children renders once without recursion" {
-    run_inspection '__koirun --koi-enable-verbose-help help --verbose'
+@test "root with no application children suppresses verbose help and renders flag help once" {
+    run_inspection '__koirun --koi-enable-verbose-help --help'
     [ "$status" -eq 0 ]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 1 ]
     [ -z "$stderr" ]
@@ -318,5 +318,20 @@ run_inspection() {
     '
     [ "$status" -eq 0 ]
     [ "$output" = FRESH ]
+    [ -z "$stderr" ]
+}
+
+@test "inspection of a childless runner root exposes disabled effective help" {
+    run_inspection '
+        __addarg name -o -s n -d Name
+        check() {
+            [[ ${__koi_saved_meta[builtin]} == 0 ]]
+            [[ ${__koi_saved_meta[verbose]} == 0 ]]
+            [[ ${#__koi_saved_commands[@]} == 0 ]]
+        }
+        capture_spec __koirun check
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
     [ -z "$stderr" ]
 }

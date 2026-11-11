@@ -24,10 +24,7 @@ run_app() {
     [ "$status" -eq 0 ]
     [ "$output" = 'Application
 
-Usage: app.sh [-h] [COMMAND]
-
-Commands:
-  help  Show this help
+Usage: app.sh [-h]
 
 Options:
   -h, --help  Show this help' ]
@@ -225,7 +222,7 @@ Options:
         __koirun "$@"
     ' deploy --help
     [ "$status" -eq 0 ]
-    [[ "${lines[0]}" == Deploy && "${lines[1]}" == 'Usage: app.sh deploy [-h] [-e ENV] [COMMAND]' ]]
+    [[ "${lines[0]}" == Deploy && "${lines[1]}" == 'Usage: app.sh deploy [-h] [-e ENV]' ]]
     [[ "$output" != *BAD* ]]
     [ -z "$stderr" ]
 }

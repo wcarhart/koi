@@ -27,7 +27,7 @@ run_help() {
         __koirun --help
     ' app.sh
     [ "$status" -eq 2 ]
-    [[ "$output" == 'Usage: app.sh [-h] [COMMAND]'$'\n\nCommands:'* ]]
+    [[ "$output" == 'Usage: app.sh [-h]'$'\n\nOptions:'* ]]
     [[ "$stderr" == *'call only once'* ]]
 }
 
@@ -88,7 +88,7 @@ run_help() {
         __koirun "$@"
     ' alias --help
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Selected alias'*'Usage: tool alias [-h] [COMMAND]'* ]]
+    [[ "$output" == 'Selected alias'*'Usage: tool alias [-h]'* ]]
     run_help '__koiconfig name tool; __koirun "$@"' nonexistent
     [ "$status" -eq 2 ]
     [ "$stderr" = "tool: unknown command 'nonexistent'" ]
@@ -175,7 +175,7 @@ run_help() {
         __koirun alias --help
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Direct description'*'Direct description'*'Alias description'*'Usage: app.sh alias [-h] [COMMAND]'* ]]
+    [[ "$output" == 'Direct description'*'Direct description'*'Alias description'*'Usage: app.sh alias [-h]'* ]]
     [[ "$output" != *BAD* ]]
     [ -z "$stderr" ]
 }
@@ -234,7 +234,7 @@ run_help() {
         __koirun --help
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == Application*'Usage: stable [-h] [COMMAND]'* ]]
+    [[ "$output" == Application*'Usage: stable [-h]'* ]]
 }
 
 @test "branch without a selection shows help before required argument validation" {
@@ -259,7 +259,7 @@ run_help() {
     [ -z "$stderr" ]
 }
 
-@test "leaf business logic still executes when built-in help exists" {
+@test "leaf business logic executes without a built-in help subcommand" {
     run_help '
         leaf() {
             __parseargs "$@" || return "$koi_status"
@@ -297,7 +297,7 @@ run_help() {
 
 @test "root help bypasses its required values but child help still requires ancestor values" {
     local args
-    for args in help 'branch help' 'branch leaf help' 'branch leaf help --help'; do
+    for args in help 'branch help' 'branch leaf -h' 'branch leaf --help'; do
         # Intentionally split this fixed argument list into command tokens.
         # shellcheck disable=SC2086
         run_help '
@@ -326,9 +326,9 @@ run_help() {
     done
 }
 
-@test "nested built-in help renders only its owning context" {
+@test "nested branch help and leaf help flags render only their owning context" {
     local args
-    for args in 'branch help' 'branch leaf help' 'branch leaf help --help'; do
+    for args in 'branch help' 'branch leaf -h' 'branch leaf --help'; do
         # shellcheck disable=SC2086
         run_help '
             __addcommand branch -f branch -d Branch
@@ -442,13 +442,13 @@ run_help() {
         __koirun --koi-enable-verbose-help leaf help --verbose
     '
     [ "$status" -eq 2 ]
-    [ "$stderr" = "koi: __parseargs: unsupported positional argument: '--verbose'" ]
+    [ "$stderr" = "koi: __parseargs: unsupported positional argument: 'help'" ]
 }
 
 @test "disabled verbose help reports the same argument error as other unknown help arguments" {
     local argument
     for argument in --verbose --unknown extra; do
-        run_help '__koirun "$@"' help "$argument"
+        run_help '__addcommand leaf -f leaf -d Leaf; leaf() { :; }; __koirun "$@"' help "$argument"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
         [ "$stderr" = "koi: __parseargs: unsupported positional argument: '$argument'" ]
@@ -461,7 +461,7 @@ run_help() {
     [[ "$output" != *Hints:* ]]
     run_help '__koirun --koi-enable-help-hints --koi-enable-verbose-help --help'
     [ "$status" -eq 0 ]
-    [[ "$output" == *Hints:*'app.sh help --verbose'* ]]
+    [[ "$output" != *Hints:* ]]
     [[ "$output" != *'app.sh COMMAND --help'* ]]
     run_help '
         __addcommand leaf -f leaf -d Leaf
@@ -478,7 +478,7 @@ run_help() {
         leaf() {
             __parseargs "$@" || return "$koi_status"
         }
-        __koirun --koi-enable-help-hints --koi-enable-verbose-help leaf help
+        __koirun --koi-enable-help-hints --koi-enable-verbose-help leaf --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
@@ -505,4 +505,62 @@ run_help() {
     [ "$status" -eq 0 ]
     [[ "$output" == Leaf*Custom* ]]
     [ -z "$stderr" ]
+}
+
+@test "routed leaves omit help commands regardless of their argument kinds" {
+    local declarations
+    for declarations in '' '__addarg verbose -f -s v -d Verbose' \
+        '__addarg name -o -s n -D world -d Name' \
+        '__addarg value -p -r -d Value' '__addarg value -p -d Value'; do
+        run_help '
+            __addcommand leaf -f leaf -d Leaf
+            leaf() {
+                '"$declarations"'
+                __parseargs "$@" || return "$koi_status"
+                echo BAD
+            }
+            __koirun leaf --help
+        '
+        [ "$status" -eq 0 ]
+        [[ "$output" == Leaf*'Usage: app.sh leaf [-h]'* ]]
+        [[ "$output" != *COMMAND* && "$output" != *Commands:* && "$output" != *BAD* ]]
+        [ -z "$stderr" ]
+    done
+}
+
+@test "argument-free and option-only leaves reject bare help without business logic" {
+    local declarations
+    for declarations in '' '__addarg name -o -s n -D world -d Name'; do
+        run_help '
+            __addcommand leaf -f leaf -d Leaf
+            leaf() {
+                '"$declarations"'
+                __parseargs "$@" || return "$koi_status"
+                echo BAD
+            }
+            __koirun leaf help
+        '
+        [ "$status" -eq 2 ]
+        [ -z "$output" ]
+        [ "$stderr" = "koi: __parseargs: unsupported positional argument: 'help'" ]
+    done
+}
+
+@test "childless runner roots suppress help commands and verbose hints" {
+    local declarations
+    for declarations in '' '__addarg name -o -s n -D world -d Name'; do
+        run_help "$declarations"'
+            __koirun --koi-enable-verbose-help --koi-enable-help-hints --help
+        '
+        [ "$status" -eq 0 ]
+        [[ "$output" == Application*'Usage: app.sh [-h]'* ]]
+        [[ "$output" != *COMMAND* && "$output" != *Commands:* && "$output" != *Hints:* ]]
+        [ -z "$stderr" ]
+        run_help "$declarations"'
+            __koirun --koi-enable-verbose-help help --verbose
+        '
+        [ "$status" -eq 2 ]
+        [ -z "$output" ]
+        [ "$stderr" = "app.sh: unknown command 'help'" ]
+    done
 }

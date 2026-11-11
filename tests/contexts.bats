@@ -274,7 +274,7 @@ setup() {
         handler --help
     ' app.sh
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h] [COMMAND]'*AFTER*'Usage: app.sh [-h]'* ]]
+    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h]'*AFTER*'Usage: app.sh [-h]'* ]]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage: app.sh alias')" -eq 1 ]
     [ -z "$stderr" ]
 }
@@ -298,7 +298,7 @@ setup() {
         __koirun alias --help
     ' app.sh
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h] [COMMAND]'* ]]
+    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h]'* ]]
     [ -z "$stderr" ]
 }
 

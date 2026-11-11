@@ -155,17 +155,19 @@ __addcommand() {
 # Register a parsable argument with koi. The argument will be registered with the
 # current uninterrupted registration block. In functions, you must close the
 # registration block with __parseargs. In the root context, you must close the
-# registration with __koirun.
-# Usage: __addarg DEST (-f|-o) (-s SHORT||-l LONG) -d DESCRIPTION [-r] [-D DEFAULT] [-n DISPLAY_NAME]
-#   DEST               the Bash destination variable name
-#   -f, --flag         register a boolean flag (e.g. '-f')
-#   -o, --option       register an option that consumes one value (e.g. '-o value')
-#   -s, --short        short spelling without its dash (one letter)
-#   -l, --long         long spelling without its dashes
-#   -d, --description  nonempty argument description
-#   -r, --required     require explicit presence when parsing
-#   -D, --default      default for an optional option (empty text allowed)
-#   -n, --display-name option value label
+# registration with __koirun, or __parseargs called outside any function.
+# Usage: __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
+# Flags/options require a short or long spelling; positionals reject both.
+#   DEST                     the Bash destination variable name
+#   -f, --flag               register a boolean flag (e.g. '-f')
+#   -o, --option             register an option that consumes one value (e.g. '-o value')
+#   -p, --positional         consume one positional value, in declaration order
+#   -s, --short              short spelling without its dash (one letter)
+#   -l, --long               long spelling without its dashes
+#   -d, --description        nonempty argument description
+#   -r, --required           require explicit presence when parsing
+#   -D, --default DEFAULT    default for an optional option or positional (empty allowed)
+#   -n, --display-name NAME  option or positional value label
 # Returns 2 on invalid declarations
 __addarg() {
     local __koi_buffer
@@ -200,6 +202,10 @@ __addarg() {
             -o|--option)
                 __koi_parameter=kind
                 __koi_value=option
+                ;;
+            -p|--positional)
+                __koi_parameter=kind
+                __koi_value=positional
                 ;;
             -r|--required)
                 __koi_parameter=required
@@ -384,8 +390,9 @@ __parseargs() {
 #   --koi-inspect MODE                    run the registered command handler functions
 #                                         in inspect mode (available modes: 'spec' -
 #                                         internal-only spec collection)
-#   $@                                    root options, command, and child arguments
-# Returns the handler's status, 0 for help, or 2 on error
+#   $@                                    root options, positionals, or command and
+#                                         child arguments
+# Returns the handler's status, 0 for help/terminal parsing, or 2 on error
 __koirun() {
     if (( __koi_root_used )); then
         __koi_run_error '__koirun: call only once per script; __koirun or script-scope __parseargs has already been called'
@@ -739,6 +746,10 @@ __koi_parse_spec() {
         return 2
     fi
 
+    # validate the completed layout and resolve help availability before parsing
+    __koi_finalize_spec "$__koi_engine_prefix" || return 2
+    local __koi_engine_command_root=$((__koi_engine_root && ! ${__koi_engine_meta[positionals]}))
+
     if (( __koi_engine_meta[builtin] )) && [[ ${__koi_handlers[help]+present} ]]; then
         __koi_run_error "command 'help' conflicts with built-in help, use --koi-disable-help-subcommand"
         return 2
@@ -772,7 +783,7 @@ __koi_parse_spec() {
     local -A __koi_parse_values=() __koi_parse_seen=()
 
     # pass variable names so the scanner can fill these through namerefs
-    if __koi_scan_args "$__koi_engine_prefix" __koi_parse_values __koi_parse_seen __koi_parse_error __koi_engine_tail "$__koi_engine_root" "$@"; then
+    if __koi_scan_args "$__koi_engine_prefix" __koi_parse_values __koi_parse_seen __koi_parse_error __koi_engine_tail "$__koi_engine_command_root" "$@"; then
         __koi_parse_result=0
     else
         __koi_parse_result=$?
@@ -846,7 +857,7 @@ __koi_parse_spec() {
             return 2
         fi
         __koi_engine_handler=${__koi_handlers[$__koi_engine_command]}
-    elif (( __koi_engine_root || ${#__koi_commands[@]} )); then
+    elif (( __koi_engine_command_root || ${#__koi_commands[@]} )); then
         # honor the configured error message when no root command was supplied
         if (( __koi_engine_root )) && [[ -n $__koi_engine_message ]]; then
             __koi_run_error "$__koi_engine_message"
@@ -969,7 +980,7 @@ __koi_validate_arg_spec() {
     local -n __koi_validation_values=$3 __koi_validation_seen=$4
 
     if [[ -z ${__koi_validation_values[kind]} ]]; then
-        __koi_spec_error "$__koi_validation_prefix" '__addarg: exactly one of --flag or --option is required'
+        __koi_spec_error "$__koi_validation_prefix" '__addarg: exactly one of --flag, --option, or --positional is required'
         return 2
     fi
 
@@ -978,7 +989,12 @@ __koi_validate_arg_spec() {
         return 2
     fi
 
-    if [[ ! ${__koi_validation_seen[short]+present} && ! ${__koi_validation_seen[long]+present} ]]; then
+    if [[ ${__koi_validation_values[kind]} == positional ]]; then
+        if [[ ${__koi_validation_seen[short]+present} || ${__koi_validation_seen[long]+present} ]]; then
+            __koi_spec_error "$__koi_validation_prefix" '__addarg: positionals cannot have short or long spellings'
+            return 2
+        fi
+    elif [[ ! ${__koi_validation_seen[short]+present} && ! ${__koi_validation_seen[long]+present} ]]; then
         __koi_spec_error "$__koi_validation_prefix" '__addarg: short or long spelling required'
         return 2
     fi
@@ -1004,15 +1020,15 @@ __koi_validate_arg_spec() {
     fi
 
     if [[ ${__koi_validation_seen[display_name]+present} ]]; then
-        if [[ ${__koi_validation_values[kind]} != option || -z ${__koi_validation_values[display_name]} ]]; then
-            __koi_spec_error "$__koi_validation_prefix" '__addarg: nonempty display name requires an option'
+        if [[ ${__koi_validation_values[kind]} == flag || -z ${__koi_validation_values[display_name]} ]]; then
+            __koi_spec_error "$__koi_validation_prefix" '__addarg: nonempty display name requires an option or positional'
             return 2
         fi
     fi
 
     if [[ ${__koi_validation_seen[default]+present} ]]; then
-        if [[ ${__koi_validation_values[kind]} != option || ${__koi_validation_values[required]} == 1 ]]; then
-            __koi_spec_error "$__koi_validation_prefix" '__addarg: defaults require an optional option'
+        if [[ ${__koi_validation_values[kind]} == flag || ${__koi_validation_values[required]} == 1 ]]; then
+            __koi_spec_error "$__koi_validation_prefix" '__addarg: defaults require an optional option or positional'
             return 2
         fi
     fi
@@ -1032,6 +1048,54 @@ __koi_validate_arg_spec() {
             return 2
         fi
     done
+    return 0
+}
+
+# Validate positional layout and derive local help availability
+# Usage: __koi_finalize_spec PREFIX
+#   PREFIX  consumed spec prefix
+# Returns 2 for invalid layouts, including during help or inspection
+__koi_finalize_spec() {
+    local __koi_layout_prefix=$1 __koi_layout_dest __koi_layout_optional=0
+    local -n __koi_layout_args="${__koi_layout_prefix}_args"
+    local -n __koi_layout_kinds="${__koi_layout_prefix}_arg_kinds"
+    local -n __koi_layout_requireds="${__koi_layout_prefix}_arg_requireds"
+    local -n __koi_layout_commands="${__koi_layout_prefix}_commands"
+    local -n __koi_layout_meta="${__koi_layout_prefix}_meta"
+    __koi_layout_meta[positionals]=0
+
+    # inspect positionals in declaration order, ignoring named arguments
+    for __koi_layout_dest in "${__koi_layout_args[@]}"; do
+        if [[ ${__koi_layout_kinds[$__koi_layout_dest]} != positional ]]; then
+            continue
+        fi
+    
+        # count positional slots and reject required slots after optional ones
+        __koi_layout_meta[positionals]=$((__koi_layout_meta[positionals] + 1))
+        if [[ ${__koi_layout_requireds[$__koi_layout_dest]} == 1 ]]; then
+            if (( __koi_layout_optional )); then
+                __koi_error '__parseargs: required positionals must precede optional positionals'
+                return 2
+            fi
+        else
+            __koi_layout_optional=1
+        fi
+    done
+
+    # reserve bare tokens for child selection in contexts with application commands
+    if (( __koi_layout_meta[positionals] )); then
+        if (( ${#__koi_layout_commands[@]} )); then
+            __koi_error '__parseargs: positionals cannot coexist with application child commands'
+            return 2
+        fi
+    fi
+
+    # offer free help commands only in branches with application children
+    if (( ${#__koi_layout_commands[@]} == 0 )); then
+        __koi_layout_meta[builtin]=0
+        __koi_layout_meta[verbose]=0
+    fi
+
     return 0
 }
 
@@ -1062,12 +1126,17 @@ __koi_scan_args() {
 
     local __koi_scan_dest __koi_scan_token __koi_scan_value __koi_scan_char
     local __koi_scan_index __koi_scan_cluster_valid __koi_scan_cluster_help
-    local __koi_scan_positional=0
+    local __koi_scan_positional=0 __koi_scan_slot=0
+    local -a __koi_scan_positionals=()
     local -A __koi_scan_lookup=()
     local -a __koi_scan_cluster=()
 
-    # map both spellings to the same destination for lookup and duplicate checks
+    # map spellings and preserve positional declaration order separately
     for __koi_scan_dest in "${__koi_args[@]}"; do
+        if [[ ${__koi_arg_kinds[$__koi_scan_dest]} == positional ]]; then
+            __koi_scan_positionals+=("$__koi_scan_dest")
+        fi
+
         if [[ -n ${__koi_arg_shorts[$__koi_scan_dest]} ]]; then
             __koi_scan_lookup[-${__koi_arg_shorts[$__koi_scan_dest]}]=$__koi_scan_dest
         fi
@@ -1084,11 +1153,17 @@ __koi_scan_args() {
 
         if (( __koi_scan_root || ${#__koi_commands[@]} || __koi_scan_meta[builtin] )) &&
             { (( __koi_scan_positional )) || [[ $__koi_scan_token != -* ]]; }; then
+            # forward the selected command and its remaining tokens without parsing them
             __koi_scan_tail=("$__koi_scan_token" "$@")
             break
-        elif (( __koi_scan_positional )); then
-            # treat everything after -- as positional data
-            if [[ -z $__koi_scan_error ]]; then
+        elif (( __koi_scan_positional )) || [[ $__koi_scan_token != -* || $__koi_scan_token == - ]]; then
+            # fill the next positional slot with bare data or any token after --
+            if (( __koi_scan_slot < ${#__koi_scan_positionals[@]} )); then
+                __koi_scan_dest=${__koi_scan_positionals[$__koi_scan_slot]}
+                __koi_scan_slot=$((__koi_scan_slot + 1))
+                __koi_scan_values[$__koi_scan_dest]=$__koi_scan_token
+                __koi_scan_seen[$__koi_scan_dest]=1
+            elif [[ -z $__koi_scan_error ]]; then
                 __koi_scan_error="unsupported positional argument: '$__koi_scan_token'"
             fi
         elif [[ $__koi_scan_token == -h || $__koi_scan_token == --help ]]; then
@@ -1255,7 +1330,22 @@ __koi_print_help() {
     local __koi_help_value __koi_help_description __koi_help_indent
     local -a __koi_help_labels=('-h, --help')
     __koi_help_width=${#__koi_help_labels[0]}
-    local __koi_help_index=1
+    local __koi_help_index=1 __koi_help_positional_section=0
+    local -a __koi_help_order=()
+
+    # show flags and options first while preserving their declaration order
+    for __koi_help_dest in "${__koi_args[@]}"; do
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} != positional ]]; then
+            __koi_help_order+=("$__koi_help_dest")
+        fi
+    done
+
+    # append positionals in the order their values are consumed
+    for __koi_help_dest in "${__koi_args[@]}"; do
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]]; then
+            __koi_help_order+=("$__koi_help_dest")
+        fi
+    done
 
     if [[ -n ${__koi_help_meta[description]-} ]]; then
         __koi_wrap "${__koi_help_meta[description]}" '' ''
@@ -1267,7 +1357,7 @@ __koi_print_help() {
     fi
     printf ' [-h]'
 
-    for __koi_help_dest in "${__koi_args[@]}"; do
+    for __koi_help_dest in "${__koi_help_order[@]}"; do
         # prefer short spelling in usage, fall back to long if absent
         if [[ -n ${__koi_arg_shorts[$__koi_help_dest]} ]]; then
             __koi_help_usage=-${__koi_arg_shorts[$__koi_help_dest]}
@@ -1278,7 +1368,9 @@ __koi_print_help() {
         # uppercase the display name, falling back to long spelling then destination
         __koi_help_value=${__koi_arg_display_names[$__koi_help_dest]:-${__koi_arg_longs[$__koi_help_dest]:-$__koi_help_dest}}
         __koi_help_value=${__koi_help_value^^}
-        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]]; then
+            __koi_help_usage=$__koi_help_value
+        elif [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
             __koi_help_usage+=" $__koi_help_value"
         fi
 
@@ -1304,7 +1396,9 @@ __koi_print_help() {
         fi
 
         # append a value label for options but not flags
-        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]]; then
+            __koi_help_spelling=$__koi_help_value
+        elif [[ ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
             __koi_help_spelling+=" $__koi_help_value"
         fi
 
@@ -1317,9 +1411,8 @@ __koi_print_help() {
 
     if (( ${#__koi_commands[@]} )); then
         printf ' COMMAND'
-    elif (( __koi_help_meta[builtin] )); then
-        printf ' [COMMAND]'
     fi
+
     printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
     if (( ${#__koi_commands[@]} || __koi_help_meta[builtin] )); then
         __koi_print_commands "$__koi_help_prefix"
@@ -1327,8 +1420,14 @@ __koi_print_help() {
     else
         printf '\n\nOptions:\n'
     fi
+
     printf '  %-*s  %s\n' "$__koi_help_width" "${__koi_help_labels[0]}" 'Show this help'
-    for __koi_help_dest in "${__koi_args[@]}"; do
+    for __koi_help_dest in "${__koi_help_order[@]}"; do
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]] && (( ! __koi_help_positional_section )); then
+            printf '\nPositionals:\n'
+            __koi_help_positional_section=1
+        fi
+
         __koi_help_description=${__koi_arg_descriptions[$__koi_help_dest]}
         if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
             __koi_help_description+=' (required)'

@@ -66,6 +66,73 @@ Functions must complete registration with exactly one guarded
 business logic belongs after it. Declaration failures invalidate the block even
 if their individual return statuses are ignored.
 
+## Scalar positional arguments
+
+`__addarg DEST` requires exactly one kind: `-f` / `--flag`, `-o` / `--option`,
+or `-p` / `--positional`. Repeating or combining kind selectors is an error.
+Flags and options require at least one spelling (`-s` / `--short` or
+`-l` / `--long`); positionals reject both spelling parameters.
+
+```bash
+copy_file() {
+    local source destination verbose
+    __adddescription 'Print a mock copy operation'
+    __addarg source -p -r -d 'Source file'
+    __addarg verbose -f -s v -d 'Print progress'
+    __addarg destination -p -D . -n directory -d 'Destination directory'
+    __parseargs "$@" || return "$koi_status"
+
+    printf 'source=%q destination=%q verbose=%s\n' "$source" "$destination" "$verbose"
+}
+```
+
+Positionals consume one token each, in their declaration order; interspersed
+flag/option declarations do not affect that order. They are optional unless
+`-r` / `--required` is supplied. All required positionals must precede all
+optional positionals. Multiple trailing optional positionals are supported and
+fill left to right without implicit skipping.
+
+Optional positionals accept `-D` / `--default`, including `''`; required
+positionals reject defaults. Omitted values replace stale destination contents
+with the default or `''`. An explicit empty token fills a slot and satisfies
+requiredness. `-n` / `--display-name` supplies a nonempty help label, falling
+back to the destination; labels are uppercased in usage and the help table.
+
+Options may appear between positional values: `copy_file source.txt -v out`
+assigns `source.txt` and `out` to the positionals. Option values do not consume
+positional slots. Unknown dash-prefixed tokens are errors; use `--` to pass
+negative numbers or other dash-prefixed positional values. A lone `-` is
+ordinary data. After the separator, help flags and koi settings are literal:
+`copy_file -- --help` uses `--help` as the source. A separator consumed as a
+named option's value does not end option recognition.
+
+Missing required values, excess values, and incompatible destinations fail
+without assigning any destinations. Empty strings, whitespace, newlines,
+quotes, backslashes, shell-looking text, and values equal to destination names
+are preserved literally. Before `--`, help still overrides input errors and
+requiredness without assigning destinations, including when encountered as an
+apparent named option value.
+
+Positionals are valid only in terminal contexts: a completed registration block
+cannot declare both positionals and application child commands. This is checked
+before help or inspection, regardless of declaration order. An author-defined
+`help` child is an application command for this rule.
+
+The same positional contract applies to direct functions, routed leaves,
+script-level `__parseargs`, and terminal roots consumed by `__koirun`. A terminal
+runner returns 0 after successful assignment, including no-input parsing when
+all positionals are optional, or 2 on error. Its command-only settings
+`--koi-zero-argument-message` and `--koi-enable-help-on-unknown-commands` have no
+effect in a positional root. Roots without positionals retain their existing
+runner behavior and one-use lifecycle. The runner also returns 0 for help; use
+the guarded `__parseargs` pattern when business logic must run after parsing
+and stop automatically on help, as in the example above.
+
+Help usage puts options first and positionals last, for example
+`Usage: app [-h] [-v] SOURCE [DIRECTORY]`. The `Options:` section retains
+automatic help; a separate `Positionals:` section lists positionals in order,
+including required/default annotations. Empty sections are omitted.
+
 ## Branches, leaves, and usage
 
 A context with application children is a branch: it dispatches a selected child,
@@ -89,20 +156,24 @@ Options:
   -h, --help  Show this help
 ```
 
-Options belong to their current context. All tokens after a child name go to
-that child, so the same spelling may independently mean different things at
+Options belong to their current context. In branches, the first bare token
+selects the child after any preceding options. All tokens after a child name go
+to that child, so the same spelling may independently mean different things at
 different levels. Usage puts current-context arguments before `COMMAND` and
-never includes `[args]`. Application children require `COMMAND`; a context
-offering only built-in help displays `[COMMAND]`.
+never includes `[args]`. Branches display `COMMAND`; leaves have no command
+placeholder, even when they declare no positionals.
 
 Help bypasses the current context's required argument checks and assignments.
 Ancestor requirements still apply when routing normally to a child's help.
+In branches, `--` still permits child selection and affects only the parent
+parser; the child starts with normal option recognition.
 The runner defaults to successful help on a missing command; its existing
 `--koi-zero-argument-message MESSAGE` switch requests an error instead.
 
 ## Built-in help, hints, and verbose documentation
 
-`__koirun` enables `help` in every routed context, including leaves:
+`__koirun` enables `help` only in branches with author-registered child
+commands, including at the root:
 
 ```bash
 __koirun     --koi-enable-verbose-help     --koi-enable-help-hints     "$@"
@@ -119,6 +190,24 @@ Verbose help is root-only. Unsupported help arguments and repeated switches
 are errors. Enabling verbose help while disabling built-in help is an error.
 When verbose help is unavailable, `--verbose` receives the ordinary unsupported
 argument diagnostic.
+
+A context receives free `help` only when runner policy enables it and it has
+at least one author-registered child command. This applies at every depth,
+including the root. Leaves never receive a help subcommand, whether they declare
+positionals, options, flags, or nothing. A leaf's help menu omits the `Commands:`
+section and has no command placeholder in usage. There is no force-enable
+override. Direct functions outside routing do not acquire free help.
+
+On positional leaves, bare `help` is ordinary positional data. On other leaves
+it is unsupported input. Automatic `-h` / `--help` remain available everywhere.
+Author-defined commands count toward branch status, including a custom `help`;
+custom help commands still require disabling the built-in help subcommand.
+
+A root without application children accepts `--koi-enable-verbose-help` but
+suppresses `help --verbose` and related hints. The explicit combination of
+verbose help with `--koi-disable-help-subcommand` remains an error. Root verbose
+traversal on a command tree still documents every descendant, without adding
+help subcommands to leaves.
 
 Root `help` conflicts are checked when the runner consumes registration, after
 it knows whether built-in help is disabled. Nested specs use that same policy.

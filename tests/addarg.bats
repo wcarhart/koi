@@ -203,17 +203,16 @@ assert_invalid() {
 @test "kind selector is mandatory and cannot conflict or repeat" {
     assert_invalid mode -l mode -d Mode
     local first second
-    for first in -f --flag -o --option; do
-        for second in -f --flag -o --option; do
+    for first in -f --flag -o --option -p --positional; do
+        for second in -f --flag -o --option -p --positional; do
             assert_invalid mode "$first" "$second" -l mode -d Mode
         done
     done
 }
 
-@test "legacy actions, future kinds and unknown syntax are rejected" {
+@test "legacy actions and unknown syntax are rejected" {
     assert_invalid mode -a value -l mode -d Mode
     assert_invalid mode --action flag -l mode -d Mode
-    assert_invalid mode --positional -d Mode
     assert_invalid mode --unknown -o -l mode -d Mode
     assert_invalid mode -or -l mode -d Mode
     assert_invalid mode -o --long=mode -d Mode

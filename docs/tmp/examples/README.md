@@ -9,6 +9,7 @@ are launched, and no network connections are made.
 
 | Script | Try it for |
 | --- | --- |
+| [positionals.sh](positionals.sh) | Required and optional positionals, interleaved options, literal help values, and guarded parsing |
 | [arguments.sh](arguments.sh) | Scalar options, required values, defaults, literal text, flags, and duplicate checking |
 | [root-parser.sh](root-parser.sh) | Parsing at script level without a runner or description |
 | [commands.sh](commands.sh) | Nested commands, aliases, configuration, wrapping, hints, and verbose help |
@@ -20,6 +21,21 @@ are launched, and no network connections are made.
 Commands below succeed with exit status **0** unless labeled otherwise.
 After an expected failure, `echo "$?"` shows its status. These failure examples
 should be run individually if your shell uses `set -e`.
+
+## Scalar positionals
+
+```bash
+./docs/tmp/examples/positionals.sh --help
+./docs/tmp/examples/positionals.sh source.txt
+./docs/tmp/examples/positionals.sh source.txt -v output
+./docs/tmp/examples/positionals.sh help
+./docs/tmp/examples/positionals.sh -- --help
+./docs/tmp/examples/positionals.sh '' output
+```
+
+The source is required; the destination defaults to `.`. Bare `help` is a source
+value because leaves never receive the built-in help subcommand.
+Help flags still work before `--`. Missing or excess positionals exit with 2.
 
 ## Scalar options and flags
 
@@ -151,15 +167,18 @@ calls; help returns successfully and later helper parsing still works.
 ./docs/tmp/examples/help-defaults.sh help
 ./docs/tmp/examples/help-defaults.sh greet
 ./docs/tmp/examples/help-defaults.sh greet -n Ada
-./docs/tmp/examples/help-defaults.sh greet help
 ./docs/tmp/examples/help-defaults.sh greet --help
 ```
 
 Root help starts with `Usage:` without a description. There are no hints.
-Both root and leaf contexts receive built-in `help`; the leaf still runs
-normally with no arguments and prints `Hello, world!`.
+The root receives built-in `help` because it has an application child. The
+`greet` leaf uses `-h` / `--help` and runs normally with no arguments, printing
+`Hello, world!`. Leaves never receive a free help subcommand.
 
 ```bash
+# Exit 2: leaves do not have a help subcommand.
+./docs/tmp/examples/help-defaults.sh greet help
+
 # Exit 2: verbose help is disabled, so --verbose is an unsupported argument.
 ./docs/tmp/examples/help-defaults.sh help --verbose
 
@@ -217,7 +236,7 @@ See [the v2 API documentation](../v2-help.md) for the registration contract.
 Every function uses an uninterrupted registration block and a guarded parser
 call. Do not copy the v1 APIs from `old/` into these examples.
 
-Positionals, array arguments, validators, dependencies, and groups are not
+Array arguments, validators, dependencies, and groups are not
 implemented in the current v2 prototype. Inspection currently serves
 library-internal verbose traversal; there is no standalone spec output or
 `koi inspect` interface to demonstrate.
