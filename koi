@@ -11,13 +11,13 @@
 # Usage: __koiconfig KEY VALUE
 #   KEY    name, description, or help-width (positive integer, at most nine digits, default 100)
 #   VALUE  nonempty setting value (name defaults to the script basename)
-# Call outside any function, after sourcing koi and before __koirun or root __parseargs.
+# Call outside any function, after sourcing koi and before __koirun or the entrypoint function.
 # Returns 2 and invalidates registration on invalid or repeated settings
 __koiconfig() {
     local __koi_buffer
     __koi_select_registration_buffer __koi_buffer || return 2
     if [[ $__koi_buffer != __koi_root ]]; then
-        __koi_spec_error "$__koi_buffer" '__koiconfig: call outside any function, after sourcing koi and before __koirun or script-level __parseargs'
+        __koi_spec_error "$__koi_buffer" '__koiconfig: call outside any function, after sourcing koi and before __koirun or the entrypoint function'
         return 2
     fi
 
@@ -155,7 +155,7 @@ __addcommand() {
 # Register a parsable argument with koi. The argument will be registered with the
 # current uninterrupted registration block. In functions, you must close the
 # registration block with __parseargs. In the root context, you must close the
-# registration with __koirun, or __parseargs called outside any function.
+# registration with __koirun( __parseargs is only supported inside functions).
 # Usage: __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
 # Flags/options require a short or long spelling; positionals reject both.
 #   DEST                     the Bash destination variable name
@@ -275,7 +275,9 @@ __addarg() {
 # Consume argument registration and parse arguments, assign literal scalar
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
-# return status and is used for exit/return control flow.
+# return status and is used for exit/return control flow. Only supported from
+# inside application functions, not top-level/root context (use __koirun
+# in that scenario).
 # Usage: __parseargs [--koi-error-on-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
 # Internal usage: __parseargs --koi-inspect spec || return "$koi_status"
 #   --koi-error-on-duplicates  reject repeated occurrences of a destination
@@ -288,6 +290,10 @@ __parseargs() {
     local __koi_buffer __koi_path='' __koi_result __koi_collect_matches=0
     koi_status=2
     __koi_select_registration_buffer __koi_buffer || return 2
+    if [[ $__koi_buffer == __koi_root ]]; then
+        __koi_error '__parseargs: must be called inside a function, use __koirun at top level'
+        return 2
+    fi
     local -a __koi_parsed_commands=()
     local -A __koi_parsed_handlers=()
     local -A __koi_parsed_descriptions=()
@@ -304,18 +310,8 @@ __parseargs() {
 
     # move registration into parser-local storage before validation or nested dispatch
     __koi_take_spec "$__koi_buffer" __koi_parsed
-    if [[ $__koi_buffer == __koi_root ]]; then
-        __koi_root_used=1
-    fi
-
-    # distinguish script-level parsing from a function's registration block
-    local __koi_root_context=0
-    if [[ $__koi_buffer == __koi_root ]]; then
-        __koi_root_context=1
-    fi
-
-    # attach script settings and default help metadata to the consumed spec
-    __koi_prepare_spec __koi_parsed "$__koi_root_context"
+    # attach script settings and default help metadata to the function spec
+    __koi_prepare_spec __koi_parsed 0
     # match the requested invocation so helpers and recursion cannot capture its collector
     if [[ ${FUNCNAME[1]-} == "${__koi_inspection_handler-}" &&
           ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
@@ -395,7 +391,7 @@ __parseargs() {
 # Returns the handler's status, 0 for help/terminal parsing, or 2 on error
 __koirun() {
     if (( __koi_root_used )); then
-        __koi_run_error '__koirun: call only once per script; __koirun or script-scope __parseargs has already been called'
+        __koi_run_error '__koirun: call only once per script, __koirun has already been called'
         return 2
     fi
     __koi_root_used=1

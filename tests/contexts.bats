@@ -332,8 +332,12 @@ setup() {
         source "$KOI_LIBRARY"
         __koiconfig description Application
         source "$1"
-        __parseargs -v || exit "$koi_status"
-        [[ $verbose == 1 ]]
+        check() {
+            __parseargs "$@" || return "$koi_status"
+            [[ $verbose == 1 ]]
+        }
+        __addcommand check -f check -d Check
+        __koirun -v check
     ' app.sh "$BATS_TEST_TMPDIR/args.sh"
     [ "$status" -eq 0 ]
     [ -z "$stderr" ]

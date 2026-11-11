@@ -11,7 +11,7 @@ are launched, and no network connections are made.
 | --- | --- |
 | [positionals.sh](positionals.sh) | Required and optional positionals, interleaved options, literal help values, and guarded parsing |
 | [arguments.sh](arguments.sh) | Scalar options, required values, defaults, literal text, flags, and duplicate checking |
-| [root-parser.sh](root-parser.sh) | Parsing at script level without a runner or description |
+| [function-entrypoint.sh](function-entrypoint.sh) | An explicit function entrypoint without a runner or description |
 | [commands.sh](commands.sh) | Nested commands, aliases, configuration, wrapping, hints, and verbose help |
 | [direct-calls.sh](direct-calls.sh) | Independent helper contexts, local variables, repeated calls, and fresh defaults |
 | [help-defaults.sh](help-defaults.sh) | Default help commands with hints and verbose help disabled |
@@ -74,21 +74,23 @@ Repeated scalar values normally keep the last occurrence.
 Help skips required-value checks and business logic. The `ENV` and `TEXT`
 labels in the synopsis come from custom display names.
 
-## Script-level parsing
+## Function entrypoint without a runner
 
 ```bash
-./docs/tmp/examples/root-parser.sh
-./docs/tmp/examples/root-parser.sh -m apply -v
-./docs/tmp/examples/root-parser.sh --help
+./docs/tmp/examples/function-entrypoint.sh
+./docs/tmp/examples/function-entrypoint.sh -m apply -v
+./docs/tmp/examples/function-entrypoint.sh --help
 ```
 
 The default output is `mode=preview` and `verbose=0`. Help starts with
-`Usage:` because the script has no description. It uses a script-level
-`__parseargs` exit guard and no `__koirun`, so it has no built-in help command:
+`Usage:` because the function has no description. The script calls `main "$@"`;
+`main` declares local destinations, registers its interface, and uses
+`__parseargs "$@" || return "$koi_status"` to skip business logic on help or
+error. It uses no `__koirun` and has no built-in help command:
 
 ```bash
 # Exit 2: help is not a registered command or a supported positional.
-./docs/tmp/examples/root-parser.sh help
+./docs/tmp/examples/function-entrypoint.sh help
 ```
 
 ## Nested commands, aliases, and configured help

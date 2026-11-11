@@ -31,23 +31,29 @@ run_help() {
     [[ "$stderr" == *'call only once'* ]]
 }
 
-@test "script-scope help without a description starts with usage" {
+@test "function entrypoint help without a description starts with usage" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __parseargs --help
-        exit "$koi_status"
+        main() {
+            __parseargs "$@" || return "$koi_status"
+        }
+        main --help
     ' app.sh
     [ "$status" -eq 0 ]
     [[ "$output" == 'Usage: app.sh [-h]'$'\n\nOptions:'* ]]
     [ -z "$stderr" ]
 }
 
-@test "root parsing and dispatch work without a description" {
+@test "function parsing and root dispatch work without a description" {
     run --separate-stderr bash -euc '
         source "$KOI_LIBRARY"
-        __addarg value -o -s v -d Value
-        __parseargs -v parsed || exit "$koi_status"
-        printf "%s\n" "$value"
+        main() {
+            local value
+            __addarg value -o -s v -d Value
+            __parseargs "$@" || return "$koi_status"
+            printf "%s\n" "$value"
+        }
+        main -v parsed
     ' app.sh
     [ "$status" -eq 0 ]
     [ "$output" = parsed ]

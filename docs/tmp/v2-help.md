@@ -3,10 +3,40 @@
 The v2 library requires Bash 5.2 or newer. These APIs describe the current
 prototype; the older README examples and archived code use the v1 API.
 
+## Supported entrypoints and function calls
+
+Use one of these patterns:
+
+1. Register commands at script scope, define their handler functions, and call
+   `__koirun "$@"` as the entrypoint. Each handler registers its own arguments
+   and children, then uses guarded `__parseargs`.
+2. Call an application function directly, such as `main "$@"`, without a runner.
+   Put its declarations and guarded `__parseargs` inside that function.
+3. Call parsing functions from other functions with ordinary Bash arguments.
+   These functions need not be registered as CLI commands; each owns its own
+   declarations, local destinations, and parser guard.
+
+`__parseargs` is supported only inside application functions. Calling it at top
+level, including in a file sourced at script scope, returns 2, sets
+`koi_status=2`, and prints an error without consuming root registration or
+assigning destinations. Help and inspection do not bypass this restriction.
+A later `__koirun` can still consume the intact root registrations.
+
+Root declarations belong exclusively to `__koirun`. Moving only `__parseargs`
+into a function does not move root declarations into that function's interface.
+Script-scope sourced declarations remain root declarations; files sourced inside
+an application function contribute to that function's registration block.
+
+Inside functions, always use `__parseargs "$@" || return "$koi_status"` so help,
+dispatch, and errors stop local business logic. This returns from the function
+without terminating a sourcing shell. Sourced entrypoints must likewise return
+status to their caller rather than use `exit` to handle parser outcomes. Root
+configuration stays outside functions and precedes the selected entrypoint.
+
 ## Root configuration
 
 Call configuration outside any function, after sourcing koi and before calling
-`__koirun` or script-level `__parseargs`:
+`__koirun` or the application entrypoint function:
 
 ```bash
 source ./koi
@@ -118,9 +148,9 @@ cannot declare both positionals and application child commands. This is checked
 before help or inspection, regardless of declaration order. An author-defined
 `help` child is an application command for this rule.
 
-The same positional contract applies to direct functions, routed leaves,
-script-level `__parseargs`, and terminal roots consumed by `__koirun`. A terminal
-runner returns 0 after successful assignment, including no-input parsing when
+The same positional contract applies to direct functions, routed leaves, and
+terminal roots consumed by `__koirun`. A terminal runner returns 0 after
+successful assignment, including no-input parsing when
 all positionals are optional, or 2 on error. Its command-only settings
 `--koi-zero-argument-message` and `--koi-enable-help-on-unknown-commands` have no
 effect in a positional root. Roots without positionals retain their existing

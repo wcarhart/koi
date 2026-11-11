@@ -296,7 +296,7 @@ Options:
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *'__koirun: call only once per script; __koirun or script-scope __parseargs has already been called' ]]
+        [[ "$stderr" == *'__koirun: call only once per script; __koirun has already been called' ]]
     done
 }
 
@@ -318,16 +318,25 @@ Options:
     [ "$output" = safe ]
 }
 
-@test "script-scope parsing consumes root registration instead of running commands" {
+@test "top-level parsing rejects input without consuming root registration" {
     run_app '
         __addarg mode -o -s m -d Mode
-        __parseargs "$@" || exit "$koi_status"
-        printf "%s\n" "$mode"
-        __koirun --help
+        if __parseargs "$@"; then
+            exit 9
+        else
+            [[ $? == 2 ]] || exit 9
+        fi
+        [[ $koi_status == 2 && $__koi_root_used == 0 ]] || exit 9
+        handler() {
+            __parseargs "$@" || return "$koi_status"
+            printf "%s\n" "$mode"
+        }
+        __addcommand run -f handler -d Run
+        __koirun "$@" run
     ' -m safe
-    [ "$status" -eq 2 ]
+    [ "$status" -eq 0 ]
     [ "$output" = safe ]
-    [[ "$stderr" == *'__koirun: call only once per script; __koirun or script-scope __parseargs has already been called' ]]
+    [ "$stderr" = 'koi: __parseargs: must be called inside a function; use __koirun at top level' ]
 }
 
 @test "root help and errors return without terminating the sourcing shell" {

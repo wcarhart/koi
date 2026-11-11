@@ -138,9 +138,10 @@ redesign and bug fixes, rather than only modernization of the existing code.
   The first attempt consumes root registration even on help or error. A second
   call or later root declaration reports an error. Re-sourcing does not reset
   this state; no reset API is currently provided.
-- A script may instead consume root registration with script-scope `__parseargs`.
-  It must handle the parser's outcome at its own entrypoint; it cannot then run
-  `__koirun` against the consumed root.
+- Only `__koirun` consumes root registration. `__parseargs` must be called inside
+  an application function; top-level calls return 2 without consuming root
+  registration. Scripts without a runner can invoke a parsing function directly
+  as their entrypoint, using the standard function guard.
 - Each context recognizes its options before selecting a child. For example,
   `app -v deploy -e production` parses root `-v`, then forwards `-e production`
   to `deploy`. Parent option spellings are not inherited by child parsers.

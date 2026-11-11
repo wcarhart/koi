@@ -317,15 +317,18 @@ parse_without_mutation() {
         run --separate-stderr bash -c '
             source "$KOI_LIBRARY" || exit
             __koiconfig description Application
-            __addarg first -o -l first -d First || exit
-            __addarg second -o -l second -d Second || exit
-            first=original
-            target=original
-            declare "$1" second
-            __parseargs --first changed --second changed
-            result=$?
-            [[ $first == original && $target == original && $koi_status == 2 ]] || exit 9
-            exit "$result"
+            main() {
+                __addarg first -o -l first -d First || return
+                __addarg second -o -l second -d Second || return
+                first=original
+                target=original
+                declare "$1" second
+                __parseargs --first changed --second changed
+                result=$?
+                [[ $first == original && $target == original && $koi_status == 2 ]] || return 9
+                return "$result"
+            }
+            main "$1"
         ' bash "$declaration"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
@@ -337,11 +340,14 @@ parse_without_mutation() {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
         __koiconfig description Application
-        __addarg 2>/dev/null
-        __parseargs --help
-        result=$?
-        [[ $koi_status == 2 && $__koi_root_spec_valid == 1 && ${#__koi_root_args[@]} == 0 ]] || exit 9
-        exit "$result"
+        main() {
+            __addarg 2>/dev/null
+            __parseargs --help
+            result=$?
+            [[ $koi_status == 2 && $__koi_pending_spec_valid == 1 && ${#__koi_pending_args[@]} == 0 ]] || return 9
+            return "$result"
+        }
+        main
     '
     [ "$status" -eq 2 ]
     [ -z "$output" ]
@@ -430,9 +436,13 @@ parse_without_mutation() {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY" || exit
         __koiconfig description Application
-        __addarg name -o -l name -d Name || exit
-        __parseargs --name "" || exit "$koi_status"
-        [[ $name == "" && $koi_status == 0 ]]
+        main() {
+            local name
+            __addarg name -o -l name -d Name || return
+            __parseargs "$@" || return "$koi_status"
+            [[ $name == "" && $koi_status == 0 ]]
+        }
+        main --name ""
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]

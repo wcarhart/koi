@@ -19,6 +19,16 @@ run_positional() {
     run --separate-stderr bash -euc 'source "$KOI_LIBRARY"; eval "$1"' tool "$body" "$@"
 }
 
+# Run registration and parsing inside an application function
+# Usage: run_function_positional BODY
+#   BODY  Bash source for the function body, including assertions
+run_function_positional() {
+    run_positional 'main() {
+'"$1"'
+}
+main'
+}
+
 @test "positionals register without spellings and retain scalar metadata" {
     run_positional '
         __addarg source --positional --required -n file -d Source
@@ -59,12 +69,12 @@ run_positional() {
 }
 
 @test "optional positionals reset stale values and fill multiple slots left to right" {
-    run_positional '
+    run_function_positional '
         first=stale second=stale third=stale
         __addarg first -p -D default -d First
         __addarg second -p -d Second
         __addarg third -p -D end -d Third
-        __parseargs supplied || exit "$koi_status"
+        __parseargs supplied || return "$koi_status"
         [[ $first == supplied && $second == "" && $third == end ]]
     '
     [ "$status" -eq 0 ]
@@ -104,7 +114,7 @@ run_positional() {
 @test "missing excess unknown dash tokens and incompatible destinations assign nothing" {
     local arguments
     for arguments in '' 'first second' '--unknown' '-12' '-xyz'; do
-        run_positional '
+        run_function_positional '
             value=original flag=original
             __addarg value -p -r -d Value
             __addarg flag -f -s v -d Flag
@@ -116,7 +126,7 @@ run_positional() {
         [ "$status" -eq 0 ]
         [[ "$stderr" == *'__parseargs:'* ]]
     done
-    run_positional '
+    run_function_positional '
         value=original
         declare -a incompatible=()
         __addarg value -p -r -d Value
@@ -131,7 +141,7 @@ run_positional() {
 }
 
 @test "help bypasses positional presence and scanning errors without assignment" {
-    run_positional '
+    run_function_positional '
         value=original
         __addarg value -p -r -d Value
         if __parseargs --unknown first extra --help; then
@@ -147,7 +157,7 @@ run_positional() {
 @test "required positional suffixes are invalid before help and inspection" {
     local request
     for request in '' '--help' '--koi-inspect spec'; do
-        run_positional '
+        run_function_positional '
             __addarg optional -p -d Optional
             __addarg flag -f -s v -d Flag
             __addarg required -p -r -d Required
@@ -160,12 +170,16 @@ run_positional() {
 }
 
 @test "application children and positionals conflict in either registration order" {
-    local declarations parser request
+    local declarations parser request runner
     for declarations in '__addarg value -p -d Value; __addcommand help -f child -d Child' \
         '__addcommand child -f child -d Child; __addarg value -p -d Value'; do
         for parser in __parseargs __koirun; do
+            runner=run_positional
+            if [[ $parser == __parseargs ]]; then
+                runner=run_function_positional
+            fi
             for request in '--help' '--koi-inspect spec'; do
-                run_positional 'child() { :; }; '"$declarations; $parser $request"
+                "$runner" 'child() { :; }; '"$declarations; $parser $request"
                 [ "$status" -eq 2 ]
                 [[ "$stderr" == *'positionals cannot coexist with application child commands'* ]]
                 [ -z "$output" ]
