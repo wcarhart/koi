@@ -7,7 +7,76 @@
 
 # ------------------ PUBLIC API ------------------
 
-# Register a command with koi. The command will be registerd as an immediate
+# Configure script-wide help metadata before consuming root registration
+# Usage: __koiconfig KEY VALUE
+#   KEY    name, description, or help-width (positive integer, at most nine digits, default 100)
+#   VALUE  nonempty setting value (name defaults to the script basename)
+# Call outside any function, after sourcing koi and before __koirun or root __parseargs.
+# Returns 2 and invalidates registration on invalid or repeated settings
+__koiconfig() {
+    local __koi_buffer
+    __koi_select_registration_buffer __koi_buffer || return 2
+    if [[ $__koi_buffer != __koi_root ]]; then
+        __koi_spec_error "$__koi_buffer" '__koiconfig: call outside any function, after sourcing koi and before __koirun or script-level __parseargs'
+        return 2
+    fi
+
+    if (( $# != 2 )) || [[ -z $2 ]]; then
+        __koi_spec_error "$__koi_buffer" '__koiconfig: KEY and nonempty VALUE required'
+        return 2
+    fi
+
+    case $1 in
+        name|description)
+            ;;
+        help-width)
+            if [[ ! $2 =~ ^[0-9]+$ || ${#2} -gt 9 ]] || (( 10#$2 == 0 )); then
+                __koi_spec_error "$__koi_buffer" '__koiconfig: help-width must be a positive integer'
+                return 2
+            fi
+            ;;
+        *)
+            __koi_spec_error "$__koi_buffer" "__koiconfig: unknown key: $1"
+            return 2
+            ;;
+    esac
+
+    if [[ ${__koi_config[$1]+present} ]]; then
+        __koi_spec_error "$__koi_buffer" "__koiconfig: repeated key: $1"
+        return 2
+    fi
+
+    __koi_config[$1]=$2
+}
+
+# Describe a directly invoked parsing function
+# Usage: __adddescription TEXT
+#   TEXT  nonempty fallback description, routed command descriptions (i.e. from
+#         __addcommand -d) take precedence
+# Returns 2 and invalidates registration on invalid scope, arguments, or duplicate descriptions
+__adddescription() {
+    local __koi_buffer
+    __koi_select_registration_buffer __koi_buffer || return 2
+    local -n __koi_description_meta="${__koi_buffer}_meta"
+    if [[ $__koi_buffer == __koi_root ]]; then
+        __koi_spec_error "$__koi_buffer" '__adddescription: call inside a function; use __koiconfig description TEXT for the script description'
+        return 2
+    fi
+
+    if (( $# != 1 )) || [[ -z $1 ]]; then
+        __koi_spec_error "$__koi_buffer" '__adddescription: expected exactly one nonempty description'
+        return 2
+    fi
+
+    if [[ ${__koi_description_meta[description]+present} ]]; then
+        __koi_spec_error "$__koi_buffer" '__adddescription: repeated description'
+        return 2
+    fi
+
+    __koi_description_meta[description]=$1
+}
+
+# Register a command with koi. The command will be registered as an immediate
 # child in the current uninterrupted registration block. In functions, you
 # must close the registration block with __parseargs. In the root context,
 # you must close the registration with __koirun.
@@ -201,12 +270,16 @@ __addarg() {
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
 # return status and is used for exit/return control flow.
-# Usage: __parseargs [--koi-error-on-duplicates] "$@" || return "$koi_status"
+# Usage: __parseargs [--koi-error-on-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
+# Internal usage: __parseargs --koi-inspect spec || return "$koi_status"
 #   --koi-error-on-duplicates  reject repeated occurrences of a destination
+#   --koi-inspect MODE         run the registered command handler functions
+#                              in inspect mode (available modes: 'spec' -
+#                              internal-only spec collection)
 #   $@                         the script arguments to parse
 # Returns 0 to continue, 1 to stop after help/dispatch, or 2 on error
 __parseargs() {
-    local __koi_buffer __koi_path='' __koi_result
+    local __koi_buffer __koi_path='' __koi_result __koi_collect_matches=0
     koi_status=2
     __koi_select_registration_buffer __koi_buffer || return 2
     local -a __koi_parsed_commands=()
@@ -220,6 +293,7 @@ __parseargs() {
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
     local -A __koi_parsed_arg_display_names=()
+    local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
 
     # move registration into parser-local storage before validation or nested dispatch
@@ -228,11 +302,30 @@ __parseargs() {
         __koi_root_used=1
     fi
 
+    # distinguish script-level parsing from a function's registration block
+    local __koi_root_context=0
+    if [[ $__koi_buffer == __koi_root ]]; then
+        __koi_root_context=1
+    fi
+
+    # attach script settings and default help metadata to the consumed spec
+    __koi_prepare_spec __koi_parsed "$__koi_root_context"
+    # match the requested invocation so helpers and recursion cannot capture its collector
+    if [[ ${FUNCNAME[1]-} == "${__koi_inspection_handler-}" &&
+          ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
+        __koi_collect_matches=1
+    fi
+
     # apply the CLI path only to the handler invocation selected by routing
     if [[ ${FUNCNAME[1]-} == "${__koi_route_handler-}" &&
           ${#FUNCNAME[@]} == "${__koi_route_depth-}" ]]; then
         __koi_path=${__koi_route_path-}
+        __koi_parsed_meta[description]=${__koi_route_description-}
+        __koi_parsed_meta[builtin]=${__koi_route_help:-0}
+        __koi_parsed_meta[verbose]=${__koi_route_verbose:-0}
     fi
+
+    __koi_parsed_meta[path]=$__koi_path
 
     # parse the consumed spec and capture any selected child command
     local __koi_selected_handler='' __koi_selected_command=''
@@ -244,9 +337,19 @@ __parseargs() {
         __koi_result=$?
     fi
 
+    # retain the child's description and help policy before discarding the spec
+    local __koi_selected_description=''
+    if [[ -n $__koi_selected_command ]]; then
+        __koi_selected_description=${__koi_parsed_descriptions[$__koi_selected_command]-}
+    fi
+    local __koi_selected_help=${__koi_parsed_meta[builtin]}
+    local __koi_selected_verbose=${__koi_parsed_meta[verbose]}
+
     # release declaration metadata before invoking the selected child
     __koi_clear_spec __koi_parsed
     if (( __koi_result == 3 )); then
+        local __koi_route_description=$__koi_selected_description
+        local __koi_route_help=$__koi_selected_help __koi_route_verbose=$__koi_selected_verbose
         local __koi_route_handler=$__koi_selected_handler
         local __koi_route_depth=$((${#FUNCNAME[@]} + 2))
         local __koi_route_path=${__koi_path:+$__koi_path }$__koi_selected_command
@@ -271,10 +374,16 @@ __parseargs() {
 
 # Consume root registration and route once per library initialization.
 # Expected to be called once per script, repeated calls will error.
-# Usage: __koirun [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] "$@"
+# Usage: __koirun [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
 #   --koi-zero-argument-message MESSAGE   error text override when no command is given
 #                                         (default is help menu)
 #   --koi-enable-help-on-unknown-commands allow unknown commands with standalone help
+#   --koi-disable-help-subcommand         allow custom help instead of built-in help
+#   --koi-enable-verbose-help             enable root help --verbose
+#   --koi-enable-help-hints               append available hints to ordinary root help
+#   --koi-inspect MODE                    run the registered command handler functions
+#                                         in inspect mode (available modes: 'spec' -
+#                                         internal-only spec collection)
 #   $@                                    root options, command, and child arguments
 # Returns the handler's status, 0 for help, or 2 on error
 __koirun() {
@@ -294,17 +403,44 @@ __koirun() {
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
     local -A __koi_parsed_arg_display_names=()
+    local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
     __koi_take_spec __koi_root __koi_parsed
     if (( ! __koi_parsed_spec_valid )); then
         return 2
     fi
     local __koi_run_message='' __koi_run_message_set=0 __koi_run_unknown_help=0
+    local __koi_run_help=1 __koi_run_verbose=0 __koi_run_hints=0 __koi_collect_matches=0
+    local -A __koi_run_seen=()
+    # accept a root collector only at the runner invocation it explicitly targets
+    if [[ ${__koi_inspection_handler-} == __koirun &&
+          ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
+        __koi_collect_matches=1
+    fi
     # handle admin flags first
     local __koi_result __koi_selected_handler='' __koi_selected_command=''
     local -a __koi_remaining=()
     while (( $# )); do
         case $1 in
+            --koi-disable-help-subcommand|--koi-enable-verbose-help|--koi-enable-help-hints)
+                if [[ ${__koi_run_seen[$1]+present} ]]; then
+                    __koi_run_error "repeated $1"
+                    return 2
+                fi
+                __koi_run_seen[$1]=1
+                case $1 in
+                    --koi-disable-help-subcommand)
+                        __koi_run_help=0
+                        ;;
+                    --koi-enable-verbose-help)
+                        __koi_run_verbose=1
+                        ;;
+                    --koi-enable-help-hints)
+                        __koi_run_hints=1
+                        ;;
+                esac
+                shift
+                ;;
             --koi-zero-argument-message)
                 if (( __koi_run_message_set || $# < 2 )) || [[ -z $2 ]]; then
                     __koi_run_error 'invalid or repeated --koi-zero-argument-message'
@@ -328,12 +464,28 @@ __koirun() {
         esac
     done
 
+    if (( __koi_run_verbose && ! __koi_run_help )); then
+        __koi_run_error '--koi-enable-verbose-help requires the built-in help subcommand'
+        return 2
+    fi
+    __koi_prepare_spec __koi_parsed 1
+    __koi_parsed_meta[builtin]=$__koi_run_help
+    __koi_parsed_meta[verbose]=$__koi_run_verbose
+    __koi_parsed_meta[hints]=$__koi_run_hints
+    __koi_parsed_meta[runner]=1
+
     # parse root options and prepare command dispatch
     if __koi_parse_spec __koi_parsed 1 '' "$__koi_run_message" "$__koi_run_unknown_help" \
         __koi_selected_handler __koi_selected_command __koi_remaining "$@"; then
         __koi_result=0
     else
         __koi_result=$?
+    fi
+
+    # retain the selected command's description before discarding root metadata
+    local __koi_selected_description=''
+    if [[ -n $__koi_selected_command ]]; then
+        __koi_selected_description=${__koi_parsed_descriptions[$__koi_selected_command]-}
     fi
 
     # discard root metadata and translate help into a successful runner return
@@ -345,6 +497,8 @@ __koirun() {
         return "$__koi_result"
     fi
 
+    local __koi_route_description=$__koi_selected_description
+    local __koi_route_help=$__koi_run_help __koi_route_verbose=$__koi_run_verbose
     local __koi_route_handler=$__koi_selected_handler
     local __koi_route_depth=$((${#FUNCNAME[@]} + 2))
     local __koi_route_path=$__koi_selected_command
@@ -353,6 +507,130 @@ __koirun() {
 }
 
 # ------------------ INTERNAL ------------------
+
+# Complete consumed metadata with script settings and direct-call defaults
+# Usage: __koi_prepare_spec PREFIX ROOT
+#   PREFIX  consumed spec prefix
+#   ROOT    1 for script-scope registration, otherwise 0
+# ShellCheck cannot infer associative keys through this nameref
+# shellcheck disable=SC2154
+__koi_prepare_spec() {
+    local -n __koi_prepare_meta="${1}_meta"
+    __koi_prepare_meta[name]=${__koi_config[name]:-${0##*/}}
+    __koi_prepare_meta[help-width]=${__koi_config[help-width]:-100}
+    __koi_prepare_meta[root]=$2
+    __koi_prepare_meta[path]=''
+    __koi_prepare_meta[builtin]=0
+    __koi_prepare_meta[verbose]=0
+    __koi_prepare_meta[hints]=0
+    __koi_prepare_meta[runner]=0
+    if (( $2 )); then
+        __koi_prepare_meta[description]=${__koi_config[description]-}
+    fi
+}
+
+# Wrap description text, preserving explicit line breaks and unbroken words. Uses
+# configured help-width, prints literal values without interpreting escapes.
+# Usage: __koi_wrap TEXT FIRST_PREFIX CONTINUATION_PREFIX
+#   TEXT                 description to print, split on spaces and tabs for wrapping
+#   FIRST_PREFIX         prefix for the first output line
+#   CONTINUATION_PREFIX  indentation for subsequent lines
+__koi_wrap() {
+    local __koi_wrap_text=$1 __koi_wrap_prefix=$2 __koi_wrap_indent=$3
+    local __koi_wrap_line __koi_wrap_word __koi_wrap_output
+    local __koi_wrap_width=${__koi_config[help-width]:-100}
+    __koi_wrap_width=$((10#$__koi_wrap_width))
+    local -a __koi_wrap_words=()
+    while IFS= read -r __koi_wrap_line; do
+        IFS=$' \t' read -r -a __koi_wrap_words <<< "$__koi_wrap_line"
+        __koi_wrap_output=$__koi_wrap_prefix
+        for __koi_wrap_word in "${__koi_wrap_words[@]}"; do
+            if [[ $__koi_wrap_output != "$__koi_wrap_prefix" ]]; then
+                if (( ${#__koi_wrap_output} + 1 + ${#__koi_wrap_word} > __koi_wrap_width )); then
+                    printf '%s\n' "$__koi_wrap_output"
+                    __koi_wrap_prefix=$__koi_wrap_indent
+                    __koi_wrap_output=$__koi_wrap_prefix
+                else
+                    __koi_wrap_output+=' '
+                fi
+            fi
+            __koi_wrap_output+=$__koi_wrap_word
+        done
+        printf '%s\n' "$__koi_wrap_output"
+        __koi_wrap_prefix=$__koi_wrap_indent
+    done <<< "$__koi_wrap_text"
+}
+
+# Render a collected context, then inspect its application children in order
+# Usage: __koi_walk_spec PREFIX
+#   PREFIX  consumed spec containing effective metadata and ordered children
+# Returns 2 if a descendant cannot be inspected
+__koi_walk_spec() {
+    local __koi_tree_prefix=$1
+    local -n __koi_tree_commands="${__koi_tree_prefix}_commands"
+    local -n __koi_tree_handlers="${__koi_tree_prefix}_handlers"
+    local -n __koi_tree_descriptions="${__koi_tree_prefix}_descriptions"
+    local -n __koi_tree_meta="${__koi_tree_prefix}_meta"
+    __koi_print_help "$__koi_tree_prefix" "${__koi_tree_meta[runner]}" "${__koi_tree_meta[path]}"
+    local __koi_route_help=${__koi_tree_meta[builtin]} __koi_route_verbose=${__koi_tree_meta[verbose]}
+    local __koi_tree_child
+    for __koi_tree_child in "${__koi_tree_commands[@]}"; do
+        __koi_visit_command "${__koi_tree_handlers[$__koi_tree_child]}" \
+            "${__koi_tree_meta[path]:+${__koi_tree_meta[path]} }$__koi_tree_child" \
+            "${__koi_tree_descriptions[$__koi_tree_child]}" || return 2
+    done
+    return 0
+}
+
+# Inspect one routed handler into invocation-local arrays before descending
+# Usage: __koi_visit_command HANDLER PATH DESCRIPTION
+#   HANDLER      registered function to invoke once with --koi-inspect spec
+#   PATH         complete CLI command path
+#   DESCRIPTION  selected alias description
+# Returns 2 on active-ancestry recursion, handler failure, or missing collection
+__koi_visit_command() {
+    local __koi_visit_handler=$1 __koi_visit_path=$2 __koi_visit_description=$3
+    local __koi_visit_ancestor
+    for __koi_visit_ancestor in "${__koi_walk_ancestors[@]}"; do
+        if [[ $__koi_visit_ancestor == "$__koi_visit_handler" ]]; then
+            __koi_run_error "recursive inspection at '$__koi_visit_path' (handler '$__koi_visit_handler')"
+            return 2
+        fi
+    done
+    local -a __koi_walk_ancestors=("${__koi_walk_ancestors[@]}" "$__koi_visit_handler")
+    local -a __koi_visit_spec_commands=()
+    local -A __koi_visit_spec_handlers=()
+    local -A __koi_visit_spec_descriptions=()
+    local -a __koi_visit_spec_args=()
+    local -A __koi_visit_spec_arg_shorts=()
+    local -A __koi_visit_spec_arg_longs=()
+    local -A __koi_visit_spec_arg_kinds=()
+    local -A __koi_visit_spec_arg_descriptions=()
+    local -A __koi_visit_spec_arg_requireds=()
+    local -A __koi_visit_spec_arg_defaults=()
+    local -A __koi_visit_spec_arg_display_names=()
+    local -A __koi_visit_spec_meta=()
+    local -i __koi_visit_spec_spec_valid=1
+    local __koi_inspection_sink=__koi_visit_spec __koi_inspection_received=0
+    local __koi_inspection_handler=$__koi_visit_handler
+    local __koi_inspection_depth=$((${#FUNCNAME[@]} + 2))
+    local __koi_route_handler=$__koi_visit_handler __koi_route_path=$__koi_visit_path
+    local __koi_route_description=$__koi_visit_description
+    local __koi_route_depth=$__koi_inspection_depth
+    if "$__koi_visit_handler" --koi-inspect spec; then
+        if (( ! __koi_inspection_received )); then
+            __koi_clear_spec __koi_pending
+            __koi_run_error "inspection at '$__koi_visit_path' did not reach __parseargs"
+            return 2
+        fi
+    else
+        __koi_clear_spec __koi_pending
+        __koi_run_error "inspection failed at '$__koi_visit_path'"
+        return 2
+    fi
+    printf '\n'
+    __koi_walk_spec __koi_visit_spec
+}
 
 # Select registration storage from the public API's application caller
 # Usage: __koi_select_registration_buffer OUTPUT_VAR
@@ -400,11 +678,12 @@ __koi_clear_spec() {
     __koi_clear_valid=1
 }
 
-# Move a registration buffer into already-declared parser-local storage
-# Usage: __koi_take_spec SOURCE_PREFIX TARGET_PREFIX
-#   SOURCE_PREFIX  buffer to consume and clear
-#   TARGET_PREFIX  parser-local spec receiving all metadata
-__koi_take_spec() {
+# Copy a spec into already-declared typed storage without interpreting values
+# Usage: __koi_copy_spec SOURCE_PREFIX TARGET_PREFIX
+#   SOURCE_PREFIX  spec to read
+#   TARGET_PREFIX  destination arrays and validity scalar; previous contents are cleared
+__koi_copy_spec() {
+    __koi_clear_spec "$2"
     local __koi_take_field __koi_take_key
 
     # copy fields by key to preserve array order and literal metadata values
@@ -418,6 +697,14 @@ __koi_take_spec() {
 
     local -n __koi_take_source_valid="${1}_spec_valid" __koi_take_target_valid="${2}_spec_valid"
     __koi_take_target_valid=$__koi_take_source_valid
+}
+
+# Move registration into already-declared parser-local storage
+# Usage: __koi_take_spec SOURCE_PREFIX TARGET_PREFIX
+#   SOURCE_PREFIX  registration buffer to consume
+#   TARGET_PREFIX  typed storage receiving all metadata
+__koi_take_spec() {
+    __koi_copy_spec "$1" "$2"
     __koi_clear_spec "$1"
 }
 
@@ -445,9 +732,15 @@ __koi_parse_spec() {
     local -n __koi_arg_requireds="${__koi_engine_prefix}_arg_requireds"
     local -n __koi_arg_defaults="${__koi_engine_prefix}_arg_defaults"
     local -n __koi_spec_valid="${__koi_engine_prefix}_spec_valid"
+    local -n __koi_engine_meta="${__koi_engine_prefix}_meta"
     local -a __koi_engine_tail=()
     local __koi_engine_child __koi_engine_token
     if (( ! __koi_spec_valid )); then
+        return 2
+    fi
+
+    if (( __koi_engine_meta[builtin] )) && [[ ${__koi_handlers[help]+present} ]]; then
+        __koi_run_error "command 'help' conflicts with built-in help, use --koi-disable-help-subcommand"
         return 2
     fi
 
@@ -458,6 +751,20 @@ __koi_parse_spec() {
             return 2
         fi
     done
+
+    if [[ ${1-} == --koi-inspect ]]; then
+        if (( $# != 2 )) || [[ ${2-} != spec ]]; then
+            __koi_run_error 'invalid inspection request: expected --koi-inspect spec'
+            return 2
+        fi
+        if (( ! ${__koi_collect_matches:-0} )) || [[ -z ${__koi_inspection_sink-} ]]; then
+            __koi_run_error 'standalone inspection is not supported, an internal collector is required'
+            return 2
+        fi
+        __koi_copy_spec "$__koi_engine_prefix" "$__koi_inspection_sink"
+        __koi_inspection_received=1
+        return 1
+    fi
 
     # keep scanned values and presence separate until all checks pass
     local __koi_parse_result
@@ -487,6 +794,40 @@ __koi_parse_spec() {
     if (( ${#__koi_engine_tail[@]} )); then
         __koi_engine_command=${__koi_engine_tail[0]}
         __koi_engine_remaining=("${__koi_engine_tail[@]:1}")
+        if [[ $__koi_engine_command == help ]] && (( __koi_engine_meta[builtin] )); then
+            case ${#__koi_engine_remaining[@]} in
+                0)
+                    __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+                    ;;
+                1)
+                    case ${__koi_engine_remaining[0]} in
+                        -h|--help)
+                            __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+                            ;;
+                        --verbose)
+                            if (( ! __koi_engine_root || ! __koi_engine_meta[verbose] )); then
+                                __koi_error "__parseargs: unsupported positional argument: '${__koi_engine_remaining[0]}'"
+                                return 2
+                            fi
+                            __koi_engine_meta[hints]=0
+                            local -a __koi_walk_ancestors=()
+                            __koi_walk_spec "$__koi_engine_prefix" || return 2
+                            ;;
+                        *)
+                            __koi_error "__parseargs: unsupported positional argument: '${__koi_engine_remaining[0]}'"
+                            return 2
+                            ;;
+                    esac
+                    ;;
+                *)
+                    __koi_run_error 'unsupported help arguments'
+                    return 2
+                    ;;
+            esac
+            return 1
+        fi
+
+        # reject unregistered commands unless the root's unknown-command help override applies
         if [[ -z $__koi_engine_command || ! ${__koi_handlers[$__koi_engine_command]+present} ]]; then
             if (( __koi_engine_root && __koi_engine_unknown_help )); then
                 for __koi_engine_token in "${__koi_engine_remaining[@]}"; do
@@ -505,14 +846,14 @@ __koi_parse_spec() {
             return 2
         fi
         __koi_engine_handler=${__koi_handlers[$__koi_engine_command]}
-    elif (( __koi_engine_root )); then
+    elif (( __koi_engine_root || ${#__koi_commands[@]} )); then
         # honor the configured error message when no root command was supplied
-        if [[ -n $__koi_engine_message ]]; then
+        if (( __koi_engine_root )) && [[ -n $__koi_engine_message ]]; then
             __koi_run_error "$__koi_engine_message"
             return 2
         fi
 
-        __koi_print_help "$__koi_engine_prefix" 1 "$__koi_engine_path"
+        __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
         return 1
     fi
 
@@ -713,6 +1054,7 @@ __koi_scan_args() {
     local -n __koi_arg_shorts="${__koi_scan_prefix}_arg_shorts"
     local -n __koi_arg_longs="${__koi_scan_prefix}_arg_longs"
     local -n __koi_arg_kinds="${__koi_scan_prefix}_arg_kinds"
+    local -n __koi_scan_meta="${__koi_scan_prefix}_meta"
     local -n __koi_scan_values=$2 __koi_scan_seen=$3 __koi_scan_error=$4 __koi_scan_tail=$5
     local __koi_scan_root=$6
     local __koi_scan_duplicates=0 __koi_scan_duplicate=''
@@ -740,7 +1082,7 @@ __koi_scan_args() {
         __koi_scan_token=$1
         shift
 
-        if (( __koi_scan_root || ${#__koi_commands[@]} )) &&
+        if (( __koi_scan_root || ${#__koi_commands[@]} || __koi_scan_meta[builtin] )) &&
             { (( __koi_scan_positional )) || [[ $__koi_scan_token != -* ]]; }; then
             __koi_scan_tail=("$__koi_scan_token" "$@")
             break
@@ -856,7 +1198,7 @@ __koi_scan_args() {
 # Usage: __koi_run_error "$@"
 #   $@  the diagnostic text
 __koi_run_error() {
-    printf '%s: %s\n' "${0##*/}" "$*" >&2
+    printf '%s: %s\n' "${__koi_config[name]:-${0##*/}}" "$*" >&2
     return 2
 }
 
@@ -867,22 +1209,28 @@ __koi_print_commands() {
     local __koi_command_prefix=$1
     local -n __koi_commands="${__koi_command_prefix}_commands"
     local -n __koi_descriptions="${__koi_command_prefix}_descriptions"
-    local __koi_root_command __koi_root_description __koi_root_indent
+    local -n __koi_command_meta="${__koi_command_prefix}_meta"
+    local -a __koi_command_names=("${__koi_commands[@]}")
+    if (( __koi_command_meta[builtin] )); then
+        __koi_command_names+=(help)
+    fi
+    local __koi_root_command __koi_root_description __koi_root_indent __koi_root_first
     local __koi_root_width=0
-    for __koi_root_command in "${__koi_commands[@]}"; do
+    for __koi_root_command in "${__koi_command_names[@]}"; do
         if (( ${#__koi_root_command} > __koi_root_width )); then
             __koi_root_width=${#__koi_root_command}
         fi
     done
     printf -v __koi_root_indent '%*s' "$((__koi_root_width + 4))" ''
     printf '\n\nCommands:\n'
-    if (( ${#__koi_commands[@]} == 0 )); then
-        printf '  (none)\n'
-    fi
-    for __koi_root_command in "${__koi_commands[@]}"; do
-        __koi_root_description=${__koi_descriptions[$__koi_root_command]}
-        __koi_root_description=${__koi_root_description//$'\n'/$'\n'"$__koi_root_indent"}
-        printf '  %-*s  %s\n' "$__koi_root_width" "$__koi_root_command" "$__koi_root_description"
+    for __koi_root_command in "${__koi_command_names[@]}"; do
+        if [[ $__koi_root_command == help ]] && (( __koi_command_meta[builtin] )); then
+            __koi_root_description='Show this help'
+        else
+            __koi_root_description=${__koi_descriptions[$__koi_root_command]}
+        fi
+        printf -v __koi_root_first '  %-*s  ' "$__koi_root_width" "$__koi_root_command"
+        __koi_wrap "$__koi_root_description" "$__koi_root_first" "$__koi_root_indent"
     done
 }
 
@@ -894,6 +1242,7 @@ __koi_print_commands() {
 __koi_print_help() {
     local __koi_help_prefix=$1 __koi_help_root=$2 __koi_help_path=$3
     local -n __koi_commands="${__koi_help_prefix}_commands"
+    local -n __koi_help_meta="${__koi_help_prefix}_meta"
     local -n __koi_args="${__koi_help_prefix}_args"
     local -n __koi_arg_shorts="${__koi_help_prefix}_arg_shorts"
     local -n __koi_arg_longs="${__koi_help_prefix}_arg_longs"
@@ -908,13 +1257,15 @@ __koi_print_help() {
     __koi_help_width=${#__koi_help_labels[0]}
     local __koi_help_index=1
 
-    printf 'Usage: %s' "${0##*/}"
+    if [[ -n ${__koi_help_meta[description]-} ]]; then
+        __koi_wrap "${__koi_help_meta[description]}" '' ''
+        printf '\n'
+    fi
+    printf 'Usage: %s' "${__koi_help_meta[name]}"
     if [[ -n $__koi_help_path ]]; then
         printf ' %s' "$__koi_help_path"
     fi
-    if (( ! __koi_help_root || ${#__koi_args[@]} )); then
-        printf ' [-h]'
-    fi
+    printf ' [-h]'
 
     for __koi_help_dest in "${__koi_args[@]}"; do
         # prefer short spelling in usage, fall back to long if absent
@@ -964,13 +1315,13 @@ __koi_print_help() {
         fi
     done
 
-    if (( __koi_help_root )); then
-        printf ' COMMAND [args]'
-    elif (( ${#__koi_commands[@]} )); then
-        printf ' [COMMAND [args]]'
+    if (( ${#__koi_commands[@]} )); then
+        printf ' COMMAND'
+    elif (( __koi_help_meta[builtin] )); then
+        printf ' [COMMAND]'
     fi
     printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
-    if (( __koi_help_root || ${#__koi_commands[@]} )); then
+    if (( ${#__koi_commands[@]} || __koi_help_meta[builtin] )); then
         __koi_print_commands "$__koi_help_prefix"
         printf '\nOptions:\n'
     else
@@ -987,11 +1338,22 @@ __koi_print_help() {
             __koi_help_description+=" (default: ${__koi_arg_defaults[$__koi_help_dest]})"
         fi
 
-        # keep explicit description continuations aligned with the first line
-        __koi_help_description=${__koi_help_description//$'\n'/$'\n'"$__koi_help_indent"}
-        printf '  %-*s  %s\n' "$__koi_help_width" "${__koi_help_labels[$__koi_help_index]}" "$__koi_help_description"
+        local __koi_help_first
+        printf -v __koi_help_first '  %-*s  ' "$__koi_help_width" "${__koi_help_labels[$__koi_help_index]}"
+        __koi_wrap "$__koi_help_description" "$__koi_help_first" "$__koi_help_indent"
         __koi_help_index=$((__koi_help_index + 1))
     done
+
+    if (( __koi_help_root && __koi_help_meta[hints] )) &&
+        (( __koi_help_meta[verbose] || ${#__koi_commands[@]} )); then
+        printf '\nHints:\n'
+        if (( __koi_help_meta[verbose] )); then
+            printf '  %s help --verbose    Show complete command documentation\n' "${__koi_help_meta[name]}"
+        fi
+        if (( ${#__koi_commands[@]} )); then
+            printf '  %s COMMAND --help    Show individual command documentation\n' "${__koi_help_meta[name]}"
+        fi
+    fi
 }
 
 # ------------------ CONTROL FLOW ------------------
@@ -1013,7 +1375,7 @@ fi
 
 # Re-sourcing preserves both unfinished registration and the root lifecycle
 if [[ ${__koi_initialized-} != 1 ]]; then
-    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_descriptions arg_requireds arg_defaults arg_display_names)
+    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_descriptions arg_requireds arg_defaults arg_display_names meta)
     declare -ga __koi_root_commands=()
     declare -gA __koi_root_handlers=()
     declare -gA __koi_root_descriptions=()
@@ -1025,6 +1387,8 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_root_arg_requireds=()
     declare -gA __koi_root_arg_defaults=()
     declare -gA __koi_root_arg_display_names=()
+    declare -gA __koi_config=()
+    declare -gA __koi_root_meta=()
     declare -gi __koi_root_spec_valid=1
     declare -ga __koi_pending_commands=()
     declare -gA __koi_pending_handlers=()
@@ -1037,9 +1401,10 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_pending_arg_requireds=()
     declare -gA __koi_pending_arg_defaults=()
     declare -gA __koi_pending_arg_display_names=()
+    declare -gA __koi_pending_meta=()
     declare -gi __koi_pending_spec_valid=1
     declare -gi __koi_root_used=0
-    declare -ga __koi_reserved_longs=(help koi-error-on-duplicates koi-error-on-duplicate)
+    declare -ga __koi_reserved_longs=(help koi-error-on-duplicates koi-error-on-duplicate koi-inspect)
     # shellcheck disable=SC2034
     declare -g koi_status=0
     __koi_initialized=1

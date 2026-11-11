@@ -15,17 +15,19 @@ setup() {
 run_app() {
     local body=$1
     shift
-    printf 'source "$KOI_LIBRARY"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
+    printf 'source "$KOI_LIBRARY"\n__koiconfig description "Application"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
     run --separate-stderr bash "$BATS_TEST_TMPDIR/app.sh" "$@"
 }
 
 @test "empty registry shows root help successfully" {
     run_app '__koirun "$@"'
     [ "$status" -eq 0 ]
-    [ "$output" = 'Usage: app.sh COMMAND [args]
+    [ "$output" = 'Application
+
+Usage: app.sh [-h] [COMMAND]
 
 Commands:
-  (none)
+  help  Show this help
 
 Options:
   -h, --help  Show this help' ]
@@ -42,12 +44,15 @@ Options:
         __koirun "$@"
     ' --help
     [ "$status" -eq 0 ]
-    [ "$output" = 'Usage: app.sh COMMAND [args]
+    [ "$output" = 'Application
+
+Usage: app.sh [-h] COMMAND
 
 Commands:
   z      First command
          Continuation
   alpha  Second command
+  help   Show this help
 
 Options:
   -h, --help  Show this help' ]
@@ -59,7 +64,7 @@ Options:
     for flag in -h --help; do
         run_app '__koirun --koi-zero-argument-message "Need a command" "$@"' "$flag" ignored
         [ "$status" -eq 0 ]
-        [[ "$output" == Usage:* ]]
+        [[ "$output" == Application*Usage:* ]]
         [ -z "$stderr" ]
     done
 }
@@ -105,7 +110,7 @@ Options:
     for flag in -h --help; do
         run_app '__koirun --koi-enable-help-on-unknown-commands "$@"' unknown extra "$flag"
         [ "$status" -eq 0 ]
-        [[ "$output" == Usage:* ]]
+        [[ "$output" == Application*Usage:* ]]
         run_app '__koirun --koi-enable-help-on-unknown-commands "$@"' unknown -- "$flag"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
@@ -220,7 +225,7 @@ Options:
         __koirun "$@"
     ' deploy --help
     [ "$status" -eq 0 ]
-    [[ "${lines[0]}" == 'Usage: app.sh deploy [-h] [-e ENV]' ]]
+    [[ "${lines[0]}" == Deploy && "${lines[1]}" == 'Usage: app.sh deploy [-h] [-e ENV] [COMMAND]' ]]
     [[ "$output" != *BAD* ]]
     [ -z "$stderr" ]
 }

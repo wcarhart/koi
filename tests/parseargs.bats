@@ -316,6 +316,7 @@ parse_without_mutation() {
     for declaration in '-i' '-l' '-u' '-a' '-A' '-n'; do
         run --separate-stderr bash -c '
             source "$KOI_LIBRARY" || exit
+            __koiconfig description Application
             __addarg first -o -l first -d First || exit
             __addarg second -o -l second -d Second || exit
             first=original
@@ -335,6 +336,7 @@ parse_without_mutation() {
 @test "invalid specs fail silently even for help and consume registration" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
+        __koiconfig description Application
         __addarg 2>/dev/null
         __parseargs --help
         result=$?
@@ -427,6 +429,7 @@ parse_without_mutation() {
 @test "parser works with nounset enabled" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY" || exit
+        __koiconfig description Application
         __addarg name -o -l name -d Name || exit
         __parseargs --name "" || exit "$koi_status"
         [[ $name == "" && $koi_status == 0 ]]

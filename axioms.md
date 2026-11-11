@@ -5,6 +5,15 @@ behavior, not capabilities already implemented. API axioms below are the agreed
 foundation. Proposed spellings, implementation mechanisms, and provisional
 packaging choices remain open to further design.
 
+## Implemented help increment
+
+The later [v2 configuration and help contract](docs/tmp/v2-help.md) supersedes the
+initial proposals below where they differ. In particular, branches with
+application children show help rather than executing local business logic when
+no child is selected. Root configuration uses `__koiconfig`; direct function
+descriptions use `__adddescription`. Inspection currently collects into internal
+Bash arrays only; external transport and CLI output formats remain deferred.
+
 ## Purpose and scope
 
 Koi is a Bash-native argument parser inspired by Python's argparse. Authors

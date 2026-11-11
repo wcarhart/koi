@@ -148,6 +148,7 @@ setup() {
 @test "pending function registration cannot alter root registration or validity" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         __addcommand visible -f visible -d Visible
         visible() { return 0; }
         build() {
@@ -168,6 +169,7 @@ setup() {
 @test "nested routing assigns parent arguments and suppresses parent business logic" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         __addcommand infra -f infra -d Infra
         infra() {
             local mode
@@ -190,7 +192,7 @@ setup() {
     [ -z "$stderr" ]
 }
 
-@test "a parent default runs only when no child is selected" {
+@test "a branch without child selection shows help and skips business logic" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
         child() { printf "child\n"; }
@@ -203,7 +205,8 @@ setup() {
         parent child
     '
     [ "$status" -eq 0 ]
-    [ "$output" = $'default\nchild' ]
+    [[ "$output" == Usage:*COMMAND*child ]]
+    [[ "$output" != *default* ]]
     [ -z "$stderr" ]
 }
 
@@ -237,6 +240,7 @@ setup() {
 @test "nested help lists immediate children with a complete command path" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         __addcommand a -f node -d A
         node() {
             __addcommand a -f node -d Next
@@ -246,7 +250,7 @@ setup() {
         __koirun "$@"
     ' app.sh a a a a a a a a a a a a --help
     [ "$status" -eq 0 ]
-    [[ "${lines[0]}" == 'Usage: app.sh a a a a a a a a a a a a [-h] [COMMAND [args]]' ]]
+    [[ "${lines[0]}" == Next && "${lines[1]}" == 'Usage: app.sh a a a a a a a a a a a a [-h] COMMAND' ]]
     [[ "$output" == *'Commands:'*'Next'* ]]
     [[ "$output" != *BAD* ]]
     [ -z "$stderr" ]
@@ -255,6 +259,7 @@ setup() {
 @test "preparation helpers and later direct calls do not inherit routed help paths" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         __addcommand alias -f handler -d Handler
         helper() {
             __parseargs "$@" || return "$koi_status"
@@ -269,7 +274,7 @@ setup() {
         handler --help
     ' app.sh
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h]'*AFTER*'Usage: app.sh [-h]'* ]]
+    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h] [COMMAND]'*AFTER*'Usage: app.sh [-h]'* ]]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage: app.sh alias')" -eq 1 ]
     [ -z "$stderr" ]
 }
@@ -277,6 +282,7 @@ setup() {
 @test "recursive direct calls of a routed handler do not consume its route" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         __addcommand alias -f handler -d Handler
         handler() {
             local help_only=0
@@ -292,7 +298,7 @@ setup() {
         __koirun alias --help
     ' app.sh
     [ "$status" -eq 0 ]
-    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h]'* ]]
+    [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h] [COMMAND]'* ]]
     [ -z "$stderr" ]
 }
 
@@ -324,6 +330,7 @@ setup() {
     printf '%s\n' '__addarg verbose -f -s v -d Verbose' > "$BATS_TEST_TMPDIR/args.sh"
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
+        __koiconfig description Application
         source "$1"
         __parseargs -v || exit "$koi_status"
         [[ $verbose == 1 ]]
