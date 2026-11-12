@@ -1,0 +1,12 @@
+---
+import Docs from '../../components/Docs.astro';
+import { getDocs } from '../../lib/content';
+export async function getStaticPaths() {
+  return (await getDocs())
+    .filter((d) => d.slug)
+    .map((d) => ({ params: { slug: d.slug } }));
+}
+const { slug } = Astro.params;
+---
+
+<Docs slug={slug} />

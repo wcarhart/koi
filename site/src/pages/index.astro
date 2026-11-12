@@ -1,0 +1,310 @@
+---
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import matter from 'gray-matter';
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import InstallBox from '../components/InstallBox.astro';
+import { installMethods, type InstallMethod } from '../lib/install';
+const heroInstallMethods: InstallMethod[] = [
+  ...installMethods.koi,
+  {
+    id: 'clone',
+    label: 'Clone',
+    command: 'git clone git@github.com:wcarhart/koi.git',
+  },
+  {
+    id: 'manual',
+    label: 'Manual',
+    href: 'https://github.com/wcarhart/koi/releases',
+    text: 'Download from GitHub',
+  },
+];
+import Icon from '../components/Icon.astro';
+import CtaArrow from '../components/CtaArrow.astro';
+import TerminalCommand from '../components/TerminalCommand.astro';
+import { docsRoot, renderMarkdown } from '../lib/content';
+const home = matter(readFileSync(path.join(docsRoot, 'pages/home.md'), 'utf8'));
+const panels = await Promise.all(
+  home.content
+    .split('<!-- koi:panel -->')
+    .map((body) => renderMarkdown(body, '')),
+);
+const script = readFileSync(path.join(docsRoot, 'examples/hero.sh'), 'utf8');
+const greeting = await renderMarkdown(
+  '```bash\n' + script + '\n```',
+  'hero',
+  new Map(),
+  { copy: false },
+);
+const heroHelp = readFileSync(
+  path.join(docsRoot, 'examples/hero-help.txt'),
+  'utf8',
+).trimEnd();
+const heroOutput = readFileSync(
+  path.join(docsRoot, 'examples/hero.txt'),
+  'utf8',
+).trimEnd();
+const commandScript = readFileSync(
+  path.join(docsRoot, 'examples/home-cli.sh'),
+  'utf8',
+);
+const commandExample = await renderMarkdown(
+  '```bash\n' + commandScript + '\n```',
+  'commands',
+);
+const directExample = await renderMarkdown(
+  '```bash\n' +
+    readFileSync(path.join(docsRoot, 'examples/direct-calls.sh'), 'utf8') +
+    '\n```',
+  'home-direct',
+);
+const directOutput = readFileSync(
+  path.join(docsRoot, 'examples/direct-calls.txt'),
+  'utf8',
+).trimEnd();
+const helpExample = await renderMarkdown(
+  '```bash\n' +
+    readFileSync(path.join(docsRoot, 'examples/home-help.sh'), 'utf8') +
+    '\n```',
+  'home-help',
+);
+const helpRoot = readFileSync(
+  path.join(docsRoot, 'examples/home-help.txt'),
+  'utf8',
+).trimEnd();
+const helpCommand = readFileSync(
+  path.join(docsRoot, 'examples/home-help-command.txt'),
+  'utf8',
+)
+  .trimEnd()
+  .replace(/^  DIRECTORY +/m, '  DIRECTORY  ');
+---
+
+<Base
+  title="Bashful argument parsing"
+  description={home.data.description}
+  class="home-page"
+>
+  <Header />
+  <main id="main">
+    <section class="hero">
+      <div>
+        <div class="hero-kicker">
+          <span class="metadata-pill">Bash 5.2+</span>
+          <span class="metadata-pill">MIT licensed</span>
+          <a
+            href="https://github.com/wcarhart/koi"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="github-link compact-github"
+            aria-label="GitHub repository"
+          >
+            <Icon name="github" />
+          </a>
+        </div>
+        <h1>
+          {home.data.lead}
+          <br />
+          <em>{home.data.emphasis}</em>
+        </h1>
+        <p class="hero-description">{home.data.description}</p>
+        <div class="hero-actions">
+          <InstallBox idPrefix="hero-install" methods={heroInstallMethods} />
+          <div class="button-row">
+            <a class="button primary" href="/docs">
+              Read the docs <CtaArrow />
+            </a>
+            <a class="button" href="/install">
+              Install <CtaArrow />
+            </a>
+            <a class="button" href="/playground">
+              Try it yourself <CtaArrow />
+            </a>
+          </div>
+          <p class="hero-agent-link">
+            LLM? Read <a href="/llms.txt">llms.txt</a>
+          </p>
+        </div>
+      </div>
+      <div class="hero-terminal">
+        <div class="terminal-frame">
+          <div class="terminal-titlebar">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="terminal-filename">~/greet.sh</span>
+          </div>
+          <Fragment set:html={greeting.html} />
+          <div class="terminal-output terminal-session">
+            <TerminalCommand>./greet.sh -h</TerminalCommand>
+            <pre
+              class="terminal-help"
+              tabindex="0"
+              role="region"
+              aria-label="Generated help for greet.sh"
+            >{heroHelp}</pre>
+            <TerminalCommand>./greet.sh --name Will -e</TerminalCommand>
+            <p>{heroOutput}</p>
+            <TerminalCommand>
+              <span class="cursor"></span>
+            </TerminalCommand>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="principles-strip">
+      <span>One sourceable file</span>
+      <span>Ordinary Bash variables</span>
+      <span>
+        Automatic <code>-h</code> / <code>--help</code>
+      </span>
+      <span>No runtime dependencies beyond Bash</span>
+    </div>
+    <section class="landing-section">
+      <div>
+        <div class="section-label">
+          <span class="eyebrow">Get started</span>
+        </div>
+        <div class="landing-copy prose" set:html={panels[0].html} />
+        <div class="button-row landing-actions">
+          <a class="button primary" href="/docs/guides/lifecycle">
+            Get started <CtaArrow />
+          </a>
+          <a class="button" href="/docs/examples">
+            More examples <CtaArrow />
+          </a>
+        </div>
+      </div>
+      <div class="prose">
+        <Fragment
+          set:html={
+            (
+              await renderMarkdown(
+                '```bash\n' +
+                  readFileSync(
+                    path.join(docsRoot, 'examples/archive.sh'),
+                    'utf8',
+                  ) +
+                  '\n```',
+                'home-copy',
+              )
+            ).html
+          }
+        />
+      </div>
+    </section>
+    <section class="landing-section reverse">
+      <div>
+        <div class="section-label">
+          <span class="eyebrow">Build a CLI</span>
+        </div>
+        <div class="landing-copy prose" set:html={panels[1].html} />
+        <div class="prose">
+          <div
+            class="cli-invocations terminal-session"
+            role="region"
+            tabindex="0"
+            aria-label="CLI usage examples"
+          >
+            <TerminalCommand>
+              sudo mv ./cli.sh /usr/local/bin/cli
+            </TerminalCommand>
+            <TerminalCommand>cli status --all</TerminalCommand>
+            <TerminalCommand>
+              cli deploy service api -f compose.prod.yaml
+            </TerminalCommand>
+            <TerminalCommand>
+              cli deploy stack stacks/production
+            </TerminalCommand>
+          </div>
+        </div>
+        <div class="button-row landing-actions">
+          <a class="button primary" href="/docs/guides/commands">
+            Explore commands <CtaArrow />
+          </a>
+          <a class="button" href="/docs/examples">
+            More examples <CtaArrow />
+          </a>
+        </div>
+      </div>
+      <div class="prose" set:html={commandExample.html} />
+    </section>
+    <section class="landing-section reverse">
+      <div>
+        <div class="section-label">
+          <span class="eyebrow">Function-to-function</span>
+        </div>
+        <div class="landing-copy prose" set:html={panels[2].html} />
+        <div class="button-row landing-actions">
+          <a class="button primary" href="/docs/guides/direct-calls">
+            Explore direct calls <CtaArrow />
+          </a>
+          <a class="button" href="/docs/examples">
+            More examples <CtaArrow />
+          </a>
+        </div>
+      </div>
+      <div class="prose">
+        <Fragment set:html={directExample.html} />
+        <pre
+          class="demo-output"
+          tabindex="0"
+          role="region"
+          aria-label="Direct call output"
+        >{directOutput}</pre>
+      </div>
+    </section>
+    <section class="landing-section reverse">
+      <div>
+        <div class="section-label">
+          <span class="eyebrow">
+            <code>-h</code> support
+          </span>
+        </div>
+        <div class="landing-copy prose" set:html={panels[3].html} />
+        <div class="button-row landing-actions">
+          <a class="button primary" href="/docs/guides/help">
+            Explore help <CtaArrow />
+          </a>
+          <a class="button" href="/docs/examples">
+            More examples <CtaArrow />
+          </a>
+        </div>
+      </div>
+      <div class="prose">
+        <Fragment set:html={helpExample.html} />
+        <div class="demo-output terminal-session">
+          <TerminalCommand>cli help</TerminalCommand>
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Generated root help"
+          >{helpRoot}</pre>
+          <TerminalCommand>cli archive --help</TerminalCommand>
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Generated command help"
+          >{helpCommand}</pre>
+        </div>
+      </div>
+    </section>
+    <section class="landing-install">
+      <div class="landing-section">
+        <div>
+          <div class="section-label">
+            <span class="eyebrow">Installation</span>
+          </div>
+          <div class="landing-copy prose" set:html={panels[4].html} />
+          <a class="button primary" href="/install">
+            Installation guide <CtaArrow />
+          </a>
+        </div>
+        <InstallBox idPrefix="section-install" />
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>

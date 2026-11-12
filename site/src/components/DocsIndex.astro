@@ -1,0 +1,191 @@
+---
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import DocsShell from './DocsShell.astro';
+import CtaArrow from './CtaArrow.astro';
+import KoiMark from './KoiMark.astro';
+import { docsRoot, getDocs, renderMarkdown } from '../lib/content';
+import {
+  docsIndexes,
+  indexDocs,
+  type DocsIndexKind,
+} from '../lib/docs-indexes';
+
+interface Props {
+  kind: DocsIndexKind;
+}
+const { kind } = Astro.props;
+const selected = docsIndexes.find((index) => index.slug === kind)!;
+const entries = indexDocs(kind, await getDocs());
+const featured = kind === 'guides' ? entries.slice(0, 4) : [];
+const remaining = kind === 'guides' ? entries.slice(4) : entries;
+const albums =
+  kind === 'examples'
+    ? await Promise.all(
+        entries.slice(0, 3).map(async (doc) => {
+          const source = readFileSync(path.join(docsRoot, doc.file), 'utf8');
+          const filename = source.match(
+            /<!-- koi:include ([a-z0-9-]+\.sh) -->/,
+          )?.[1];
+          if (!filename) throw new Error(`Missing example script: ${doc.file}`);
+          const script = readFileSync(
+            path.join(docsRoot, 'examples', filename),
+            'utf8',
+          );
+          const preview = await renderMarkdown(
+            '```bash\n' + script + '\n```',
+            `${doc.id}-album`,
+          );
+          return {
+            doc,
+            filename,
+            thumbnail: script.split('\n').slice(0, 11).join('\n'),
+            html: preview.html,
+          };
+        }),
+      )
+    : [];
+---
+
+<DocsShell selected={selected}>
+  <section
+    id={selected.id}
+    class={`doc-section docs-index docs-index-${kind}`}
+    data-doc-section
+    data-url={selected.url}
+    data-title={selected.title}
+  >
+    <div class="section-toolbar">
+      <span class="section-number">
+        {kind === 'examples' ? '~/koi/examples' : `~/koi/${kind}`}
+      </span>
+      <span class="section-number">
+        {String(entries.length).padStart(2, '0')}{' '}
+        {kind === 'reference' ? 'commands' : kind}
+      </span>
+    </div>
+    <div class="prose index-heading">
+      <h1>{selected.title}</h1>
+      <p class="doc-description">{selected.description}</p>
+    </div>
+
+    {kind === 'guides' && (
+      <nav class="guide-grid" aria-label="Featured guides">
+        {featured.map((doc, index) => (
+          <a class="guide-card" href={doc.url}>
+            <span class="eyebrow">
+              GUIDE {String(index + 1).padStart(2, '0')}
+            </span>
+            <h2>{doc.title}</h2>
+            <p>{doc.description}</p>
+            <span class="index-card-cta">
+              Read guide <CtaArrow />
+            </span>
+          </a>
+        ))}
+      </nav>
+    )}
+
+    {kind === 'examples' && (
+      <div class="examples-jukebox" data-jukebox>
+        <div class="terminal-titlebar">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="terminal-filename">koi / the example collection</span>
+          <KoiMark variant="outline" />
+        </div>
+        <div
+          class="album-shelf"
+          role="group"
+          aria-label="Featured examples"
+          data-album-tabs
+        >
+          {albums.map((album, index) => (
+            <a
+              class="example-album"
+              id={`album-${index}`}
+              href={album.doc.url}
+              data-album={index}
+            >
+              <span class={`album-art album-art-${index}`} aria-hidden="true">
+                <span class="album-track">
+                  SIDE {String(index + 1).padStart(2, '0')} / BASH
+                </span>
+                <span class="album-source">{album.thumbnail}</span>
+                <span class="album-filename">{album.filename}</span>
+              </span>
+              <span class="album-title">{album.doc.title}</span>
+              <span class="album-caption">{album.filename}</span>
+            </a>
+          ))}
+        </div>
+        {albums.map((album, index) => (
+          <div
+            class="album-preview"
+            id={`album-preview-${index}`}
+            data-album-panel={index}
+          >
+            <div class="album-preview-heading">
+              <div>
+                <span class="eyebrow">ON DISPLAY</span>
+                <h2>{album.doc.title}</h2>
+              </div>
+              <a class="button" href={album.doc.url}>
+                Read example <CtaArrow />
+              </a>
+            </div>
+            <p>{album.doc.description}</p>
+            <div class="prose" set:html={album.html} />
+          </div>
+        ))}
+      </div>
+    )}
+
+    <div class="index-list-heading">
+      <h2>
+        {kind === 'guides'
+          ? 'Keep exploring'
+          : kind === 'examples'
+            ? 'All examples'
+            : 'Library commands'}
+      </h2>
+      <span class="eyebrow">
+        {kind === 'reference'
+          ? 'PUBLIC API'
+          : kind === 'examples'
+            ? 'THE FULL COLLECTION'
+            : 'MORE TO LEARN'}
+      </span>
+    </div>
+    <ul class={`index-list ${kind === 'reference' ? 'api-index-list' : ''}`}>
+      {remaining.map((doc) => (
+        <li>
+          <a href={doc.url}>
+            <span>
+              <strong>{doc.title}</strong>
+              <span class="index-list-description">{doc.description}</span>
+            </span>
+            <CtaArrow />
+          </a>
+        </li>
+      ))}
+    </ul>
+    {kind === 'guides' && (
+      <div class="index-next">
+        <p>Ready to put it in a script?</p>
+        <div class="button-row">
+          <a class="button primary" href="/install">
+            Install koi <CtaArrow />
+          </a>
+          <a class="button" href="/playground">
+            Terminal <CtaArrow />
+          </a>
+        </div>
+      </div>
+    )}
+  </section>
+</DocsShell>
+<script>
+  import '../scripts/examples-jukebox';
+</script>

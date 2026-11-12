@@ -1,0 +1,10 @@
+---
+import ShellPrompt from './ShellPrompt.astro';
+---
+
+<p class="terminal-command">
+  <ShellPrompt />
+  <span class="terminal-input">
+    <slot />
+  </span>
+</p>

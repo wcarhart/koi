@@ -1,0 +1,48 @@
+---
+import Brand from './Brand.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import Icon from './Icon.astro';
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <Brand />
+    <nav aria-label="Main navigation">
+      <a href="/install">Install</a>
+      <a href="/docs">Docs</a>
+      <a href="/playground">Terminal</a>
+    </nav>
+    <div class="header-actions">
+      <a
+        href="https://github.com/wcarhart/koi"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="github-link"
+        aria-label="GitHub repository"
+      >
+        <Icon name="github" />
+      </a>
+      <div class="guidance-control" data-tooltip>
+        <a
+          href="/agents"
+          class="agent-link"
+          aria-label="See agent guidance"
+          aria-describedby="agent-guidance-tooltip"
+        >
+          <Icon name="agent" />
+        </a>
+        <span
+          id="agent-guidance-tooltip"
+          class="guidance-tooltip"
+          role="tooltip"
+        >
+          See agent guidance
+        </span>
+      </div>
+      <ThemeToggle />
+    </div>
+  </div>
+</header>
+<script>
+  import '../scripts/tooltips';
+</script>

@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  noindex?: boolean;
+  class?: string;
+}
+const {
+  title,
+  description,
+  canonical = Astro.url.pathname,
+  noindex = false,
+  class: className = '',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · koi</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(canonical, Astro.site)} />
+    <meta property="og:title" content={`${title} · koi`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <script is:inline>
+      (() => {
+        document.documentElement.classList.add('js');
+        if (
+          location.pathname === '/docs' ||
+          location.pathname.startsWith('/docs/')
+        )
+          document.documentElement.classList.add('docs-initializing');
+        let theme;
+        try {
+          theme = localStorage.getItem('koi-theme');
+        } catch {}
+        document.documentElement.dataset.theme =
+          theme === 'light' || theme === 'dark'
+            ? theme
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+      })();
+    </script>
+  </head>
+  <body class={className}>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
+    <slot />
+    <div
+      id="announcement"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    ></div>
+    <script>
+      import '../scripts/global';
+      import '../scripts/install-tabs';
+    </script>
+  </body>
+</html>

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# New to koi? Start here:
+#   - https://github.com/wcarhart/koi
+#   - https://koishell.com
+
 # Namerefs target typed buffers; ShellCheck cannot infer their array types.
 # shellcheck disable=SC2004,SC2178
 

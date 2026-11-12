@@ -1,0 +1,5 @@
+Usage: greet.sh [-h] [-n NAME]
+
+Options:
+  -h, --help       Show this help
+  -n, --name NAME  Who to greet (default: world)

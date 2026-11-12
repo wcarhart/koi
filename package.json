@@ -1,0 +1,19 @@
+{
+  "name": "koi-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @koi/site dev",
+    "build": "pnpm --filter @koi/site build",
+    "preview": "pnpm --filter @koi/site preview",
+    "check": "pnpm --filter @koi/site check",
+    "test:site": "pnpm --filter @koi/site test",
+    "test:browser": "pnpm --filter @koi/site test:browser",
+    "test:examples": "pnpm --filter @koi/site test:examples",
+    "format": "pnpm --filter @koi/site exec prettier --write src tests astro.config.mjs playwright.config.ts",
+    "format:check": "pnpm --filter @koi/site exec prettier --check src tests astro.config.mjs playwright.config.ts"
+  }
+}

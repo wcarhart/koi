@@ -1,0 +1,9 @@
+node_modules/
+site/.astro/
+site/dist/
+site/playwright-report/
+site/test-results/
+.DS_Store
+
+# local asset staging
+tmp/

@@ -1,0 +1,10 @@
+Back up project files
+
+Usage: cli [-h] COMMAND
+
+Commands:
+  archive  Create a compressed archive
+  help     Show this help
+
+Options:
+  -h, --help  Show this help

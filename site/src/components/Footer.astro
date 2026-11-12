@@ -1,0 +1,38 @@
+---
+import Icon from './Icon.astro';
+import KoiMark from './KoiMark.astro';
+---
+
+<footer class="site-footer">
+  <div class="footer-main">
+    <div class="footer-navigation">
+      <KoiMark variant="grid" class="footer-brand" />
+      <nav aria-label="Footer navigation">
+        <a href="/install">Install</a>
+        <a href="/docs">Docs</a>
+        <a href="/playground">Terminal</a>
+        <a href="/agents">Agents</a>
+      </nav>
+    </div>
+    <div class="footer-story">
+      <p class="footer-story-title">
+        Why the name <em>koi?</em>
+      </p>
+      <p>
+        The original working name of the library was Bashful Arg Parser, which
+        is a mouthful. This was shortened to Bashful, to which coy is a synonym.
+        Koi is a homophone of coy and sounds much cooler.{' '}
+        <KoiMark variant="filled" />
+      </p>
+    </div>
+  </div>
+  <a
+    class="github-link compact-github"
+    href="https://github.com/wcarhart/koi"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="GitHub repository"
+  >
+    <Icon name="github" />
+  </a>
+</footer>

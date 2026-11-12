@@ -1,0 +1,25 @@
+[build]
+  command = "pnpm build"
+  publish = "site/dist"
+
+[build.environment]
+  NODE_VERSION = "24.22.1"
+  PNPM_VERSION = "10.34.9"
+
+[[headers]]
+  for = "/docs/*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/docs.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/llms.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Content-Type-Options = "nosniff"

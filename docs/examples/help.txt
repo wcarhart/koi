@@ -1,0 +1,10 @@
+Manage your application
+
+Usage: app [-h] COMMAND
+
+Commands:
+  status  Show application status
+  help    Show this help
+
+Options:
+  -h, --help  Show this help

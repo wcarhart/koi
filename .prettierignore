@@ -1,0 +1,8 @@
+node_modules
+site/dist
+site/.astro
+site/test-results
+site/playwright-report
+docs/tmp
+old
+pnpm-lock.yaml

@@ -1,0 +1,6 @@
+Usage: greet.sh [-h] [-n NAME] [-e]
+
+Options:
+  -h, --help       Show this help
+  -n, --name NAME  Who to greet
+  -e, --exclaim    Greet loudly

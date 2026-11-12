@@ -1,0 +1,10 @@
+Create a compressed archive
+
+Usage: cli archive [-h] [-o OUTPUT] DIRECTORY
+
+Options:
+  -h, --help           Show this help
+  -o, --output OUTPUT  Archive path (default: backup.tar.gz)
+
+Positionals:
+  DIRECTORY            Directory to archive (required)

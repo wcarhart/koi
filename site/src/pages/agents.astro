@@ -1,0 +1,39 @@
+---
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import matter from 'gray-matter';
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getAgentGuidance } from '../lib/agent-guidance';
+import { copyIcon, docsRoot, renderMarkdown } from '../lib/content';
+
+const page = matter(
+  readFileSync(path.join(docsRoot, 'pages/agents.md'), 'utf8'),
+);
+const intro = await renderMarkdown(page.content, 'agents-intro');
+const guidance = getAgentGuidance();
+---
+
+<Base title={page.data.title} description={page.data.description}>
+  <Header />
+  <main id="main" class="standalone prose agents-page">
+    <h1>{page.data.title}</h1>
+    <Fragment set:html={intro.html} />
+    <div class="code-block agent-guidance-block">
+      <div class="code-label">
+        <span>Agent guidance · Markdown</span>
+        <button
+          type="button"
+          class="copy-button"
+          data-copy-code
+          aria-label="Copy agent guidance"
+        >
+          <Fragment set:html={copyIcon} />
+        </button>
+      </div>
+      <pre><code>{guidance}</code></pre>
+    </div>
+  </main>
+  <Footer />
+</Base>

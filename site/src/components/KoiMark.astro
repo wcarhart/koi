@@ -1,0 +1,24 @@
+---
+interface Props {
+  variant: 'outline' | 'filled' | 'grid';
+  class?: string;
+}
+const { variant, class: className = '' } = Astro.props;
+---
+
+<span class:list={['koi-mark', className]} aria-hidden="true">
+  <img
+    class="koi-mark-light"
+    src={`/brand/koi-${variant}.svg`}
+    width="20"
+    height="20"
+    alt=""
+  />
+  <img
+    class="koi-mark-dark"
+    src={`/brand/koi-${variant}-dark.svg`}
+    width="20"
+    height="20"
+    alt=""
+  />
+</span>

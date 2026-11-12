@@ -1,0 +1,14 @@
+---
+import {
+  installMethods,
+  renderInstallBox,
+  type InstallMethod,
+} from '../lib/install';
+interface Props {
+  idPrefix: string;
+  methods?: InstallMethod[];
+}
+const { idPrefix, methods = installMethods.koi } = Astro.props;
+---
+
+<Fragment set:html={renderInstallBox(methods, idPrefix)} />

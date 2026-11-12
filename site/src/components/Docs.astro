@@ -1,0 +1,68 @@
+---
+import DocsShell from './DocsShell.astro';
+import Builder from './Builder.astro';
+import InstallationContent from './InstallationContent.astro';
+import KoiMark from './KoiMark.astro';
+import { getDocs } from '../lib/content';
+interface Props {
+  slug?: string;
+}
+const { slug = '' } = Astro.props;
+const docs = await getDocs();
+const selected = docs.find((d) => d.slug === slug)!;
+---
+
+<DocsShell selected={selected} canonical="/docs">
+  {docs.map((doc, index) => (
+    <section
+      id={doc.id}
+      class={`doc-section ${doc.layout}`}
+      data-doc-section
+      data-url={doc.url}
+      data-title={doc.title}
+    >
+      <div class="section-toolbar">
+        <span class="section-number">
+          {String(index + 1).padStart(2, '0')} / {doc.group}
+        </span>
+        <div>
+          <button
+            type="button"
+            class="markdown-copy"
+            data-copy-markdown={`${doc.url}.md`}
+          >
+            Copy for LLM
+          </button>
+          <a href={`${doc.url}.md`}>
+            View as Markdown <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+      <div class="doc-grid">
+        <div class="doc-prose prose">
+          <h1>{doc.title}</h1>
+          <p class="doc-description">{doc.description}</p>
+          {doc.slug === 'install' ? (
+            <InstallationContent html={doc.prose} />
+          ) : (
+            <Fragment set:html={doc.prose} />
+          )}
+          {doc.slug === '' && (
+            <KoiMark variant="filled" class="intro-signoff" />
+          )}
+          {doc.interactive && <Builder kind={doc.interactive} />}
+        </div>
+        {doc.example && (
+          <aside class="doc-example" aria-label={`${doc.title} examples`}>
+            <div class="example-sticky prose">
+              <Fragment set:html={doc.example} />
+            </div>
+          </aside>
+        )}
+      </div>
+    </section>
+  ))}
+</DocsShell>
+<script>
+  import '../scripts/builders';
+</script>

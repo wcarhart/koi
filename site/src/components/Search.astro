@@ -1,0 +1,47 @@
+---
+import Icon from './Icon.astro';
+import KoiMark from './KoiMark.astro';
+---
+
+<dialog id="search-dialog" class="search-dialog" aria-labelledby="search-title">
+  <div class="search-input-row">
+    <Icon name="search" />
+    <label id="search-title" class="sr-only" for="docs-search">
+      Search documentation
+    </label>
+    <input
+      id="docs-search"
+      type="search"
+      placeholder="Search the koi docs…"
+      autocomplete="off"
+      role="combobox"
+      aria-controls="search-results"
+      aria-expanded="false"
+      aria-autocomplete="list"
+    />
+    <button
+      type="button"
+      class="key-button"
+      data-close-search
+      aria-label="Close search"
+    >
+      esc
+    </button>
+  </div>
+  <p class="search-status" role="status">
+    Type a command, concept, or question.
+  </p>
+  <ul id="search-results" role="listbox" aria-label="Search results"></ul>
+  <div class="search-footer">
+    <span>
+      <kbd>↑</kbd> <kbd>↓</kbd> to navigate
+    </span>
+    <span>
+      <kbd>↵</kbd> to open
+    </span>
+    <KoiMark variant="filled" class="search-footer-mark" />
+  </div>
+</dialog>
+<script>
+  import '../scripts/search';
+</script>

@@ -1,0 +1,126 @@
+[
+  {
+    "file": "introduction.md",
+    "navTitle": "Introduction",
+    "slug": "",
+    "group": "Getting started"
+  },
+  {
+    "file": "getting-started/install.md",
+    "navTitle": "Installation",
+    "slug": "install",
+    "group": "Getting started"
+  },
+  {
+    "file": "getting-started/quickstart.md",
+    "slug": "quickstart",
+    "group": "Getting started"
+  },
+  {
+    "file": "guides/lifecycle.md",
+    "slug": "guides/lifecycle",
+    "group": "Core concepts"
+  },
+  {
+    "file": "guides/direct-calls.md",
+    "slug": "guides/direct-calls",
+    "group": "Core concepts"
+  },
+  {
+    "file": "guides/arguments.md",
+    "slug": "guides/arguments",
+    "group": "Guides"
+  },
+  {
+    "file": "guides/commands.md",
+    "slug": "guides/commands",
+    "group": "Guides"
+  },
+  {
+    "file": "guides/help.md",
+    "slug": "guides/help",
+    "group": "Guides",
+    "interactive": "help"
+  },
+  {
+    "file": "reference/addarg.md",
+    "slug": "reference/addarg",
+    "group": "API reference",
+    "interactive": "addarg"
+  },
+  {
+    "file": "reference/addcommand.md",
+    "slug": "reference/addcommand",
+    "group": "API reference"
+  },
+  {
+    "file": "reference/adddescription.md",
+    "slug": "reference/adddescription",
+    "group": "API reference"
+  },
+  {
+    "file": "reference/parseargs.md",
+    "slug": "reference/parseargs",
+    "group": "API reference"
+  },
+  {
+    "file": "reference/koiconfig.md",
+    "slug": "reference/koiconfig",
+    "group": "API reference"
+  },
+  {
+    "file": "reference/koirun.md",
+    "slug": "reference/koirun",
+    "group": "API reference"
+  },
+  {
+    "file": "examples/function-entrypoint.md",
+    "slug": "examples/function-entrypoint",
+    "group": "Examples"
+  },
+  {
+    "file": "examples/positionals.md",
+    "slug": "examples/positionals",
+    "group": "Examples"
+  },
+  {
+    "file": "examples/commands.md",
+    "slug": "examples/commands",
+    "group": "Examples"
+  },
+  {
+    "file": "outlines/arrays.md",
+    "slug": "guides/arrays",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/validators.md",
+    "slug": "guides/validators",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/groups.md",
+    "slug": "guides/groups",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/dependencies.md",
+    "slug": "guides/dependencies",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/troubleshooting.md",
+    "slug": "guides/troubleshooting",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/migration.md",
+    "slug": "guides/migration",
+    "group": "Planned"
+  },
+  {
+    "file": "outlines/cli.md",
+    "slug": "guides/cli",
+    "group": "Planned"
+  }
+]

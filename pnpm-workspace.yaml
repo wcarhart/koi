@@ -1,0 +1,5 @@
+packages:
+  - site
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

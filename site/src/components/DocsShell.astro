@@ -1,0 +1,149 @@
+---
+import Base from '../layouts/Base.astro';
+import Brand from './Brand.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import Icon from './Icon.astro';
+import Search from './Search.astro';
+import KoiMark from './KoiMark.astro';
+import { docsIndexes } from '../lib/docs-indexes';
+import { getDocs } from '../lib/content';
+interface Props {
+  selected: { id: string; title: string; description: string; url: string };
+  canonical?: string;
+}
+const { selected, canonical = selected.url } = Astro.props;
+const docs = await getDocs();
+const groups = [...new Set(docs.map((d) => d.group))];
+---
+
+<Base
+  title={`${selected.title} — Documentation`}
+  description={selected.description}
+  canonical={canonical}
+  class="docs-page"
+>
+  <div class="docs-mobile-bar">
+    <Brand />
+    <span class="preview-tag">v2 preview</span>
+    <button
+      type="button"
+      class="icon-button"
+      data-open-menu
+      aria-label="Open documentation menu"
+      aria-controls="docs-sidebar"
+      aria-expanded="false"
+    >
+      <Icon name="menu" />
+    </button>
+  </div>
+  <button
+    class="sidebar-backdrop"
+    type="button"
+    data-close-menu
+    aria-label="Close documentation menu"
+    tabindex="-1"
+  ></button>
+  <aside
+    id="docs-sidebar"
+    class="docs-sidebar"
+    aria-label="Documentation sidebar"
+  >
+    <div class="sidebar-brand">
+      <Brand />
+      <ThemeToggle />
+      <button
+        type="button"
+        class="icon-button mobile-close"
+        data-close-menu
+        aria-label="Close documentation menu"
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <div class="sidebar-label">
+      <span class="eyebrow">DOCUMENTATION</span>
+      <span class="preview-tag">v2</span>
+    </div>
+    <button class="search-trigger" type="button" data-open-search>
+      <Icon name="search" />
+      <span>Search docs</span>
+      <kbd>/</kbd>
+    </button>
+    <nav aria-label="Documentation sections">
+      {groups.map((group) => {
+        const index = docsIndexes.find((index) => index.group === group);
+        return (
+          <div class="nav-group">
+            <p>
+              {index ? (
+                <a
+                  class="nav-group-link"
+                  href={index.url}
+                  data-doc-link={index.id}
+                  aria-current={selected.url === index.url ? 'page' : undefined}
+                >
+                  {group}
+                </a>
+              ) : (
+                group
+              )}
+            </p>
+            {docs
+              .filter((d) => d.group === group)
+              .map((doc) => (
+                <a
+                  href={`${doc.url}#${doc.id}`}
+                  data-doc-link={doc.id}
+                  aria-current={doc.id === selected.id ? 'location' : undefined}
+                >
+                  <span>{doc.navTitle ?? doc.title}</span>
+                </a>
+              ))}
+          </div>
+        );
+      })}
+    </nav>
+    <div class="sidebar-bottom">
+      <a href="/install">Install</a>
+      <a href="/playground">Terminal</a>
+      <a
+        href="https://github.com/wcarhart/koi"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub <span>↗</span>
+      </a>
+    </div>
+  </aside>
+  <main id="main" class="docs-main" data-initial-section={selected.id}>
+    <noscript>
+      <p class="no-script-note">
+        Reading without JavaScript.{' '}
+        <a href={`#${selected.id}`}>Jump to {selected.title}</a>.
+      </p>
+    </noscript>
+    <div class="docs-topline">
+      <span class="docs-joke">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>
+          <span class="docs-joke-question">
+            Why did the fish prefer the smaller pond?
+          </span>{' '}
+          <span>Because he was feeling a little koi.</span>
+        </span>
+      </span>
+      <a href="/" aria-label="Koi home">
+        <KoiMark variant="outline" />
+      </a>
+    </div>
+    <slot />
+    <footer class="docs-footer">
+      <a href="/">koishell.com</a>
+      <KoiMark variant="filled" />
+    </footer>
+  </main>
+  <Search />
+  <script>
+    import '../scripts/docs';
+  </script>
+</Base>

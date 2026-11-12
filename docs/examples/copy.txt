@@ -1,0 +1,3 @@
+source=source.txt
+directory=out
+verbose=1

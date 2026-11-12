@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import InstallationContent from '../components/InstallationContent.astro';
+import { getDocs } from '../lib/content';
+const doc = (await getDocs()).find((d) => d.slug === 'install')!;
+---
+
+<Base title={doc.title} description={doc.description} class="install-page">
+  <Header />
+  <main id="main" class="standalone prose">
+    <h1>{doc.title}</h1>
+    <p class="doc-description">{doc.description}</p>
+    <InstallationContent html={doc.prose} nextAtBottom />
+  </main>
+  <Footer />
+</Base>
