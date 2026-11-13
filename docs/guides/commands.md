@@ -1,31 +1,26 @@
 ---
-title: "Commands & nesting"
-description: "Expose only the commands you explicitly register."
+title: "Build a command-line application"
+description: "Register commands and route through nested handlers."
 layout: article
 ---
 
-Register each command with a CLI name, handler function, and description. Ambient functions are never discovered as commands.
+> Authoring outline: documentation to be written.
 
-```bash
-__addcommand deploy -f deploy -d 'Deployment commands'
-```
+## Register the root interface
 
-Root registration happens at script scope and is consumed by `__koirun`. A handler registers its children inside its own function before its guarded parser call. Commands can nest to arbitrary practical depth.
+- TODO: Start from a complete script using existing command examples; register root options and commands at script scope, then call `__koirun "$@"` once.
+- TODO: Show command names, handler functions, descriptions, and aliases; link exact registration parameters to [__addcommand](/docs/reference/addcommand).
+- TODO: Link the choice between a runner and a function entrypoint to [calls and command routing](/docs/guides/direct-calls).
 
-## Branches and leaves
+## Add branches and leaves
 
-A context with application children is a branch. It dispatches a selected child or shows help when none is selected. It never continues into its own business logic. A leaf has no application children and continues after successful parsing.
+- TODO: Build a branch that registers immediate children and closes with guarded parsing; every registered handler must reach its parse, even without custom arguments.
+- TODO: Put business logic in leaf handlers and explain why a branch with no selected child shows help rather than performing a default action.
+- TODO: Show deeper nesting, selected-alias help, and the prohibition on declaring positionals alongside application children.
 
-Several CLI names can share one handler. Help retains the selected alias and its description.
+## Route options and failures
 
-## Options belong to a context
-
-Parent options precede the child name. After selection, all remaining tokens belong to the child. Parent option spellings are not inherited, though destination values remain visible under normal Bash scope.
-
-```bash
-bash app.sh -v deploy -e staging
-```
-
-Here `-v` belongs to the root and `-e` belongs to `deploy`. A child may reuse its parent's spelling with a different meaning.
-
-See the [complete nested-command example](/docs/examples/commands).
+- TODO: Trace valid and invalid parent-option placement, child option reuse, exact argument forwarding, and ancestor destination visibility.
+- TODO: Show explicit business-operation failure handling and status propagation, linking the nested-dispatch `set -e` behavior to [parsing and control flow](/docs/concepts/parsing-and-control-flow).
+- TODO: Plan invocations for root help, branch help, leaf help, a successful route, and a failing route, using [the nested-command example](/docs/examples/commands).
+- TODO: Keep setup side effects out of help traversal; link help configuration to [customizing generated help](/docs/guides/help).

@@ -1,6 +1,44 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+test('short heading fragments work across docs, reloads, and local glossary links', async ({
+  page,
+}) => {
+  for (const [route, fragment] of [
+    ['glossary', 'flag'],
+    ['guides/lifecycle', 'parser-result-and-caller-result'],
+    ['concepts/parsing-and-control-flow', 'parser-result-and-caller-result'],
+    ['quickstart', 'example'],
+    ['guides/help', 'help-configuration'],
+    ['install', 'dependencies'],
+  ]) {
+    const url = `/docs/${route}#${fragment}`;
+    await page.goto(url);
+    const heading = page.locator(
+      `[data-url="/docs/${route}"] [data-fragment="${fragment}"]`,
+    );
+    await expect(heading).toBeInViewport();
+    await expect(heading.getByRole('link')).toHaveAttribute('href', url);
+    await heading.getByRole('link').click();
+    await expect(page).toHaveURL(url);
+    await page.reload();
+    await expect(heading).toBeInViewport();
+  }
+  await page.goto('/docs/glossary#argument');
+  await page
+    .locator('#doc-glossary a[href="/docs/glossary#flag"]')
+    .first()
+    .click();
+  await expect(page).toHaveURL('/docs/glossary#flag');
+  await expect(page.locator('#doc-glossary-flag')).toBeInViewport();
+  await page.goBack();
+  await expect(page).toHaveURL('/docs/glossary#argument');
+  await expect(page.locator('#doc-glossary-argument')).toBeInViewport();
+  await page.goto('/docs/glossary#doc-glossary-flag');
+  await expect(page).toHaveURL('/docs/glossary#flag');
+  await expect(page.locator('#doc-glossary-flag')).toBeInViewport();
+});
+
 async function openMenu(page: Page, isMobile: boolean) {
   if (isMobile)
     await page.getByRole('button', { name: 'Open documentation menu' }).click();
@@ -104,7 +142,7 @@ test('index headings navigate to isolated docs pages and article links restore t
   }
   await page.locator('.index-list a').first().click();
   await expect(page).toHaveURL('/docs/examples/function-entrypoint');
-  await expect(page.locator('[data-doc-section]')).toHaveCount(18);
+  await expect(page.locator('[data-doc-section]')).toHaveCount(23);
   await expect(
     page.locator('#doc-examples-function-entrypoint h1'),
   ).toBeInViewport();
@@ -140,15 +178,15 @@ test('guide and API indexes list the published collection', async ({
   await page.goto('/docs/guides');
   await expect(page.locator('.guide-card')).toHaveCount(4);
   await expect(page.locator('.guide-card h2')).toHaveText([
-    'Registration & control flow',
-    'Direct calls & scope',
-    'Flags, options & positionals',
-    'Commands & nesting',
+    'Define flags, options, and positionals',
+    'Build a command-line application',
+    'Reuse parsing functions',
+    'Customize generated help',
   ]);
   await expect(page.locator('.index-list a')).toHaveCount(1);
   await expect(page.locator('.index-list a')).toHaveAttribute(
     'href',
-    '/docs/guides/help',
+    '/docs/guides/troubleshooting',
   );
   await page.goto('/docs/reference');
   await expect(page.locator('.index-list strong')).toHaveText([

@@ -1,43 +1,42 @@
 ---
-title: "Registration & control flow"
-description: "Keep one uninterrupted declaration block inside each parsing function."
+title: "Registration contexts and blocks"
+description: "How declarations build an interface and parsing consumes it."
 layout: article
 ---
 
-A function's interface is built when its declarations execute. Keep preparation before the registration block, then declarations, then exactly one guarded parse, then business logic.
+> Authoring outline: documentation to be written.
 
-```bash
-main() {
-    local name
-    __addarg name -o -s n -d 'Name'
-    __parseargs "$@" || return "$koi_status"
+## Contexts, blocks, and specs
 
-    printf '%s\n' "$name"
-}
-```
+- TODO: Define a registration context as the root or function invocation owning an interface; distinguish ownership from Bash variable scope and CLI option ownership.
+- TODO: Define a registration block as the declarations closed by parsing, and a registration spec as the accumulated argument, command, description, and related metadata.
+- TODO: Explain that defining a function does not build its spec: its declarations build the interface when they execute. Command registration exposes a handler without executing it.
+- TODO: Identify `__adddescription`, `__addarg`, and `__addcommand` as function-block declarations; distinguish root `__koiconfig` settings from function declarations.
 
-## One block per function
+## Completing a function block
 
-`__adddescription`, `__addarg`, and `__addcommand` belong to the block. Conditional declarations are supported, but do not return early, abandon the block, or call another parsing function before closing it. Helpers that register another function's interface are unsupported.
+- TODO: Outline preparation, zero or more declarations, exactly one guarded `__parseargs`, then business logic; include a function with no explicit argument declarations.
+- TODO: Explain that all functions share a pending registration buffer, separate from root registration. Function entry and return do not automatically create or clean up isolated specs.
+- TODO: Define uninterrupted registration: allow conditional declarations, but never return early, omit parsing, interleave another parsing function, or delegate declarations to registration helpers.
+- TODO: Plan incorrect/correct block diagrams and link symptoms to [troubleshooting](/docs/guides/troubleshooting).
+- TODO: Explain repeated calls, nesting, and recursion when parsing functions are called before registration starts or after parsing completes.
 
-A consumed block is discarded before help, validation outcomes, or child dispatch. Repeated direct calls build fresh interfaces.
+## Consumption and assignment boundary
 
-## Parser result and caller result
-
-| Parser return | Meaning | `koi_status` |
-| --- | --- | --- |
-| `0` | Continue into local business logic | `0` |
-| `1` | Stop after help or child dispatch | `0` for help, or the child's status |
-| `2` | Parsing or declaration error | `2` |
-
-Read `koi_status` only in the immediate guard. It is transient and another parse can overwrite it.
+- TODO: Explain that `__parseargs` consumes and clears pending registration before finalization, help, input validation outcomes, or child dispatch; subsequent blocks start fresh, including after help or errors.
+- TODO: Distinguish clearing the registration buffer from discarding the parser's consumed spec. There is no public spec cache or retained invocation history.
+- TODO: Explain that declaration calls never initialize destinations; parsing checks input and destinations before assigning ordinary scalar values on success.
+- TODO: Explain that help and ordinary parsing errors skip assignment in the current context; earlier ancestors may already have assigned their own values before dispatching to child help or a failing child.
+- TODO: Explain that declaration failures invalidate the block even if an individual declaration status is ignored; valid later declarations do not repair it.
+- TODO: Link presence, defaults, and parser outcomes to [parsing and control flow](/docs/concepts/parsing-and-control-flow).
 
 ## Two entrypoints
 
-Call a function directly with `main "$@"`, or register root commands and call `__koirun "$@"` once. Root declarations belong to the runner, not to a parser moved inside a function. Re-sourcing the library does not reset the root lifecycle.
+- TODO: Contrast a direct function entrypoint with script-scope declarations consumed by `__koirun`; moving a parser into a function does not make it consume root declarations.
+- TODO: Explain script-scope sourcing, persistent root registration, and the separate function buffer even when koi was sourced inside a function.
+- TODO: Explain that only `__koirun` consumes root registration, its first attempt consumes the lifecycle even on help/error, and later root declarations or runner calls fail. Re-sourcing does not reset it.
+- TODO: Link invocation choices to [calls and command routing](/docs/guides/direct-calls).
 
-## Handle operation failures explicitly
+## Parser result and caller result
 
-Bash suppresses `errexit` in conditional calls, including child business logic dispatched from a guarded parser. Do not use `set -e` as your only error handling. Check meaningful operation failures explicitly.
-
-Help executes preparation and registration code before it reaches the parser. Keep external side effects after successful parsing.
+- TODO: Introduce the required `__parseargs "$@" || return "$koi_status"` guard and link the full return-status contract to [parsing and control flow](/docs/concepts/parsing-and-control-flow).

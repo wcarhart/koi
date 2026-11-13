@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import matter from 'gray-matter';
+import GithubSlugger from 'github-slugger';
 import {
   getDocs,
   validateManifest,
@@ -11,10 +12,33 @@ import {
 } from '../src/lib/content';
 import { search } from '../src/lib/search';
 
-test('published content has six API pages, excludes outlines, and expands executable examples', async () => {
+test('published content includes concept and guide outlines, excludes planned drafts, and expands executable examples', async () => {
   const docs = await getDocs();
   assert.equal(docs.filter((d) => d.group === 'API reference').length, 6);
-  assert.equal(docs.length, 18);
+  assert.equal(docs.length, 23);
+  const concepts = docs.filter((d) => d.group === 'Core concepts');
+  assert.deepEqual(
+    concepts.map((d) => d.title),
+    [
+      'Arguments and values',
+      'Registration contexts and blocks',
+      'Calls and command routing',
+      'Destination variables and scope',
+      'Parsing and control flow',
+      'Glossary',
+    ],
+  );
+  const guides = docs.filter((d) => d.group === 'Guides');
+  assert.equal(guides.length, 5);
+  for (const doc of [...concepts, ...guides].filter(
+    (d) => d.slug !== 'glossary',
+  )) {
+    assert.match(
+      doc.markdown,
+      /Authoring outline: documentation to be written/,
+    );
+    assert.match(doc.markdown, /- TODO:/);
+  }
   assert.ok(docs.every((d) => !d.file.startsWith('outlines/')));
   const addarg = docs.find((d) => d.slug === 'reference/addarg')!;
   assert.match(addarg.markdown, /__parseargs "\$@" \|\| return "\$koi_status"/);
@@ -193,4 +217,52 @@ test('reference headings expose route-local fragments and examples have no ancho
       );
     }
   }
+});
+
+test('all docs expose short fragments in links and search while accepting legacy IDs', async () => {
+  const docs = await getDocs();
+  for (const doc of docs) {
+    for (const heading of doc.headings) {
+      const html = doc.prose + doc.example;
+      assert.ok(html.includes(`data-fragment="${heading.fragment}"`));
+      assert.ok(html.includes(`href="${doc.url}#${heading.fragment}"`));
+      for (const fragment of [heading.fragment, heading.id]) {
+        validateLinks([{ ...doc, markdown: `[Heading](#${fragment})` }]);
+        validateLinks([
+          { ...doc, markdown: `[Heading](${doc.url}#${fragment})` },
+        ]);
+      }
+    }
+    for (const entry of doc.search.filter((entry) => entry.url.includes('#'))) {
+      assert.ok(
+        doc.headings.some((h) => entry.url === `${doc.url}#${h.fragment}`),
+      );
+    }
+  }
+  const glossary = docs.find((doc) => doc.slug === 'glossary')!;
+  validateLinks([{ ...glossary, markdown: '[Flag](#flag)' }]);
+  assert.ok(glossary.prose.includes('href="/docs/glossary#flag"'));
+});
+
+test('short fragments disambiguate duplicate headings across both halves of a document', async () => {
+  const slugger = new GithubSlugger();
+  const options = { route: '/docs/example', slugger };
+  const prose = await renderMarkdown(
+    '## Values & defaults!\n\n[Jump](#values--defaults)',
+    'doc-example',
+    new Map(),
+    options,
+  );
+  const example = await renderMarkdown(
+    '## Values & defaults!\n\n## Values & defaults!',
+    'doc-example-example',
+    new Map(),
+    options,
+  );
+  assert.deepEqual(
+    [...prose.headings, ...example.headings].map((h) => h.fragment),
+    ['values--defaults', 'values--defaults-1', 'values--defaults-2'],
+  );
+  assert.match(prose.html, /href="\/docs\/example#values--defaults"/);
+  assert.match(example.html, /href="\/docs\/example#values--defaults-1"/);
 });

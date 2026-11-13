@@ -17,6 +17,11 @@
     "group": "Getting started"
   },
   {
+    "file": "concepts/arguments-and-values.md",
+    "slug": "concepts/arguments-and-values",
+    "group": "Core concepts"
+  },
+  {
     "file": "guides/lifecycle.md",
     "slug": "guides/lifecycle",
     "group": "Core concepts"
@@ -24,6 +29,16 @@
   {
     "file": "guides/direct-calls.md",
     "slug": "guides/direct-calls",
+    "group": "Core concepts"
+  },
+  {
+    "file": "concepts/destination-variables-and-scope.md",
+    "slug": "concepts/destination-variables-and-scope",
+    "group": "Core concepts"
+  },
+  {
+    "file": "concepts/parsing-and-control-flow.md",
+    "slug": "concepts/parsing-and-control-flow",
     "group": "Core concepts"
   },
   {
@@ -42,10 +57,20 @@
     "group": "Guides"
   },
   {
+    "file": "guides/reuse-parsing-functions.md",
+    "slug": "guides/reuse-parsing-functions",
+    "group": "Guides"
+  },
+  {
     "file": "guides/help.md",
     "slug": "guides/help",
     "group": "Guides",
     "interactive": "help"
+  },
+  {
+    "file": "guides/troubleshooting.md",
+    "slug": "guides/troubleshooting",
+    "group": "Guides"
   },
   {
     "file": "reference/addarg.md",
@@ -111,11 +136,6 @@
   {
     "file": "outlines/dependencies.md",
     "slug": "guides/dependencies",
-    "group": "Planned"
-  },
-  {
-    "file": "outlines/troubleshooting.md",
-    "slug": "guides/troubleshooting",
     "group": "Planned"
   },
   {

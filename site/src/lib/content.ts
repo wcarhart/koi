@@ -39,7 +39,7 @@ export interface Doc extends ManifestEntry {
   markdown: string;
   prose: string;
   example: string;
-  headings: { title: string; id: string }[];
+  headings: { title: string; id: string; fragment: string }[];
   search: SearchEntry[];
 }
 export function sectionId(slug: string): string {
@@ -95,11 +95,19 @@ export async function renderMarkdown(
   body: string,
   prefix: string,
   docLinks: Map<string, string> = new Map(),
-  options: { copy?: boolean; route?: string; anchors?: boolean } = {},
-): Promise<{ html: string; headings: { title: string; id: string }[] }> {
+  options: {
+    copy?: boolean;
+    route?: string;
+    anchors?: boolean;
+    slugger?: GithubSlugger;
+  } = {},
+): Promise<{
+  html: string;
+  headings: { title: string; id: string; fragment: string }[];
+}> {
   const high = await highlighter;
-  const slugger = new GithubSlugger();
-  const headings: { title: string; id: string }[] = [];
+  const slugger = options.slugger ?? new GithubSlugger();
+  const headings: { title: string; id: string; fragment: string }[] = [];
   const md = new Marked({ gfm: true });
   md.use({
     renderer: {
@@ -149,7 +157,7 @@ export async function renderMarkdown(
         const id = `${prefix ? `${prefix}-` : ''}${fragment}`;
         if (options.anchors === false)
           return `<h${depth}>${this.parser.parseInline(tokens)}</h${depth}>`;
-        headings.push({ title, id });
+        headings.push({ title, id, fragment });
         return `<h${depth} id="${id}"${options.route ? ` data-fragment="${fragment}"` : ''}><a class="heading-anchor" href="${options.route ? `${options.route}#${fragment}` : `#${id}`}">${this.parser.parseInline(tokens)}</a></h${depth}>`;
       },
       code({ text, lang }: Tokens.Code) {
@@ -170,7 +178,7 @@ export async function renderMarkdown(
       },
       link({ href, title, tokens }: Tokens.Link) {
         const [base, hash] = href.split('#');
-        const resolved = docLinks.get(base) || base;
+        const resolved = docLinks.get(base) || base || options.route || '';
         const target = hash ? `${resolved}#${hash}` : resolved;
         const destination = new URL(target, 'https://koishell.com');
         const external =
@@ -235,12 +243,16 @@ async function loadDocs(): Promise<Doc[]> {
       throw new Error(`Layout marker mismatch: ${entry.file}`);
     const id = sectionId(entry.slug);
     const reference = entry.slug.startsWith('reference/');
+    const slugger = new GithubSlugger();
     const prose = await renderMarkdown(pieces[0], id, new Map(), {
-      route: reference ? sectionUrl(entry.slug) : undefined,
+      route: sectionUrl(entry.slug),
+      slugger,
     });
     const example = pieces[1]
       ? await renderMarkdown(pieces[1], `${id}-example`, new Map(), {
           anchors: !reference,
+          route: sectionUrl(entry.slug),
+          slugger,
         })
       : { html: '', headings: [] };
     const url = sectionUrl(entry.slug);
@@ -262,7 +274,7 @@ async function loadDocs(): Promise<Doc[]> {
         title: heading.title,
         section: data.title,
         group: entry.group,
-        url: `${url}#${reference ? heading.id.slice(id.length + 1) : heading.id}`,
+        url: `${url}#${heading.fragment}`,
         text: plainText(chunks[index] || markdown).slice(0, 1600),
       });
     docs.push({
@@ -300,15 +312,7 @@ export function validateLinks(docs: Doc[]): void {
   const routes = new Map(
     docs.map((d) => [
       d.url,
-      new Set([
-        d.id,
-        ...d.headings.flatMap((h) => [
-          h.id,
-          ...(d.slug.startsWith('reference/')
-            ? [h.id.slice(d.id.length + 1)]
-            : []),
-        ]),
-      ]),
+      new Set([d.id, ...d.headings.flatMap((h) => [h.id, h.fragment])]),
     ]),
   );
   const standalone = new Set([

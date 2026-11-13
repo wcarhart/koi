@@ -1,28 +1,28 @@
 ---
-title: "Help that follows your interface"
-description: "Automatic help flags, branch help commands, and explicit configuration."
+title: "Customize generated help"
+description: "Configure descriptions, formatting, and built-in help."
 layout: split
 ---
 
-Koi supplies `-h` and `--help` automatically. Help skips the current context's required-value checks and assignments, then returns successfully through the parser guard.
+> Authoring outline: documentation to be written.
 
-## Branch help commands
+## Describe and format the interface
 
-The runner also supplies a `help` command to branches with application children. Leaves do not acquire it. On a positional leaf, bare `help` is ordinary data; use `--help` to request a menu.
+- TODO: Walk through root `__koiconfig` settings for script name, description, and help width; contrast registered command descriptions with direct-call `__adddescription` fallback text.
+- TODO: Demonstrate wrapping descriptions while usage stays on one line; link exact settings to [__koiconfig](/docs/reference/koiconfig).
+- TODO: Explain automatic `-h`/`--help`, help skipping current-context required-value checks and assignments, and returning successfully through the standard guard.
 
-Disable built-in help subcommands with `--koi-disable-help-subcommand` if you want application-defined `help` commands. Automatic help flags remain available.
+## Configure branch help
 
-## Descriptions and formatting
+- TODO: Demonstrate runner-provided branch `help` commands, leaves without built-in help commands, and bare `help` as data on positional leaves.
+- TODO: Demonstrate `--koi-disable-help-subcommand` for application-defined help commands while retaining automatic help flags; direct calls outside the runner do not acquire built-in help commands.
+- TODO: Show that routing to child help still requires valid ancestor arguments; link [calls and command routing](/docs/guides/direct-calls).
 
-Use root `__koiconfig` settings for the script name, description, and help width. Command descriptions come from `__addcommand`; direct function descriptions come from `__adddescription`. Descriptions wrap, but usage stays on one line.
+## Enable hints and verbose help
 
-## Hints and verbose help
-
-Runner hints and root `help --verbose` are opt-in. Verbose help traverses registered commands in depth-first registration order. It executes preparation and registration code, so keep that code free of business effects.
-
-Normal routing to a child's help still requires valid ancestor arguments. Direct calls outside the runner do not acquire free help commands.
-
-Use the controls below to generate configuration code. The captured output beside it is the unchanged default example, not a live terminal.
+- TODO: Demonstrate opt-in runner hints and root `help --verbose`, their dependencies, and depth-first registration-order traversal.
+- TODO: Show safe preparation and declarations during help traversal; link pre-parse effects to [parsing and control flow](/docs/concepts/parsing-and-control-flow) and [troubleshooting](/docs/guides/troubleshooting).
+- TODO: Explain how to use the retained interactive controls to generate configuration code, and clarify that the captured output is the fixed default example rather than live execution.
 
 <!-- koi:example -->
 

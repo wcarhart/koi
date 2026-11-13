@@ -1,34 +1,26 @@
 ---
-title: "Flags, options & positionals"
-description: "Choose an argument kind and keep values in ordinary variables."
+title: "Define flags, options, and positionals"
+description: "Plan a function interface and handle its input values."
 layout: article
 ---
 
-A **flag** takes no value and assigns `0` or `1`. A scalar **option** consumes one value. A scalar **positional** consumes one bare token in declaration order.
+> Authoring outline: documentation to be written.
 
-```bash
-__addarg verbose -f -s v -l verbose -d 'Print progress'
-__addarg environment -o -s e -D staging -d 'Environment'
-__addarg source -p -r -d 'Source file'
-```
+## Start with a guarded function
 
-## Defaults and requiredness
+- TODO: Walk through a complete function with local destinations, declarations, `__parseargs "$@" || return "$koi_status"`, and business logic; reuse existing example assets when writing the guide.
+- TODO: Choose between flags, scalar options, and scalar positionals using [arguments and values](/docs/concepts/arguments-and-values); link exact parameters to [__addarg](/docs/reference/addarg).
+- TODO: Choose short/long labels and help display names independently of Bash destinations.
 
-Arguments are optional unless `-r` is present. An optional option or positional can have `-D DEFAULT`, including an empty default. A required argument must be explicitly present and cannot have a default. An explicit empty token is still a provided value.
+## Requiredness, defaults, and repetition
 
-Defaults are assigned afresh on successful parsing; old destination contents do not determine whether an argument was provided. Repeated scalar options normally keep the last value. A parser can opt into duplicate rejection.
+- TODO: Show optional and required declarations, an empty default, and explicit empty input; link presence semantics to [parsing and control flow](/docs/concepts/parsing-and-control-flow).
+- TODO: Put required positionals before optional ones and demonstrate left-to-right optional filling without skipping slots.
+- TODO: Demonstrate repeated scalar options keeping the last value and `--koi-error-on-duplicates` rejecting duplicates across spellings; reserve arrays for future functionality.
 
-## Positional order
+## Pass literal values correctly
 
-Required positionals must precede optional positionals. Optional slots fill left to right, with no implicit skipping. Options can appear between positional values. A context cannot declare both positionals and application child commands.
-
-## Literal values and the separator
-
-Quote values as you would for any Bash call. `--` ends option recognition; subsequent tokens are literal positional data, including `--help`. Unknown dash-prefixed tokens are otherwise errors. A lone `-` is ordinary data.
-
-```bash
-bash copy.sh 'two words' -v out
-bash copy.sh -- --help
-```
-
-Missing required values and excess positionals fail without assigning destinations. See [the argument reference](/docs/reference/addarg) for declaration options and [the positional example](/docs/examples/positionals) for a complete script.
+- TODO: Plan invocations preserving whitespace and empty values through quoting and `"$@"`.
+- TODO: Demonstrate interleaving options with positional values, flags-only clusters, unknown-token errors, lone `-`, and `--` for dash-prefixed positional data.
+- TODO: Explain options consuming dash-prefixed values except automatic `-h`/`--help`; show that equals and attached-value forms are unsupported.
+- TODO: Link the [positional example](/docs/examples/positionals), help output, and common mistakes in [troubleshooting](/docs/guides/troubleshooting).

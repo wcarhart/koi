@@ -1,33 +1,34 @@
 ---
-title: "Direct calls & scope"
-description: "Parsing functions remain ordinary Bash functions."
+title: "Calls and command routing"
+description: "How direct function calls and registered command paths execute."
 layout: article
 ---
 
-A function does not need command registration to parse arguments. Call it directly with ordinary Bash arguments:
+> Authoring outline: documentation to be written.
 
-```bash
-print_name() {
-    local name
-    __addarg name -o -s n -D world -d 'Name'
-    __parseargs "$@" || return "$koi_status"
+## Direct calls and entrypoints
 
-    printf '%s\n' "$name"
-}
+- TODO: Explain that parsing functions remain ordinary Bash functions and do not need `__addcommand` registration for direct or function-to-function calls.
+- TODO: Compare `main "$@"`, a custom entrypoint that prepares inputs and calls a parsing function, and root registration followed by `__koirun "$@"`.
+- TODO: Distinguish root registration from function registration and link their lifecycle to [registration contexts and blocks](/docs/guides/lifecycle).
+- TODO: Explain that direct calls use script-only usage text and fallback function descriptions, whereas routed calls use the selected CLI path and registered description.
 
-print_name -n Ada
-print_name --help
-print_name
-```
+## Explicit registration and incremental discovery
 
-## Declare your locals
+- TODO: Distinguish a CLI command name from its handler function; cover aliases sharing a handler and selected-alias help text.
+- TODO: Explain that ambient functions are never discovered automatically and every registered handler must reach guarded parsing, including handlers with no custom arguments.
+- TODO: Explain that a context initially knows only its immediate children; descendants become known as handlers execute their declarations. Verbose help traverses those handlers rather than reading a prebuilt global tree.
 
-Koi writes to ordinary Bash variables. Declare destinations with `local` in their owning function when isolation matters. Bash uses dynamic scope: without a local, an assignment can reach an ancestor's visible local or a global.
+## Branches and leaves
 
-Intentional global destinations are supported. Koi does not require an object or result dictionary.
+- TODO: Define a branch as a context with application children and a leaf as one without them. Built-in help commands do not turn leaves into branches.
+- TODO: Explain that a branch dispatches a selected child or shows help when no child is selected; it never continues into local business logic after parsing.
+- TODO: Explain leaf continuation after successful parsing and the prohibition on positionals and application children in the same context.
+- TODO: Distinguish runner-provided branch `help` commands from automatic `-h`/`--help`; direct calls outside the runner do not acquire built-in help commands.
 
-## Sourceable applications
+## Argument ownership along a route
 
-Sourcing the library does not change shell options or terminate the caller for routine help and parse errors. Your application's control flow must preserve this property too: return to a sourcing caller instead of exiting its shell.
-
-A directly called parsing helper builds its own spec. Call it before another function's registration starts or after that function's parsing completes, never halfway through its declarations.
+- TODO: Trace an invocation such as `app -v deploy -e staging`: root owns `-v`; the child receives everything after `deploy` and owns `-e`.
+- TODO: Explain that parent spellings are not inherited and a child may reuse them; distinguish recognition of spellings from destination visibility under [Bash scope](/docs/concepts/destination-variables-and-scope).
+- TODO: Explain forwarding boundaries, including `--`, and why routing to child help still requires valid ancestor arguments.
+- TODO: Link complete task walkthroughs to [building an application](/docs/guides/commands) and [reusing parsing functions](/docs/guides/reuse-parsing-functions).

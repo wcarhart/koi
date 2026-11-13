@@ -30,5 +30,6 @@ export const docsIndexes = [
 export type DocsIndexKind = (typeof docsIndexes)[number]['slug'];
 
 export function indexDocs(kind: DocsIndexKind, docs: Doc[]): Doc[] {
-  return docs.filter((doc) => doc.slug.startsWith(`${kind}/`));
+  const group = docsIndexes.find((index) => index.slug === kind)!.group;
+  return docs.filter((doc) => doc.group === group);
 }

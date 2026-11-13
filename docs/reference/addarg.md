@@ -4,7 +4,7 @@ description: "Define one flag, option, or positional argument in the current reg
 layout: split
 ---
 
-`__addarg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/guides/lifecycle#doc-guides-lifecycle-two-entrypoints)). Use `__addarg` to define an argument that can be parsed by your function. `__addarg` statements must be used inside [registration blocks](/docs/guides/lifecycle) and must be followed by a guarded `__parseargs` statement at the function level or a `__koirun` statement at the root level.
+`__addarg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/guides/lifecycle#contexts-blocks-and-specs)). Use `__addarg` to define an argument that can be parsed by your function. `__addarg` statements must be used inside [registration blocks](/docs/guides/lifecycle) and must be followed by a guarded `__parseargs` statement at the function level or a `__koirun` statement at the root level.
 
 ## Usage
 
@@ -17,9 +17,9 @@ __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [
 | Parameter | Description |
 | --- | --- |
 | `DEST` | The destination Bash variable that will be used for this argument. Variables that are used by the shell or koi-internals will be rejected. |
-| `-f`, `--flag` | Define kind as _flag_. Consumes no value and assigns `0` or `1` to `DEST` upon parse. |
-| `-o`, `--option` | Define kind as _option_. Consumes the next single value and assigns it to `DEST` upon parse. |
-| `-p`, `--positional` | Define kind as _positional_. Consumes a single positional value without an argument label and assigns it to `DEST` upon parse. |
+| `-f`, `--flag` | Set kind to _flag_. Consumes no value and assigns `0` or `1` to `DEST` upon parse. |
+| `-o`, `--option` | Set kind to _option_. Consumes the next single value and assigns it to `DEST` upon parse, except for `-h`/`--help`. |
+| `-p`, `--positional` | Set kind to _positional_. Consumes a single positional value without an argument label and assigns it to `DEST` upon parse. |
 | `-s`, `--short SHORT` | The one-letter spelling for the argument label, without a dash. `h` is reserved. |
 | `-l`, `--long LONG` | The long spelling for the argument label, without dashes. `help` and some koi-internal strings are reserved. |
 | `-d`, `--description DESCRIPTION` | The nonempty help text for the argument |
@@ -29,7 +29,10 @@ __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [
 
 ## Kind
 
-Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positionals_ (see [glossary](/docs/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next value as their additional, required argument (even if the value starts with `-`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls. If an argument starts with a `-` but no such matching spelling exists in the registration context, the argument will be treated as a positional.
+Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
+
+## Standalone `--`
+To use literal `-h`, `--help`, or other unregistered dash-prefixed tokens as provided positional values (and not invoke the default generated help menu in the case of `-h`/`--help`), use `--`. `--` signals the end of flags and options and treats every subsequent argument as a positional. For example `./myscript.sh -- -h` would not show the help menu, it would treat `-h` as the first provided positional value.
 
 > [!NOTE] Optional positionals
 > Optional positionals create a bit of complexity during parsing, since it's easy for the provided arguments to be ambiguous. Koi uses the following parsing rules for optional positionals:
@@ -40,7 +43,7 @@ Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, 
 
 ## Returns and assignment
 
-`__addarg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/guides/lifecycle) even if its individual status is ignored by Bash control flow. If `set -e` is used, an invalid `__addarg` declaration will cause the current control flow to exit, but without it invalid declaration will not stop execution. Destination variables are assigned value during successful parsing in [__parseargs](/docs/reference/parseargs), not at argument registration (see [using a guard](/docs/guides/lifecycle#doc-guides-lifecycle-parser-result-and-caller-result)).
+`__addarg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/guides/lifecycle) even if its individual status is ignored by Bash control flow. An invalid `__addarg` declaration may stop execution when `set -e` applies, but conditional calling contexts can suppress this behavior. Without applicable `errexit` or explicit error handling, execution continues with the block marked invalid. Destination variables are assigned value during successful parsing in [__parseargs](/docs/reference/parseargs), not at argument registration (see [using a guard](/docs/concepts/parsing-and-control-flow#the-parsing-boundary-and-required-guard)).
 
 ## Explore
 

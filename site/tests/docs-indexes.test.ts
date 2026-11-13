@@ -21,11 +21,11 @@ test('standalone indexes resolve links and discovery without joining continuous 
   assert.deepEqual(
     indexDocs('guides', docs).map((doc) => doc.slug),
     [
-      'guides/lifecycle',
-      'guides/direct-calls',
       'guides/arguments',
       'guides/commands',
+      'guides/reuse-parsing-functions',
       'guides/help',
+      'guides/troubleshooting',
     ],
   );
   assert.equal(indexDocs('reference', docs).length, 6);
