@@ -647,6 +647,10 @@ kbd {
   font: 10px var(--mono);
   color: var(--muted);
 }
+.section-number-prefix {
+  color: var(--ink);
+  white-space: nowrap;
+}
 .section-toolbar > div {
   display: flex;
   align-items: center;
