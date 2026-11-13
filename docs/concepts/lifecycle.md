@@ -68,7 +68,7 @@ In this example, if we did the bare and dangerous `__parseargs "$@"` and your sc
 
 ### Keep registration uninterrupted
 
-Koi stores function declarations in a shared pending [registration buffer](/docs/concepts/glossary#registration-buffer). Entering or returning from a function doesn't automatically start or clear a spec, so each function must finish its registration block before another function starts registering.
+Koi stores function declarations in a shared pending [registration buffer](/docs/reference/glossary#registration-buffer). Entering or returning from a function doesn't automatically start or clear a spec, so each function must finish its registration block before another function starts registering.
 
 Once registration starts:
 

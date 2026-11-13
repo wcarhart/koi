@@ -18,7 +18,7 @@ To be written: declaring arguments, parsing safely, and working with commands.
 
 To be written: complete scripts and their expected output.
 
-## API reference
+## Reference
 
 To be written: public functions, calling conventions, defaults, and return statuses.
 

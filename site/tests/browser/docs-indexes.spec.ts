@@ -5,8 +5,8 @@ test('short heading fragments work across docs, reloads, and local glossary link
   page,
 }) => {
   for (const [route, fragment] of [
-    ['concepts/glossary', 'flag'],
-    ['concepts/lifecycle', 'parser-result-and-caller-result'],
+    ['reference/glossary', 'flag'],
+    ['concepts/lifecycle', 'completing-a-functions-registration-block'],
     ['concepts/control-flow', 'parser-result-and-caller-result'],
     ['quickstart', 'example'],
     ['guides/help', 'help-configuration'],
@@ -24,21 +24,21 @@ test('short heading fragments work across docs, reloads, and local glossary link
     await page.reload();
     await expect(heading).toBeInViewport();
   }
-  await page.goto('/docs/concepts/glossary#argument');
+  await page.goto('/docs/reference/glossary#argument');
   await page
-    .locator('#doc-concepts-glossary a[href="/docs/concepts/glossary#flag"]')
+    .locator('#doc-reference-glossary a[href="/docs/reference/glossary#flag"]')
     .first()
     .click();
-  await expect(page).toHaveURL('/docs/concepts/glossary#flag');
-  await expect(page.locator('#doc-concepts-glossary-flag')).toBeInViewport();
+  await expect(page).toHaveURL('/docs/reference/glossary#flag');
+  await expect(page.locator('#doc-reference-glossary-flag')).toBeInViewport();
   await page.goBack();
-  await expect(page).toHaveURL('/docs/concepts/glossary#argument');
+  await expect(page).toHaveURL('/docs/reference/glossary#argument');
   await expect(
-    page.locator('#doc-concepts-glossary-argument'),
+    page.locator('#doc-reference-glossary-argument'),
   ).toBeInViewport();
-  await page.goto('/docs/concepts/glossary#doc-concepts-glossary-flag');
-  await expect(page).toHaveURL('/docs/concepts/glossary#flag');
-  await expect(page.locator('#doc-concepts-glossary-flag')).toBeInViewport();
+  await page.goto('/docs/reference/glossary#doc-reference-glossary-flag');
+  await expect(page).toHaveURL('/docs/reference/glossary#flag');
+  await expect(page.locator('#doc-reference-glossary-flag')).toBeInViewport();
 });
 
 async function openMenu(page: Page, isMobile: boolean) {
@@ -110,7 +110,7 @@ test('index headings navigate to isolated docs pages and article links restore t
   await page.goto('/docs');
   for (const [title, slug] of [
     ['Guides', 'guides'],
-    ['API reference', 'reference'],
+    ['Reference', 'reference'],
     ['Examples', 'examples'],
   ]) {
     await openMenu(page, isMobile);
@@ -202,6 +202,86 @@ test('guide and API indexes list the published collection', async ({
   await page.locator('.index-list a').nth(3).click();
   await expect(page).toHaveURL('/docs/reference/parseargs');
   await expect(page.locator('#doc-reference-parseargs h1')).toBeInViewport();
+});
+
+test('Reference links to the glossary beside its title and lists it last in navigation', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/docs/reference');
+  const heading = page.getByRole('heading', { name: 'Reference', exact: true });
+  const glossary = page
+    .locator('.index-title-row')
+    .getByRole('link', { name: 'Glossary', exact: true });
+  await expect(glossary).toHaveAttribute('href', '/docs/reference/glossary');
+  await expect(
+    page.locator('.section-toolbar .section-number').last(),
+  ).toHaveText('6 commands');
+  await page.evaluate(() => document.fonts.ready);
+  const titleBox = (await heading.boundingBox())!;
+  const buttonBox = (await glossary.boundingBox())!;
+  const countBox = (await page
+    .locator('.section-toolbar .section-number')
+    .last()
+    .boundingBox())!;
+  expect(
+    Math.abs(
+      titleBox.y + titleBox.height / 2 - buttonBox.y - buttonBox.height / 2,
+    ),
+  ).toBeLessThan(2);
+  expect(
+    Math.abs(countBox.x + countBox.width - buttonBox.x - buttonBox.width),
+  ).toBeLessThan(2);
+  expect(buttonBox.y).toBeGreaterThan(countBox.y + countBox.height);
+  const shaft = glossary.locator('.cta-arrow-shaft');
+  await expect(shaft).toHaveCSS('opacity', '0');
+  for (const theme of ['light', 'dark']) {
+    await page
+      .locator('html')
+      .evaluate((html, theme) => html.setAttribute('data-theme', theme), theme);
+    const idle = await glossary.evaluate(
+      (link) => getComputedStyle(link).backgroundColor,
+    );
+    await glossary.hover();
+    await expect(shaft).toHaveCSS('opacity', '1');
+    await expect(glossary.locator('.cta-arrow-chevron')).toHaveCSS(
+      'transform',
+      'matrix(1, 0, 0, 1, 12, 0)',
+    );
+    expect(
+      await glossary.evaluate((link) => getComputedStyle(link).backgroundColor),
+    ).not.toBe(idle);
+    await page.mouse.move(0, 0);
+    await expect(shaft).toHaveCSS('opacity', '0');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await glossary.focus();
+  await expect(shaft).toHaveCSS('opacity', '1');
+  await glossary.click();
+  await expect(page).toHaveURL('/docs/reference/glossary');
+  await expect(page.locator('#doc-reference-glossary h1')).toBeInViewport();
+  await expect(page.locator('link[rel=canonical]')).toHaveAttribute(
+    'href',
+    'https://koishell.com/docs',
+  );
+  const markdown = await page.request.get('/docs/reference/glossary.md');
+  expect(markdown.ok()).toBe(true);
+  expect(await markdown.text()).toContain('title: Glossary');
+  await openMenu(page, isMobile);
+  const reference = page
+    .locator('.nav-group')
+    .filter({ has: page.locator('a.nav-group-link[href="/docs/reference"]') });
+  await expect(reference.locator('a[data-doc-link]').last()).toHaveText(
+    'Glossary',
+  );
+  await expect(reference.locator('a[data-doc-link]').last()).toHaveAttribute(
+    'aria-current',
+    'location',
+  );
 });
 
 test('jukebox selection supports click, keyboard navigation, copying, and article links', async ({

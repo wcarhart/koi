@@ -13,8 +13,8 @@ export const docsIndexes = [
     slug: 'reference',
     id: 'index-reference',
     url: '/docs/reference',
-    title: 'API reference',
-    group: 'API reference',
+    title: 'Reference',
+    group: 'Reference',
     description: 'Every public koi command, in one place.',
   },
   {

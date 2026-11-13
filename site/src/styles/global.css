@@ -606,7 +606,7 @@ kbd {
   width: 2px;
   background: var(--accent);
 }
-.nav-group:nth-of-type(4) > a {
+.nav-group > a.nav-code {
   font-family: var(--mono);
   font-size: 11px;
 }
@@ -2059,6 +2059,22 @@ html:not(.js) [data-open-menu] {
 }
 .index-heading {
   max-width: 780px;
+}
+.docs-index-reference .index-heading {
+  max-width: none;
+}
+.index-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+.index-title-row h1 {
+  margin-bottom: 0;
+}
+.index-title-row .button {
+  flex-shrink: 0;
 }
 .guide-grid {
   display: grid;

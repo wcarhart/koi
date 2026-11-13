@@ -17,8 +17,13 @@ interface Props {
 const { kind } = Astro.props;
 const selected = docsIndexes.find((index) => index.slug === kind)!;
 const entries = indexDocs(kind, await getDocs());
+const glossary =
+  kind === 'reference'
+    ? entries.find((doc) => doc.slug === 'reference/glossary')
+    : undefined;
+const commands = entries.filter((doc) => doc !== glossary);
 const featured = kind === 'guides' ? entries.slice(0, 4) : [];
-const remaining = kind === 'guides' ? entries.slice(4) : entries;
+const remaining = kind === 'guides' ? entries.slice(4) : commands;
 const albums =
   kind === 'examples'
     ? await Promise.all(
@@ -60,12 +65,23 @@ const albums =
         {kind === 'examples' ? '~/koi/examples' : `~/koi/${kind}`}
       </span>
       <span class="section-number">
-        {String(entries.length).padStart(2, '0')}{' '}
+        {kind === 'reference'
+          ? commands.length
+          : String(commands.length).padStart(2, '0')}{' '}
         {kind === 'reference' ? 'commands' : kind}
       </span>
     </div>
     <div class="prose index-heading">
-      <h1>{selected.title}</h1>
+      {glossary ? (
+        <div class="index-title-row">
+          <h1>{selected.title}</h1>
+          <a class="button" href={glossary.url}>
+            Glossary <CtaArrow />
+          </a>
+        </div>
+      ) : (
+        <h1>{selected.title}</h1>
+      )}
       <p class="doc-description">{selected.description}</p>
     </div>
 

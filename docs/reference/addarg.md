@@ -44,7 +44,7 @@ Display names are uppercased in generated help. If you omit `-n`/`--display-name
 
 ## Kind
 
-Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/concepts/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
+Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/reference/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
 
 Exactly one kind and a nonempty description are required. Flags and options need at least one short or long spelling, and you can supply both as aliases for the same argument. Koi only recognizes the spellings you declare. Positionals cannot have either spelling or share a context with child commands registered via [__addcommand](/docs/reference/addcommand).
 
@@ -56,7 +56,7 @@ Koi supports the common Unix command-line convention of using `--` to end option
 
 Use a standalone `--` to end flag and option recognition and supply positional values that start with dashes. For example, if your script declares a positional argument, `./myscript.sh -- -h` supplies the literal value `-h` without showing help. Subsequent tokens fill the remaining positional slots, including tokens such as `--help` that would otherwise request help.
 
-An option waiting for a value consumes `--` as that value, so `./myscript.sh --output --` assigns `--` to the output option and continues recognizing flags and options afterward. In a [branch](/docs/concepts/glossary#branch), a standalone `--` ends the parent's option recognition, and the next token still selects a child command. The child's parser handles the remaining tokens independently.
+An option waiting for a value consumes `--` as that value, so `./myscript.sh --output --` assigns `--` to the output option and continues recognizing flags and options afterward. In a [branch](/docs/reference/glossary#branch), a standalone `--` ends the parent's option recognition, and the next token still selects a child command. The child's parser handles the remaining tokens independently.
 
 > [!NOTE] Optional positionals
 > Optional positionals create a bit of complexity during parsing, since it's easy for the provided arguments to be ambiguous. Koi uses the following parsing rules for optional positionals:

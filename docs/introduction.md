@@ -21,7 +21,7 @@ bark() {
 bark "$@"
 ```
 
-To get started, take a look at [installation](/docs/install) (as simple as `brew tap wcarhart/koi && brew install wcarhart/koi/koi`) and then the [quickstart](/docs/quickstart). After the quickstart, it's a good idea to take a look at core concepts like [registration & control flow](/docs/concepts/lifecycle). You can also take a look at [guides](/docs/guides), the full [API reference](/docs/reference), and the [library of examples](/docs/examples).
+To get started, take a look at [installation](/docs/install) (as simple as `brew tap wcarhart/koi && brew install wcarhart/koi/koi`) and then the [quickstart](/docs/quickstart). After the quickstart, it's a good idea to take a look at core concepts like [registration & control flow](/docs/concepts/lifecycle). You can also take a look at [guides](/docs/guides), the full [reference](/docs/reference), and the [library of examples](/docs/examples).
 
 ## Why the name _koi?_
 

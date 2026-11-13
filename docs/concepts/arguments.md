@@ -7,7 +7,7 @@ layout: article
 An argument is an input you declare with [__addarg](/docs/reference/addarg), such as a flag to enable verbose output or an option to choose an output file. When calling a script or function, Bash also calls each string you pass an _argument_. We'll use _token_ when referring to those individual strings. For example, `--output-file report.txt` is two tokens supplying one declared argument.
 
 > [!NOTE] A note on nomenclature
-> The term _argument_ is overloaded and ambiguous in different contexts related to argument parsing. To understand what this and other related terms mean in the context of koi, please take a look at the [glossary](/docs/concepts/glossary).
+> The term _argument_ is overloaded and ambiguous in different contexts related to argument parsing. To understand what this and other related terms mean in the context of koi, please take a look at the [glossary](/docs/reference/glossary).
 
 ## Arguments and kinds
 
@@ -37,7 +37,7 @@ A short label has one dash and one letter. A long label has two dashes and a nam
 
 `FILE` is the **display name** used in generated help, such as `--output-file FILE`. It changes only the help text. If you omit `--display-name`, koi uses the destination name instead. For example, if you used `__addarg output_file --option --short o --long output-file --description 'Write output to a file'` without `--display-name FILE`, koi would render `[-o OUTPUT-FILE]` in the usage line of the help menu. You can set this to `[-o FILE]` by using `--display-name FILE`.
 
-See [destination variables and scope](/docs/concepts/destinations) for where values are assigned, or the [glossary](/docs/concepts/glossary) for related terms.
+See [destination variables and scope](/docs/concepts/destinations) for where values are assigned, or the [glossary](/docs/reference/glossary) for related terms.
 
 ## Bash tokenization precedes koi
 

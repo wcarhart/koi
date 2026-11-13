@@ -42,11 +42,6 @@
     "group": "Core concepts"
   },
   {
-    "file": "concepts/glossary.md",
-    "slug": "concepts/glossary",
-    "group": "Core concepts"
-  },
-  {
     "file": "guides/arguments.md",
     "slug": "guides/arguments",
     "group": "Guides"
@@ -75,33 +70,38 @@
   {
     "file": "reference/addarg.md",
     "slug": "reference/addarg",
-    "group": "API reference",
+    "group": "Reference",
     "interactive": "addarg"
   },
   {
     "file": "reference/addcommand.md",
     "slug": "reference/addcommand",
-    "group": "API reference"
+    "group": "Reference"
   },
   {
     "file": "reference/adddescription.md",
     "slug": "reference/adddescription",
-    "group": "API reference"
+    "group": "Reference"
   },
   {
     "file": "reference/parseargs.md",
     "slug": "reference/parseargs",
-    "group": "API reference"
+    "group": "Reference"
   },
   {
     "file": "reference/koiconfig.md",
     "slug": "reference/koiconfig",
-    "group": "API reference"
+    "group": "Reference"
   },
   {
     "file": "reference/koirun.md",
     "slug": "reference/koirun",
-    "group": "API reference"
+    "group": "Reference"
+  },
+  {
+    "file": "reference/glossary.md",
+    "slug": "reference/glossary",
+    "group": "Reference"
   },
   {
     "file": "examples/function-entrypoint.md",

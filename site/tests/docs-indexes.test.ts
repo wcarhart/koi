@@ -28,7 +28,9 @@ test('standalone indexes resolve links and discovery without joining continuous 
       'guides/troubleshooting',
     ],
   );
-  assert.equal(indexDocs('reference', docs).length, 6);
+  const reference = indexDocs('reference', docs);
+  assert.equal(reference.length, 7);
+  assert.equal(reference.at(-1)!.slug, 'reference/glossary');
   assert.equal(indexDocs('examples', docs).length, 3);
   const entries = await (await searchIndex()).json();
   const xml = await sitemap().text();

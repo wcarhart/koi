@@ -15,7 +15,9 @@ import { search } from '../src/lib/search';
 
 test('published content includes concept and guide outlines, excludes planned drafts, and expands executable examples', async () => {
   const docs = await getDocs();
-  assert.equal(docs.filter((d) => d.group === 'API reference').length, 6);
+  const reference = docs.filter((d) => d.group === 'Reference');
+  assert.equal(reference.length, 7);
+  assert.equal(reference.at(-1)!.slug, 'reference/glossary');
   assert.equal(docs.length, 23);
   const concepts = docs.filter((d) => d.group === 'Core concepts');
   assert.deepEqual(
@@ -26,13 +28,12 @@ test('published content includes concept and guide outlines, excludes planned dr
       'Calls and command routing',
       'Destination variables and scope',
       'Parsing and control flow',
-      'Glossary',
     ],
   );
   const guides = docs.filter((d) => d.group === 'Guides');
   assert.equal(guides.length, 5);
   for (const doc of [...concepts, ...guides].filter(
-    (d) => d.slug !== 'concepts/glossary',
+    (d) => !['concepts/arguments', 'concepts/lifecycle'].includes(d.slug),
   )) {
     assert.match(
       doc.markdown,
@@ -319,9 +320,9 @@ test('all docs expose short fragments in links and search while accepting legacy
       );
     }
   }
-  const glossary = docs.find((doc) => doc.slug === 'concepts/glossary')!;
+  const glossary = docs.find((doc) => doc.slug === 'reference/glossary')!;
   validateLinks([{ ...glossary, markdown: '[Flag](#flag)' }]);
-  assert.ok(glossary.prose.includes('href="/docs/concepts/glossary#flag"'));
+  assert.ok(glossary.prose.includes('href="/docs/reference/glossary#flag"'));
 });
 
 test('short fragments disambiguate duplicate headings across both halves of a document', async () => {
