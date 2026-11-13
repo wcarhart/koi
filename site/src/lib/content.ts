@@ -161,7 +161,12 @@ export async function renderMarkdown(
         return `<h${depth} id="${id}"${options.route ? ` data-fragment="${fragment}"` : ''}><a class="heading-anchor" href="${options.route ? `${options.route}#${fragment}` : `#${id}`}">${this.parser.parseInline(tokens)}</a></h${depth}>`;
       },
       code({ text, lang }: Tokens.Code) {
-        const language = (lang || 'text').split(' ')[0];
+        const [language, ...metadata] = (lang || 'text').trim().split(/\s+/);
+        const lineNumbers =
+          metadata.some(
+            (value) =>
+              value === 'line-numbers' || value === 'line-numbers=true',
+          ) && !metadata.includes('line-numbers=false');
         const html = high.codeToHtml(text, {
           lang: ['bash', 'sh', 'shell'].includes(language)
             ? 'bash'
@@ -169,6 +174,15 @@ export async function renderMarkdown(
               ? 'json'
               : 'text',
           themes: { light: 'github-light', dark: 'github-dark' },
+          transformers: lineNumbers
+            ? [
+                {
+                  line(node, line) {
+                    node.properties['data-line-number'] = line;
+                  },
+                },
+              ]
+            : [],
         });
         const copy =
           options.copy === false
@@ -190,14 +204,14 @@ export async function renderMarkdown(
   });
   return { html: await md.parse(body), headings };
 }
-function expandIncludes(body: string): string {
+export function expandIncludes(body: string): string {
   return body.replace(
-    /<!-- koi:include ([a-z0-9-]+\.(?:sh|txt)) -->/g,
-    (_, file: string) => {
+    /<!-- koi:include ([a-z0-9-]+\.(?:sh|txt))(?: (line-numbers(?:=(?:true|false))?))? -->/g,
+    (_, file: string, metadata?: string) => {
       const source = path.join(docsRoot, 'examples', file);
       if (!existsSync(source))
         throw new Error(`Missing example include: ${file}`);
-      return `\n\`\`\`${file.endsWith('.sh') ? 'bash' : 'text'}\n${readFileSync(source, 'utf8').trimEnd()}\n\`\`\`\n`;
+      return `\n\`\`\`${file.endsWith('.sh') ? 'bash' : 'text'}${metadata ? ` ${metadata}` : ''}\n${readFileSync(source, 'utf8').trimEnd()}\n\`\`\`\n`;
     },
   );
 }

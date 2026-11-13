@@ -25,7 +25,7 @@ const albums =
         entries.slice(0, 3).map(async (doc) => {
           const source = readFileSync(path.join(docsRoot, doc.file), 'utf8');
           const filename = source.match(
-            /<!-- koi:include ([a-z0-9-]+\.sh) -->/,
+            /<!-- koi:include ([a-z0-9-]+\.sh)(?: line-numbers(?:=(?:true|false))?)? -->/,
           )?.[1];
           if (!filename) throw new Error(`Missing example script: ${doc.file}`);
           const script = readFileSync(

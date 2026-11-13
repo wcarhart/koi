@@ -483,6 +483,16 @@ img {
   display: block;
   min-width: max-content;
 }
+.code-block .line[data-line-number]::before {
+  content: attr(data-line-number);
+  content: attr(data-line-number) / '';
+  display: inline-block;
+  min-width: 3ch;
+  margin-right: 1.5em;
+  color: var(--muted);
+  text-align: right;
+  user-select: none;
+}
 .shiki span {
   color: var(--shiki-light);
 }

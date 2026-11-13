@@ -10,7 +10,7 @@ In this simple example, we're using koi with direct function calls. This means w
 
 > [!WARNING] Always use a guard
 >
-> **Always** close a `__parseargs` call with the `koi_status` guard in functions, like this:
+> **Always** pair a `__parseargs` call with the `$koi_status` guard in functions, like this:
 >
 > ```bash
 > __parseargs "$@" || return "$koi_status"

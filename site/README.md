@@ -56,6 +56,16 @@ Use a reviewed fixture instead of copying a whole script into multiple pages:
 ```
 Includes only accept simple `.sh` and `.txt` filenames from `docs/examples/`. They become ordinary fenced code in both HTML and Markdown exports. The build **does not execute Markdown or includes**.
 
+Line numbers are off by default. Add `line-numbers` after the language on a code fence to show them:
+
+````md
+```bash line-numbers
+printf 'Hello, world!\n'
+```
+````
+
+For included snippets, use `<!-- koi:include greet.sh line-numbers -->`. You can also use `line-numbers=true` or `line-numbers=false` on fences and includes to explicitly show or hide numbers. Numbering starts at 1 for each block and includes blank lines. Copying code copies only the source text.
+
 The `addarg` and `help` manifest component identifiers attach code builders to split sections. Builders generate Bash text locally, never execute it, and keep the last valid script when controls are invalid. The first example code block must contain the matching default builder script.
 
 ## Deployment

@@ -9,6 +9,7 @@ import {
   exportMarkdown,
   cleanMarkdown,
   validateLinks,
+  expandIncludes,
 } from '../src/lib/content';
 import { search } from '../src/lib/search';
 
@@ -201,6 +202,85 @@ test('information callouts use a circle icon and purple theme class', async () =
     assert.match(html, /<circle cx="12" cy="12" r="9"/);
     assert.match(html, /Good to know/);
   }
+});
+
+test('code line numbers are opt-in and preserve source text including blank lines', async () => {
+  for (const metadata of [
+    '',
+    'line-numbers',
+    'line-numbers=true',
+    'line-numbers=false',
+  ]) {
+    const { html } = await renderMarkdown(
+      `\`\`\`bash ${metadata}\nprintf 'first\\n'\n\nprintf 'last\\n'\n\`\`\``,
+      'numbers',
+    );
+    const numbered =
+      metadata === 'line-numbers' || metadata === 'line-numbers=true';
+    if (numbered) {
+      assert.deepEqual(
+        [...html.matchAll(/data-line-number="(\d+)"/g)].map((m) => m[1]),
+        ['1', '2', '3'],
+      );
+    } else {
+      assert.doesNotMatch(html, /data-line-number/);
+    }
+    assert.match(html, /<span>bash<\/span>/);
+    const code = html
+      .match(/<code>([^]*?)<\/code>/)![1]
+      .replace(/<[^>]*>/g, '');
+    assert.equal(code, "printf 'first\\n'\n\nprintf 'last\\n'");
+  }
+});
+
+test('included snippets preserve the line number setting in rendering and Markdown exports', async () => {
+  for (const file of ['greet.sh', 'greet-help.txt']) {
+    for (const metadata of ['', 'line-numbers', 'line-numbers=false']) {
+      const markdown = expandIncludes(
+        `<!-- koi:include ${file}${metadata ? ` ${metadata}` : ''} -->`,
+      );
+      const language = file.endsWith('.sh') ? 'bash' : 'text';
+      assert.ok(
+        markdown.includes(
+          `\`\`\`${language}${metadata ? ` ${metadata}` : ''}\n`,
+        ),
+      );
+      assert.doesNotMatch(markdown, /koi:include/);
+      const { html } = await renderMarkdown(markdown, 'snippet');
+      assert.equal(
+        html.includes('data-line-number'),
+        metadata === 'line-numbers',
+      );
+    }
+  }
+});
+
+test('only the two selected lifecycle examples have line numbers, including the nested callout', async () => {
+  const docs = await getDocs();
+  const numbered: string[] = [];
+  for (const doc of docs) {
+    for (const block of (doc.prose + doc.example).matchAll(
+      /<div class="code-block">([^]*?)<\/pre><\/div>/g,
+    )) {
+      if (!block[1].includes('data-line-number')) continue;
+      assert.equal(doc.slug, 'concepts/lifecycle');
+      assert.match(block[1], /data-line-number="1"/);
+      numbered.push(block[1].replace(/<[^>]*>/g, ''));
+    }
+  }
+  assert.equal(numbered.length, 2);
+  assert.match(numbered[0], /greet\(\)/);
+  assert.match(numbered[1], /deploy\(\)/);
+  assert.match(numbered[1], /admin/);
+  const lifecycle = docs.find((doc) => doc.slug === 'concepts/lifecycle')!;
+  assert.match(
+    lifecycle.prose,
+    /<aside[^]*?data-line-number="1"[^]*?<\/aside>/,
+  );
+  assert.equal(
+    (exportMarkdown(lifecycle).match(/```bash line-numbers/g) || []).length,
+    2,
+  );
 });
 
 test('reference headings expose route-local fragments and examples have no anchors', async () => {
