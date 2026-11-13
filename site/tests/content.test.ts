@@ -31,7 +31,7 @@ test('published content includes concept and guide outlines, excludes planned dr
   const guides = docs.filter((d) => d.group === 'Guides');
   assert.equal(guides.length, 5);
   for (const doc of [...concepts, ...guides].filter(
-    (d) => d.slug !== 'glossary',
+    (d) => d.slug !== 'concepts/glossary',
   )) {
     assert.match(
       doc.markdown,
@@ -178,7 +178,7 @@ test('Markdown external origins open safely in a new tab while local destination
 
 test('warning callouts render rich content and leave ordinary quotes intact', async () => {
   const { html } = await renderMarkdown(
-    '> [!WARNING] Always use a guard\n>\n> **Always** guard parsing.\n>\n> ```bash\n> __parseargs "$@" || return "$koi_status"\n> ```\n>\n> [Learn more](/docs/guides/lifecycle)\n\n> Ordinary quote',
+    '> [!WARNING] Always use a guard\n>\n> **Always** guard parsing.\n>\n> ```bash\n> __parseargs "$@" || return "$koi_status"\n> ```\n>\n> [Learn more](/docs/concepts/lifecycle)\n\n> Ordinary quote',
     'callout-test',
   );
   assert.match(
@@ -187,7 +187,7 @@ test('warning callouts render rich content and leave ordinary quotes intact', as
   );
   assert.match(html, /<strong>Always<\/strong>/);
   assert.match(html, /data-copy-code/);
-  assert.match(html, /href="\/docs\/guides\/lifecycle"/);
+  assert.match(html, /href="\/docs\/concepts\/lifecycle"/);
   assert.match(html, /<blockquote><p>Ordinary quote<\/p>\n<\/blockquote>/);
 });
 
@@ -239,9 +239,9 @@ test('all docs expose short fragments in links and search while accepting legacy
       );
     }
   }
-  const glossary = docs.find((doc) => doc.slug === 'glossary')!;
+  const glossary = docs.find((doc) => doc.slug === 'concepts/glossary')!;
   validateLinks([{ ...glossary, markdown: '[Flag](#flag)' }]);
-  assert.ok(glossary.prose.includes('href="/docs/glossary#flag"'));
+  assert.ok(glossary.prose.includes('href="/docs/concepts/glossary#flag"'));
 });
 
 test('short fragments disambiguate duplicate headings across both halves of a document', async () => {

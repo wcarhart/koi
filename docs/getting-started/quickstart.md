@@ -4,9 +4,9 @@ description: "Write your first koi-powered script"
 layout: split
 ---
 
-Once you've [installed](/docs/install) koi, you're ready to write your first script. Within a Bash function, register parsable arguments with [__addarg](/docs/reference/addarg) and then call [__parseargs](/docs/reference/parseargs) to parse them. `__addarg` lines followed by a `__parseargs` line is called the [registration block](/docs/guides/lifecycle).
+Once you've [installed](/docs/install) koi, you're ready to write your first script. Within a Bash function, register parsable arguments with [__addarg](/docs/reference/addarg) and then call [__parseargs](/docs/reference/parseargs) to parse them. `__addarg` lines followed by a `__parseargs` line is called the [registration block](/docs/concepts/lifecycle).
 
-In this simple example, we're using koi with direct function calls. This means we pass the command line arguments (`"$@"`) from the command line directly to our function. Koi can also treat individual functions as CLI subcommands. To learn more, see [registration & control flow](/docs/guides/lifecycle) and [direct calls](/docs/guides/direct-calls).
+In this simple example, we're using koi with direct function calls. This means we pass the command line arguments (`"$@"`) from the command line directly to our function. Koi can also treat individual functions as CLI subcommands. To learn more, see [registration & control flow](/docs/concepts/lifecycle) and [direct calls](/docs/concepts/routing).
 
 > [!WARNING] Always use a guard
 >
@@ -16,7 +16,7 @@ In this simple example, we're using koi with direct function calls. This means w
 > __parseargs "$@" || return "$koi_status"
 > ```
 >
-> **Never** use the bare `__parseargs "$@"`. Doing so will cause koi to malfunction and potentially execute dangerous or unexpected logic. Due to Bash control flow, `__parseargs` can't exit or return on its own, so if there's a parsing error or we display the help menu and you don't include `|| return "$koi_status"`, your function will continue executing. Learn more in [registration & control flow](/docs/guides/lifecycle).
+> **Never** use the bare `__parseargs "$@"`. Doing so will cause koi to malfunction and potentially execute dangerous or unexpected logic. Due to Bash control flow, `__parseargs` can't exit or return on its own, so if there's a parsing error or we display the help menu and you don't include `|| return "$koi_status"`, your function will continue executing. Learn more in [registration & control flow](/docs/concepts/lifecycle).
 
 ## Example
 

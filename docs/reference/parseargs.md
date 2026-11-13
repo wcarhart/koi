@@ -26,4 +26,4 @@ The parser consumes the current block before validation, help, or child dispatch
 
 Always use the documented guard. A helper cannot return from its caller on your behalf, and `set -e` is not a substitute.
 
-See [registration and control flow](/docs/guides/lifecycle) for the complete lifecycle.
+See [registration and control flow](/docs/concepts/lifecycle) for the complete lifecycle.

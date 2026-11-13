@@ -10,7 +10,7 @@ layout: article
 
 - TODO: Trace preparation → registration → guarded parsing → business logic and explain why an ordinary helper cannot return from its caller.
 - TODO: Explain the exact required form `__parseargs "$@" || return "$koi_status"`; a bare parse and a guard hidden in another function cannot implement the caller's control flow.
-- TODO: Link the block lifecycle and assignment timing to [registration contexts and blocks](/docs/guides/lifecycle).
+- TODO: Link the block lifecycle and assignment timing to [registration contexts and blocks](/docs/concepts/lifecycle).
 
 ## Parser result and caller result
 

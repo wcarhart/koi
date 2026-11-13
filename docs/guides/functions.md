@@ -10,14 +10,14 @@ layout: article
 
 - TODO: Start from the existing [function-entrypoint example](/docs/examples/function-entrypoint); show a direct call with arguments, a help call, and repeated calls without command registration.
 - TODO: Show a custom entrypoint that prepares inputs before calling a parsing function and forwards them with `"$@"`.
-- TODO: Link direct/routed behavior to [calls and command routing](/docs/guides/direct-calls) and keep the standard parser guard in every parsing function.
+- TODO: Link direct/routed behavior to [calls and command routing](/docs/concepts/routing) and keep the standard parser guard in every parsing function.
 
 ## Compose functions safely
 
 - TODO: Plan paired caller/callee examples with destinations declared locally for isolation; demonstrate intentional ancestor/global assignment separately.
 - TODO: Call a parsing function before another block begins or after its parse completes; contrast this with unsupported interleaving or registration helpers.
 - TODO: Show how callers propagate meaningful failure statuses and why a callee's successful help return does not automatically stop its caller's later work.
-- TODO: Explain explicit business-operation failure handling in conditional calls and link [the control-flow contract](/docs/concepts/parsing-and-control-flow).
+- TODO: Explain explicit business-operation failure handling in conditional calls and link [the control-flow contract](/docs/concepts/control-flow).
 
 ## Preserve changes when sourcing
 

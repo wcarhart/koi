@@ -705,9 +705,9 @@ test('homepage sections, footer, and duplicated install boxes remain accessible'
   const sections = page.locator('.landing-section');
   await expect(sections).toHaveCount(5);
   const destinations = [
-    ['Get started', '/docs/guides/lifecycle'],
+    ['Get started', '/docs/concepts/lifecycle'],
     ['Explore commands', '/docs/guides/commands'],
-    ['Explore direct calls', '/docs/guides/direct-calls'],
+    ['Explore direct calls', '/docs/concepts/routing'],
     ['Explore help', '/docs/guides/help'],
     ['Installation guide', '/install'],
   ];

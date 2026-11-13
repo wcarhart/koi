@@ -9,7 +9,7 @@ layout: article
 ## Always guard parsing
 
 - TODO: Contrast bare `__parseargs "$@"` with `__parseargs "$@" || return "$koi_status"`; show business logic continuing after help or a parsing error without the guard.
-- TODO: Explain why the guard must be in the owning function rather than hidden in a helper; link [parsing and control flow](/docs/concepts/parsing-and-control-flow).
+- TODO: Explain why the guard must be in the owning function rather than hidden in a helper; link [parsing and control flow](/docs/concepts/control-flow).
 
 ## Preserve the caller result
 
@@ -24,12 +24,12 @@ layout: article
 ## Keep registration uninterrupted
 
 - TODO: Show incorrect early return, an interleaved parsing helper, and a helper that contributes declarations to its caller; pair each with declarations kept in the owner and nested parsing moved before the block or after its parse.
-- TODO: Contrast unsupported interruption with supported conditional declarations; link the shared pending buffer in [registration contexts and blocks](/docs/guides/lifecycle).
+- TODO: Contrast unsupported interruption with supported conditional declarations; link the shared pending buffer in [registration contexts and blocks](/docs/concepts/lifecycle).
 
 ## Declare locals for isolation
 
 - TODO: Show an undeclared callee destination overwriting an ancestor local or global; correct it with a callee-local declaration before registration.
-- TODO: Distinguish intentional global destinations from accidental leakage and link [destination variables and scope](/docs/concepts/destination-variables-and-scope).
+- TODO: Distinguish intentional global destinations from accidental leakage and link [destination variables and scope](/docs/concepts/destinations).
 
 ## Move business effects after parsing
 
@@ -44,7 +44,7 @@ layout: article
 ## Put parent options before the child
 
 - TODO: Compare `app -v deploy -e staging` with placing root-only `-v` after `deploy`; show that the child receives it and may reject it or assign a different meaning.
-- TODO: Explain that seeing a parent's destination value does not mean inheriting its labels; link [calls and command routing](/docs/guides/direct-calls).
+- TODO: Explain that seeing a parent's destination value does not mean inheriting its labels; link [calls and command routing](/docs/concepts/routing).
 
 ## Run the root entrypoint once
 

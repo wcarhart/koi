@@ -8,7 +8,7 @@ layout: article
 
 ## Ordinary Bash destinations
 
-- TODO: Explain that koi writes to named Bash variables rather than returning a result object; link assignment timing to [registration contexts and blocks](/docs/guides/lifecycle).
+- TODO: Explain that koi writes to named Bash variables rather than returning a result object; link assignment timing to [registration contexts and blocks](/docs/concepts/lifecycle).
 - TODO: Explain destination identifiers versus CLI spellings and help display names; link allowed names and reserved names to [__addarg](/docs/reference/addarg).
 - TODO: Explain the current plain/exported scalar destination requirement and rejection of incompatible attributes such as arrays, integers, readonly variables, and namerefs.
 
@@ -23,4 +23,4 @@ layout: article
 
 - TODO: Distinguish Bash variable visibility, registration context ownership, and the CLI context that recognizes each argument label.
 - TODO: Explain that a child can see ancestor destination values without inheriting ancestor option spellings; child locals can shadow those destinations.
-- TODO: Explain that sourcing permits intentional shell changes, while subshells and command substitution isolate changes; link practical patterns to [reusing parsing functions](/docs/guides/reuse-parsing-functions).
+- TODO: Explain that sourcing permits intentional shell changes, while subshells and command substitution isolate changes; link practical patterns to [reusing parsing functions](/docs/guides/functions).

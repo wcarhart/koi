@@ -10,7 +10,7 @@ layout: article
 
 - TODO: Explain that parsing functions remain ordinary Bash functions and do not need `__addcommand` registration for direct or function-to-function calls.
 - TODO: Compare `main "$@"`, a custom entrypoint that prepares inputs and calls a parsing function, and root registration followed by `__koirun "$@"`.
-- TODO: Distinguish root registration from function registration and link their lifecycle to [registration contexts and blocks](/docs/guides/lifecycle).
+- TODO: Distinguish root registration from function registration and link their lifecycle to [registration contexts and blocks](/docs/concepts/lifecycle).
 - TODO: Explain that direct calls use script-only usage text and fallback function descriptions, whereas routed calls use the selected CLI path and registered description.
 
 ## Explicit registration and incremental discovery
@@ -29,6 +29,6 @@ layout: article
 ## Argument ownership along a route
 
 - TODO: Trace an invocation such as `app -v deploy -e staging`: root owns `-v`; the child receives everything after `deploy` and owns `-e`.
-- TODO: Explain that parent spellings are not inherited and a child may reuse them; distinguish recognition of spellings from destination visibility under [Bash scope](/docs/concepts/destination-variables-and-scope).
+- TODO: Explain that parent spellings are not inherited and a child may reuse them; distinguish recognition of spellings from destination visibility under [Bash scope](/docs/concepts/destinations).
 - TODO: Explain forwarding boundaries, including `--`, and why routing to child help still requires valid ancestor arguments.
-- TODO: Link complete task walkthroughs to [building an application](/docs/guides/commands) and [reusing parsing functions](/docs/guides/reuse-parsing-functions).
+- TODO: Link complete task walkthroughs to [building an application](/docs/guides/commands) and [reusing parsing functions](/docs/guides/functions).

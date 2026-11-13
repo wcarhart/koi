@@ -23,7 +23,7 @@ test('standalone indexes resolve links and discovery without joining continuous 
     [
       'guides/arguments',
       'guides/commands',
-      'guides/reuse-parsing-functions',
+      'guides/functions',
       'guides/help',
       'guides/troubleshooting',
     ],

@@ -17,7 +17,7 @@ layout: article
 
 - TODO: Use one annotated declaration to distinguish a destination such as `output_file`, its argument labels `-o` and `--output-file`, and its help display name `FILE`.
 - TODO: Explain short and long spellings, aliases for the same argument, and why positionals have no argument label.
-- TODO: Link terminology to the [glossary](/docs/glossary) and declaration syntax to [__addarg](/docs/reference/addarg).
+- TODO: Link terminology to the [glossary](/docs/concepts/glossary) and declaration syntax to [__addarg](/docs/reference/addarg).
 
 ## Bash tokenization precedes koi
 

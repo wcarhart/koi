@@ -5,9 +5,9 @@ test('short heading fragments work across docs, reloads, and local glossary link
   page,
 }) => {
   for (const [route, fragment] of [
-    ['glossary', 'flag'],
-    ['guides/lifecycle', 'parser-result-and-caller-result'],
-    ['concepts/parsing-and-control-flow', 'parser-result-and-caller-result'],
+    ['concepts/glossary', 'flag'],
+    ['concepts/lifecycle', 'parser-result-and-caller-result'],
+    ['concepts/control-flow', 'parser-result-and-caller-result'],
     ['quickstart', 'example'],
     ['guides/help', 'help-configuration'],
     ['install', 'dependencies'],
@@ -24,19 +24,21 @@ test('short heading fragments work across docs, reloads, and local glossary link
     await page.reload();
     await expect(heading).toBeInViewport();
   }
-  await page.goto('/docs/glossary#argument');
+  await page.goto('/docs/concepts/glossary#argument');
   await page
-    .locator('#doc-glossary a[href="/docs/glossary#flag"]')
+    .locator('#doc-concepts-glossary a[href="/docs/concepts/glossary#flag"]')
     .first()
     .click();
-  await expect(page).toHaveURL('/docs/glossary#flag');
-  await expect(page.locator('#doc-glossary-flag')).toBeInViewport();
+  await expect(page).toHaveURL('/docs/concepts/glossary#flag');
+  await expect(page.locator('#doc-concepts-glossary-flag')).toBeInViewport();
   await page.goBack();
-  await expect(page).toHaveURL('/docs/glossary#argument');
-  await expect(page.locator('#doc-glossary-argument')).toBeInViewport();
-  await page.goto('/docs/glossary#doc-glossary-flag');
-  await expect(page).toHaveURL('/docs/glossary#flag');
-  await expect(page.locator('#doc-glossary-flag')).toBeInViewport();
+  await expect(page).toHaveURL('/docs/concepts/glossary#argument');
+  await expect(
+    page.locator('#doc-concepts-glossary-argument'),
+  ).toBeInViewport();
+  await page.goto('/docs/concepts/glossary#doc-concepts-glossary-flag');
+  await expect(page).toHaveURL('/docs/concepts/glossary#flag');
+  await expect(page.locator('#doc-concepts-glossary-flag')).toBeInViewport();
 });
 
 async function openMenu(page: Page, isMobile: boolean) {

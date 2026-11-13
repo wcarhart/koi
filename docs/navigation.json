@@ -17,33 +17,33 @@
     "group": "Getting started"
   },
   {
-    "file": "concepts/arguments-and-values.md",
-    "slug": "concepts/arguments-and-values",
+    "file": "concepts/arguments.md",
+    "slug": "concepts/arguments",
     "group": "Core concepts"
   },
   {
-    "file": "guides/lifecycle.md",
-    "slug": "guides/lifecycle",
+    "file": "concepts/lifecycle.md",
+    "slug": "concepts/lifecycle",
     "group": "Core concepts"
   },
   {
-    "file": "guides/direct-calls.md",
-    "slug": "guides/direct-calls",
+    "file": "concepts/routing.md",
+    "slug": "concepts/routing",
     "group": "Core concepts"
   },
   {
-    "file": "concepts/destination-variables-and-scope.md",
-    "slug": "concepts/destination-variables-and-scope",
+    "file": "concepts/destinations.md",
+    "slug": "concepts/destinations",
     "group": "Core concepts"
   },
   {
-    "file": "concepts/parsing-and-control-flow.md",
-    "slug": "concepts/parsing-and-control-flow",
+    "file": "concepts/control-flow.md",
+    "slug": "concepts/control-flow",
     "group": "Core concepts"
   },
   {
-    "file": "glossary.md",
-    "slug": "glossary",
+    "file": "concepts/glossary.md",
+    "slug": "concepts/glossary",
     "group": "Core concepts"
   },
   {
@@ -57,8 +57,8 @@
     "group": "Guides"
   },
   {
-    "file": "guides/reuse-parsing-functions.md",
-    "slug": "guides/reuse-parsing-functions",
+    "file": "guides/functions.md",
+    "slug": "guides/functions",
     "group": "Guides"
   },
   {

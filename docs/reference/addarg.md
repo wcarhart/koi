@@ -4,7 +4,7 @@ description: "Define one flag, option, or positional argument in the current reg
 layout: split
 ---
 
-`__addarg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/guides/lifecycle#contexts-blocks-and-specs)). Use `__addarg` to define an argument that can be parsed by your function. `__addarg` statements must be used inside [registration blocks](/docs/guides/lifecycle) and must be followed by a guarded `__parseargs` statement at the function level or a `__koirun` statement at the root level.
+`__addarg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/concepts/lifecycle#contexts-blocks-and-specs)). Use `__addarg` to define an argument that can be parsed by your function. `__addarg` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded `__parseargs` statement at the function level or a `__koirun` statement at the root level.
 
 ## Usage
 
@@ -29,7 +29,7 @@ __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [
 
 ## Kind
 
-Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
+Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/concepts/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
 
 ## Standalone `--`
 To use literal `-h`, `--help`, or other unregistered dash-prefixed tokens as provided positional values (and not invoke the default generated help menu in the case of `-h`/`--help`), use `--`. `--` signals the end of flags and options and treats every subsequent argument as a positional. For example `./myscript.sh -- -h` would not show the help menu, it would treat `-h` as the first provided positional value.
@@ -43,7 +43,7 @@ To use literal `-h`, `--help`, or other unregistered dash-prefixed tokens as pro
 
 ## Returns and assignment
 
-`__addarg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/guides/lifecycle) even if its individual status is ignored by Bash control flow. An invalid `__addarg` declaration may stop execution when `set -e` applies, but conditional calling contexts can suppress this behavior. Without applicable `errexit` or explicit error handling, execution continues with the block marked invalid. Destination variables are assigned value during successful parsing in [__parseargs](/docs/reference/parseargs), not at argument registration (see [using a guard](/docs/concepts/parsing-and-control-flow#the-parsing-boundary-and-required-guard)).
+`__addarg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/concepts/lifecycle) even if its individual status is ignored by Bash control flow. An invalid `__addarg` declaration may stop execution when `set -e` applies, but conditional calling contexts can suppress this behavior. Without applicable `errexit` or explicit error handling, execution continues with the block marked invalid. Destination variables are assigned value during successful parsing in [__parseargs](/docs/reference/parseargs), not at argument registration (see [using a guard](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard)).
 
 ## Explore
 
