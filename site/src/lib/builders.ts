@@ -142,11 +142,8 @@ export function argumentScript(
 source ./koi
 
 main() {
-${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' : ''}${args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n')}
-    __parseargs "$@" || return "$koi_status"
-
-${args.map((arg) => `    printf '%s\\n' "$${arg.destination}"`).join('\n')}
-}
+${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    __parseargs "$@" || return "$koi_status"
+${args.length ? '\n' + args.map((arg) => `    printf '%s\\n' "$${arg.destination}"`).join('\n') + '\n' : ''}}
 
 main "$@"
 `;

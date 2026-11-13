@@ -6,7 +6,7 @@ layout: article
 
 ## Argument
 
-**A token passed to a script or function.** Typically in Bash, arguments are space-delimited except when respecting single- and double-quotes. In koi, we often use _argument_ to reference a declared input to a parsing interface. For example, `-f` could be an argument, as well as `--option` and `value`. Koi supports [flag](#flag), [option](#option), and [positional](#positional) argument [kinds](#kind). While we may say reference "option" as an argument _kind_, there are actually two individual arguments when options are used in practice (e.g. `--option value`), the [argument label](#argument-label) (e.g. `--option`) and the [argument value](#value) (e.g. `value`). See [arguments and values](/docs/concepts/arguments).
+**An input declared with [__addarg](/docs/reference/addarg), with kind [flag](#flag), [option](#option), or [positional](#positional).** Bash also uses _argument_ for each string passed to a script or function. In these docs, we use [token](#token) for those individual strings. For example, `--output-file report.txt` is two tokens supplying one declared argument, the [label](#argument-label) `--output-file` followed by the [value](#value) `report.txt`. See [arguments and values](/docs/concepts/arguments).
 
 ## Argument label
 

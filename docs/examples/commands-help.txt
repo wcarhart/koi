@@ -1,0 +1,11 @@
+Deploy and monitor your application
+
+Usage: cli [-h] COMMAND
+
+Commands:
+  status  Show running services
+  deploy  Deploy services and infrastructure
+  help    Show this help
+
+Options:
+  -h, --help  Show this help

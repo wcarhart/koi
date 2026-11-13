@@ -1,0 +1,10 @@
+Start or update a service
+
+Usage: cli deploy service [-h] [-f FILE] NAME
+
+Options:
+  -h, --help       Show this help
+  -f, --file FILE  Compose file (default: compose.yaml)
+
+Positionals:
+  NAME  Service name (required)

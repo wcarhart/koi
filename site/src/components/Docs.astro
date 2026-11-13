@@ -24,9 +24,9 @@ const selected = docs.find((d) => d.slug === slug)!;
       <div class="section-toolbar">
         <span class="section-number">
           <span class="section-number-prefix">
-            {String(index + 1).padStart(2, '0')} /
+            {String(index + 1).padStart(2, '0')} / {doc.group} /
           </span>{' '}
-          {doc.group} / {doc.navTitle ?? doc.title}
+          {doc.navTitle ?? doc.title}
         </span>
         <div>
           <button

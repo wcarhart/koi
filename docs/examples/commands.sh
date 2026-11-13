@@ -1,28 +1,44 @@
 #!/usr/bin/env bash
-source ./koi
+source koi
 
-__koiconfig name app
-__koiconfig description 'Manage deployments'
-__addcommand deploy -f deploy -d 'Deployment commands'
+__koiconfig name cli
+__koiconfig description 'Deploy and monitor your application'
+__addcommand status -f status -d 'Show running services'
+__addcommand deploy -f deploy -d 'Deploy services and infrastructure'
 
-# Register deployment commands
-# Usage: deploy COMMAND "$@"
-#   COMMAND  deployment command to select
-#   $@       arguments forwarded to the selected command
+status() {
+    local all
+    __addarg all -f -s a -l all -d 'Include stopped services'
+    __parseargs "$@" || return "$koi_status"
+
+    local options=()
+    if (( all )); then
+        options+=(--all)
+    fi
+    docker compose ps "${options[@]}"
+}
+
 deploy() {
-    __addcommand app -f deploy_app -d 'Deploy an application'
+    __addcommand service -f deploy_service -d 'Start or update a service'
+    __addcommand stack -f deploy_stack -d 'Apply an infrastructure stack'
     __parseargs "$@" || return "$koi_status"
 }
 
-# Print a mock application deployment
-# Usage: deploy_app [-e ENVIRONMENT]
-#   -e, --environment ENVIRONMENT  deployment environment (default: staging)
-deploy_app() {
-    local environment
-    __addarg environment -o -s e -l environment -D staging -d 'Deployment environment'
+deploy_service() {
+    local name file
+    __addarg name -p -r -d 'Service name'
+    __addarg file -o -s f -l file -D compose.yaml -d 'Compose file'
     __parseargs "$@" || return "$koi_status"
 
-    printf 'Would deploy to %s\n' "$environment"
+    docker compose -f "$file" up -d "$name"
+}
+
+deploy_stack() {
+    local directory
+    __addarg directory -p -r -d 'Initialized Terraform directory'
+    __parseargs "$@" || return "$koi_status"
+
+    terraform -chdir="$directory" apply
 }
 
 __koirun "$@"
