@@ -58,40 +58,47 @@ const reservedLongNames = new Set([
   'koi-error-on-duplicate',
   'koi-inspect',
 ]);
-export function argumentErrors(s: ArgumentSettings): string[] {
-  const errors: string[] = [];
+export function argumentFieldErrors(
+  s: ArgumentSettings,
+): Partial<Record<keyof ArgumentSettings, string>> {
+  const errors: Partial<Record<keyof ArgumentSettings, string>> = {};
   if (
     !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s.destination) ||
     s.destination.startsWith('__koi_') ||
     reservedDestinations.has(s.destination)
   ) {
-    errors.push(
-      'Choose an ordinary Bash variable name, outside the koi and shell reserved names.',
-    );
+    errors.destination =
+      'Choose an ordinary Bash variable name, outside the koi and shell reserved names.';
   }
   if (!['flag', 'option', 'positional'].includes(s.kind))
-    errors.push('Choose a supported argument kind.');
+    errors.kind = 'Choose a supported argument kind.';
   if (!s.description || s.description.includes('\0'))
-    errors.push('Provide a nonempty description without NUL characters.');
+    errors.description =
+      'Provide a nonempty description without NUL characters.';
   if (s.kind !== 'positional') {
     if (!s.short && !s.long)
-      errors.push('An option or flag needs a short or long spelling.');
+      errors.short = errors.long =
+        'An option or flag needs a short or long spelling.';
     if (s.short && (!/^[a-zA-Z]$/.test(s.short) || s.short === 'h'))
-      errors.push('Short spellings are one letter; h is reserved for help.');
+      errors.short = 'Short spellings are one letter; h is reserved for help.';
     if (
       s.long &&
       (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s.long) ||
         reservedLongNames.has(s.long))
     )
-      errors.push(
-        'Use a long spelling starting with a letter; help and koi administrative spellings are reserved.',
-      );
+      errors.long =
+        'Use a long spelling starting with a letter; help and koi administrative spellings are reserved.';
   }
-  if (s.defaultValue.includes('\0') || s.displayName.includes('\0'))
-    errors.push('Bash values cannot contain NUL characters.');
+  for (const field of ['defaultValue', 'displayName'] as const) {
+    if (s[field].includes('\0'))
+      errors[field] = 'Bash values cannot contain NUL characters.';
+  }
   return errors;
 }
-export function argumentScript(s: ArgumentSettings): string {
+export function argumentErrors(s: ArgumentSettings): string[] {
+  return [...new Set(Object.values(argumentFieldErrors(s)))];
+}
+function argumentDeclaration(s: ArgumentSettings): string {
   const errors = argumentErrors(s);
   if (errors.length) throw new Error(errors.join(' '));
   const parts = [
@@ -109,7 +116,103 @@ export function argumentScript(s: ArgumentSettings): string {
     parts.push('-D', shellQuote(s.defaultValue));
   if (s.kind !== 'flag' && s.displayName)
     parts.push('-n', shellQuote(s.displayName));
-  return `#!/usr/bin/env bash\nsource ./koi\n\n# Print the parsed value\n# Usage: main "$@"\n#   $@  arguments forwarded to koi\nmain() {\n    local ${s.destination}\n    ${parts.join(' ')}\n    __parseargs "$@" || return "$koi_status"\n\n    printf '%s\\n' "$${s.destination}"\n}\n\nmain "$@"\n`;
+  return parts.join(' ');
+}
+
+export function argumentCollectionErrors(args: ArgumentSettings[]): string[] {
+  const errors = args.flatMap(argumentErrors);
+  for (const key of ['destination', 'short', 'long'] as const) {
+    const values = args
+      .filter((arg) => key === 'destination' || arg.kind !== 'positional')
+      .map((arg) => arg[key])
+      .filter(Boolean);
+    if (new Set(values).size !== values.length)
+      errors.push(`Each ${key} must be unique.`);
+  }
+  return errors;
+}
+
+export function argumentScript(
+  settings: ArgumentSettings | ArgumentSettings[],
+): string {
+  const args = Array.isArray(settings) ? settings : [settings];
+  const errors = argumentCollectionErrors(args);
+  if (errors.length) throw new Error(errors.join(' '));
+  return `#!/usr/bin/env bash
+source ./koi
+
+main() {
+${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' : ''}${args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n')}
+    __parseargs "$@" || return "$koi_status"
+
+${args.map((arg) => `    printf '%s\\n' "$${arg.destination}"`).join('\n')}
+}
+
+main "$@"
+`;
+}
+
+export function argumentHelp(args: ArgumentSettings[]): string {
+  const ordered = [
+    ...args.filter((arg) => arg.kind !== 'positional'),
+    ...args.filter((arg) => arg.kind === 'positional'),
+  ];
+  const value = (arg: ArgumentSettings) =>
+    (
+      arg.displayName ||
+      (arg.kind !== 'positional' && arg.long) ||
+      arg.destination
+    ).toUpperCase();
+  const spelling = (arg: ArgumentSettings) =>
+    [arg.short && `-${arg.short}`, arg.long && `--${arg.long}`]
+      .filter(Boolean)
+      .join(', ');
+  const labels = ordered.map((arg) =>
+    arg.kind === 'positional'
+      ? value(arg)
+      : spelling(arg) + (arg.kind === 'option' ? ` ${value(arg)}` : ''),
+  );
+  const width = Math.max(9, ...labels.map((label) => label.length));
+  const usage = ordered.map((arg) => {
+    const label =
+      arg.kind === 'positional'
+        ? value(arg)
+        : (arg.short ? `-${arg.short}` : `--${arg.long}`) +
+          (arg.kind === 'option' ? ` ${value(arg)}` : '');
+    return arg.required ? label : `[${label}]`;
+  });
+  let text = `Usage: greet.sh [-h]${usage.length ? ' ' + usage.join(' ') : ''}\n\nOptions:\n  ${'-h, --help'.padEnd(width)}  Show this help\n`;
+  let positional = false;
+  ordered.forEach((arg, index) => {
+    if (arg.kind === 'positional' && !positional) {
+      text += '\nPositionals:\n';
+      positional = true;
+    }
+    const description =
+      arg.description +
+      (arg.required ? ' (required)' : '') +
+      (arg.kind !== 'flag' && !arg.required && arg.useDefault
+        ? ` (default: ${arg.defaultValue})`
+        : '');
+    const indent = ' '.repeat(width + 4);
+    let prefix = `  ${labels[index].padEnd(width)}  `;
+    for (const explicitLine of description.split('\n')) {
+      let line = prefix;
+      for (const word of explicitLine.split(/[ \t]+/).filter(Boolean)) {
+        if (line !== prefix) {
+          if ([...line].length + 1 + [...word].length > 100) {
+            text += line + '\n';
+            prefix = indent;
+            line = prefix;
+          } else line += ' ';
+        }
+        line += word;
+      }
+      text += line + '\n';
+      prefix = indent;
+    }
+  });
+  return text;
 }
 export function helpErrors(s: HelpSettings): string[] {
   const errors: string[] = [];

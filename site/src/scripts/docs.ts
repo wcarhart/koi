@@ -60,6 +60,10 @@ function go(url: URL, push: boolean, savedY?: number) {
   if (url.hash) {
     try {
       target =
+        [...section.querySelectorAll<HTMLElement>('[data-fragment]')].find(
+          (node) =>
+            node.dataset.fragment === decodeURIComponent(url.hash.slice(1)),
+        ) ||
         document.getElementById(decodeURIComponent(url.hash.slice(1))) ||
         section;
     } catch {
@@ -67,7 +71,8 @@ function go(url: URL, push: boolean, savedY?: number) {
     }
   }
   if (!section.contains(target) && target !== section) target = section;
-  const heading = target !== section ? `#${target.id}` : '';
+  const heading =
+    target !== section ? `#${target.dataset.fragment || target.id}` : '';
   locked = true;
   if (push) {
     history.replaceState(savePosition(), '');

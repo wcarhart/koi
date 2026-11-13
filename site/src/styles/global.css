@@ -2328,3 +2328,265 @@ html:not(.js) [data-open-menu] {
 .prose .callout > :last-child {
   margin-bottom: 0;
 }
+
+.argument-explorer {
+  border-radius: 16px;
+  padding: 22px;
+}
+.argument-explorer [hidden] {
+  display: none !important;
+}
+.argument-subtitle {
+  font: 600 14px/1.5 var(--sans);
+  color: var(--ink);
+  margin: 0 !important;
+}
+.argument-rows {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) max-content minmax(0, 1fr) 44px;
+  column-gap: 12px;
+  list-style: none;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.argument-rows li {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  position: relative;
+  margin: 0;
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
+}
+.argument-rows li::before {
+  z-index: 0;
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.argument-rows
+  li:is(:hover, :focus-within):not(:has(.argument-remove:hover))::before {
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.argument-row {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / 4;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  text-align: left;
+  border-radius: 4px;
+}
+.argument-rows :is(.argument-row, .argument-remove) {
+  position: relative;
+  z-index: 1;
+}
+.argument-kind {
+  justify-self: start;
+  font: 10px/1.6 var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.argument-spelling {
+  font: 12px/1.5 var(--mono);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.argument-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.argument-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: 24px/1 var(--sans);
+  color: var(--ink);
+}
+.argument-action svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+}
+.argument-action.destructive {
+  color: #b73a35;
+}
+.argument-action.destructive svg {
+  fill: currentColor;
+}
+.argument-action.success {
+  color: #23734a;
+  background: color-mix(in srgb, #23734a 10%, var(--surface));
+  border-color: color-mix(in srgb, #23734a 35%, var(--line));
+}
+.argument-action:hover,
+.argument-kind-trigger:hover,
+.argument-dropdown [role='option']:hover {
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.argument-action.destructive:hover {
+  background: color-mix(in srgb, #b73a35 12%, var(--surface));
+}
+.argument-action.success:hover {
+  background: color-mix(in srgb, #23734a 20%, var(--surface));
+}
+[data-theme='dark'] .argument-action.destructive {
+  color: #f4aa91;
+}
+[data-theme='dark'] .argument-action.success {
+  color: #85d7aa;
+}
+.argument-dropdown {
+  position: relative;
+}
+.argument-kind-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: 12px/1.5 var(--mono);
+}
+.argument-dropdown [role='listbox'] {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #0002;
+}
+.argument-dropdown [role='option'] {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 4px;
+  padding: 10px;
+  text-align: left;
+  font: 12px/1.5 var(--mono);
+}
+.argument-dropdown [aria-selected='true'] {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.argument-explorer label.switch-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.argument-switch {
+  width: 44px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--ink) 15%, var(--surface));
+  flex-shrink: 0;
+}
+.argument-switch span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px #0003;
+  transition: transform 0.15s;
+}
+.argument-switch[aria-checked='true'] {
+  background: var(--ink);
+}
+.argument-switch[aria-checked='true'] span {
+  transform: translateX(17px);
+}
+.argument-switch:hover {
+  border-color: var(--accent);
+}
+.argument-explorer :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .argument-explorer {
+    padding: 16px;
+  }
+  .argument-rows {
+    column-gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .argument-switch span {
+    transition: none;
+  }
+}
+
+.argument-remove {
+  background: var(--surface);
+  justify-self: start;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  flex: none;
+}
+.argument-remove svg {
+  width: 16px;
+  height: 16px;
+}
+.argument-dropdown [role='option'] + [role='option'] {
+  margin-top: 4px;
+}
+.argument-kind-trigger svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.argument-explorer :is(input, textarea)[aria-invalid='true'] {
+  border-color: var(--warning);
+  outline: 2px solid var(--warning);
+  outline-offset: 3px;
+}
+.argument-invalid-shake {
+  animation: argument-shake 280ms ease-in-out;
+}
+@keyframes argument-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .argument-invalid-shake {
+    animation: none;
+  }
+}

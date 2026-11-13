@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import {
   shellQuote,
   argumentErrors,
+  argumentFieldErrors,
   argumentScript,
   defaultArgument,
   helpScript,
@@ -109,4 +110,85 @@ test('generated help configurations are accepted by koi', () => {
     assert.equal(result.stderr, '');
     assert.ok(result.stdout.includes(settings.name));
   }
+});
+
+test('argument collections preserve order, detect collisions, and generate matching help', async () => {
+  const { argumentCollectionErrors, argumentHelp } =
+    await import('../src/lib/builders');
+  const args = [
+    { ...defaultArgument },
+    {
+      ...defaultArgument,
+      kind: 'positional' as const,
+      destination: 'file',
+      short: '',
+      long: '',
+      required: true,
+      useDefault: false,
+      displayName: 'path',
+      description: 'Input file',
+    },
+    {
+      ...defaultArgument,
+      kind: 'flag' as const,
+      destination: 'verbose',
+      short: 'v',
+      long: 'verbose',
+      useDefault: false,
+      description: 'Print progress',
+    },
+  ];
+  const script = argumentScript(args);
+  assert.match(script, /local name file verbose/);
+  assert.ok(
+    script.indexOf('__addarg file') < script.indexOf('__addarg verbose'),
+  );
+  assert.ok(argumentCollectionErrors([...args, { ...defaultArgument }]).length);
+  for (const collection of [
+    args,
+    [args[2]],
+    [
+      {
+        ...defaultArgument,
+        description: 'First line\nSecond line ' + 'word '.repeat(30),
+      },
+    ],
+  ]) {
+    const result = spawnSync(
+      'bash',
+      ['-c', argumentScript(collection), 'greet.sh', '--help'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(argumentHelp(collection), result.stdout);
+  }
+});
+
+test('field validation identifies independent errors and empty collections produce valid samples', () => {
+  const errors = argumentFieldErrors({
+    ...defaultArgument,
+    destination: 'bad-name',
+    description: '',
+    short: 'h',
+    long: 'help',
+  });
+  assert.deepEqual(Object.keys(errors).sort(), [
+    'description',
+    'destination',
+    'long',
+    'short',
+  ]);
+  const corrected = argumentFieldErrors({
+    ...defaultArgument,
+    destination: 'valid',
+    description: '',
+    short: 'h',
+    long: 'help',
+  });
+  assert.equal(corrected.destination, undefined);
+  assert.ok(corrected.description);
+  const script = argumentScript([]);
+  assert.doesNotMatch(script, /local |# Usage: main/);
+  const result = spawnSync('bash', ['-n'], { input: script, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
 });

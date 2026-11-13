@@ -133,12 +133,8 @@ test('deep links, refresh, scroll URLs, explicit navigation, and browser history
     document.getElementById('doc-reference-koiconfig')!.scrollIntoView(),
   );
   await expect(page).toHaveURL(/\/docs\/reference\/koiconfig$/);
-  await page.goto(
-    '/docs/reference/addarg#doc-reference-addarg-declaration-options',
-  );
-  await expect(
-    page.locator('#doc-reference-addarg-declaration-options'),
-  ).toBeInViewport();
+  await page.goto('/docs/reference/addarg#options');
+  await expect(page.locator('#doc-reference-addarg-options')).toBeInViewport();
 });
 
 test('keyboard search navigates, closes, and ignores editable inputs', async ({
@@ -155,6 +151,7 @@ test('keyboard search navigates, closes, and ignores editable inputs', async ({
   await search.press('Enter');
   await expect(dialog).not.toBeVisible();
   await expect(page).toHaveURL(/\/docs\/reference\/addarg$/);
+  await page.getByRole('button', { name: 'Edit name argument' }).click();
   const dest = page.getByLabel('Destination variable');
   await dest.fill('name');
   await dest.press('/');
@@ -179,22 +176,39 @@ test('code builders update, constrain fields, and reset to documented defaults',
   const section = page.locator('#doc-reference-addarg');
   const code = section.locator('.doc-example code').first();
   const initial = await code.textContent();
-  await page.getByLabel('Destination variable').fill('recipient');
+  await section.getByRole('button', { name: 'Edit name argument' }).click();
+  await section.getByLabel('Destination variable').fill('recipient');
+  await section.getByRole('button', { name: 'Save argument' }).click();
   await expect(code).toContainText('local recipient');
-  await page.getByLabel('Argument kind').selectOption('positional');
-  await expect(page.getByLabel('Short name')).not.toBeVisible();
+  await expect(code.locator('span[style]')).not.toHaveCount(0);
+  await section
+    .getByRole('button', { name: 'Edit recipient argument' })
+    .click();
+  await section.getByRole('button', { name: 'Kind' }).click();
+  await section
+    .getByRole('option', { name: 'Positional', exact: true })
+    .click();
+  await expect(section.getByLabel('Short name')).not.toBeVisible();
+  await section.getByRole('switch', { name: 'Required', exact: true }).click();
+  await expect(
+    section.getByRole('switch', { name: 'Use a default' }),
+  ).not.toBeVisible();
+  await section.getByRole('button', { name: 'Save argument' }).click();
   await expect(code).toContainText('__addarg recipient -p');
-  await section.getByLabel('Required', { exact: true }).check();
-  await expect(section.getByLabel('Use a default')).not.toBeVisible();
   await expect(code).not.toContainText(' -D ');
-  await page.getByLabel('Destination variable').fill('bad-name');
-  await expect(section.getByRole('status')).toContainText(
-    'ordinary Bash variable',
+  await section
+    .getByRole('button', { name: 'Edit recipient argument' })
+    .click();
+  await section.getByLabel('Destination variable').fill('bad-name');
+  await section.getByRole('button', { name: 'Save argument' }).click();
+  await expect(section.getByLabel('Destination variable')).toHaveAttribute(
+    'aria-invalid',
+    'true',
   );
   await expect(code).toContainText('local recipient');
-  await section.getByRole('button', { name: 'Reset' }).click();
+  await section.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await section.getByRole('button', { name: 'Reset arguments' }).click();
   await expect(code).toHaveText(initial!);
-  await expect(page.getByLabel('Destination variable')).toHaveValue('name');
   await page.goto('/docs/guides/help');
   const help = page.locator('#doc-guides-help');
   await help.getByLabel('Root verbose help').check();
@@ -233,7 +247,8 @@ test('copy buttons use Markdown response, checkmark feedback, and failure feedba
   ).text();
   expect(matter(markdown).data).toEqual({
     title: '__addarg',
-    subtitle: 'Declare one flag, scalar option, or scalar positional.',
+    subtitle:
+      'Define one flag, option, or positional argument in the current registration context.',
   });
   expect(
     await page.evaluate(() => (window as unknown as { copied: string }).copied),
@@ -374,16 +389,16 @@ test('search retries after a failed fetch and opens heading results', async ({
   await expect(dialog).toContainText('Search could not load');
   await page.getByRole('button', { name: 'Close search', exact: true }).click();
   await page.keyboard.press('/');
-  await dialog.getByRole('combobox').fill('Declaration options');
+  await dialog.getByRole('combobox').fill('Returns and assignment');
   await expect(dialog.getByRole('option').first()).toContainText(
-    'Declaration options',
+    'Returns and assignment',
   );
   await dialog.getByRole('combobox').press('Enter');
   await expect(page).toHaveURL(
-    /\/docs\/reference\/addarg#doc-reference-addarg-declaration-options$/,
+    /\/docs\/reference\/addarg#returns-and-assignment$/,
   );
   await expect(
-    page.locator('#doc-reference-addarg-declaration-options'),
+    page.locator('#doc-reference-addarg-returns-and-assignment'),
   ).toBeInViewport();
 });
 

@@ -8,7 +8,9 @@ layout: split
 __addcommand NAME -f HANDLER -d DESCRIPTION
 ```
 
-| Parameter | Contract |
+## Options
+
+| Parameter | Description |
 | --- | --- |
 | `NAME` | CLI command name, unique within this context |
 | `-f`, `--function HANDLER` | Bash function to invoke |

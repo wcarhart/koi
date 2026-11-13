@@ -27,6 +27,11 @@
     "group": "Core concepts"
   },
   {
+    "file": "glossary.md",
+    "slug": "glossary",
+    "group": "Core concepts"
+  },
+  {
     "file": "guides/arguments.md",
     "slug": "guides/arguments",
     "group": "Guides"

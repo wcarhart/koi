@@ -95,7 +95,7 @@ export async function renderMarkdown(
   body: string,
   prefix: string,
   docLinks: Map<string, string> = new Map(),
-  options: { copy?: boolean } = {},
+  options: { copy?: boolean; route?: string; anchors?: boolean } = {},
 ): Promise<{ html: string; headings: { title: string; id: string }[] }> {
   const high = await highlighter;
   const slugger = new GithubSlugger();
@@ -145,9 +145,12 @@ export async function renderMarkdown(
         const title = tokens
           .map((t) => ('text' in t ? String(t.text) : ''))
           .join('');
-        const id = `${prefix ? `${prefix}-` : ''}${slugger.slug(title)}`;
+        const fragment = slugger.slug(title);
+        const id = `${prefix ? `${prefix}-` : ''}${fragment}`;
+        if (options.anchors === false)
+          return `<h${depth}>${this.parser.parseInline(tokens)}</h${depth}>`;
         headings.push({ title, id });
-        return `<h${depth} id="${id}"><a class="heading-anchor" href="#${id}">${this.parser.parseInline(tokens)}</a></h${depth}>`;
+        return `<h${depth} id="${id}"${options.route ? ` data-fragment="${fragment}"` : ''}><a class="heading-anchor" href="${options.route ? `${options.route}#${fragment}` : `#${id}`}">${this.parser.parseInline(tokens)}</a></h${depth}>`;
       },
       code({ text, lang }: Tokens.Code) {
         const language = (lang || 'text').split(' ')[0];
@@ -231,9 +234,14 @@ async function loadDocs(): Promise<Doc[]> {
     )
       throw new Error(`Layout marker mismatch: ${entry.file}`);
     const id = sectionId(entry.slug);
-    const prose = await renderMarkdown(pieces[0], id);
+    const reference = entry.slug.startsWith('reference/');
+    const prose = await renderMarkdown(pieces[0], id, new Map(), {
+      route: reference ? sectionUrl(entry.slug) : undefined,
+    });
     const example = pieces[1]
-      ? await renderMarkdown(pieces[1], `${id}-example`)
+      ? await renderMarkdown(pieces[1], `${id}-example`, new Map(), {
+          anchors: !reference,
+        })
       : { html: '', headings: [] };
     const url = sectionUrl(entry.slug);
     const markdown = cleanMarkdown(body);
@@ -254,7 +262,7 @@ async function loadDocs(): Promise<Doc[]> {
         title: heading.title,
         section: data.title,
         group: entry.group,
-        url: `${url}#${heading.id}`,
+        url: `${url}#${reference ? heading.id.slice(id.length + 1) : heading.id}`,
         text: plainText(chunks[index] || markdown).slice(0, 1600),
       });
     docs.push({
@@ -290,7 +298,18 @@ async function loadDocs(): Promise<Doc[]> {
 }
 export function validateLinks(docs: Doc[]): void {
   const routes = new Map(
-    docs.map((d) => [d.url, new Set([d.id, ...d.headings.map((h) => h.id)])]),
+    docs.map((d) => [
+      d.url,
+      new Set([
+        d.id,
+        ...d.headings.flatMap((h) => [
+          h.id,
+          ...(d.slug.startsWith('reference/')
+            ? [h.id.slice(d.id.length + 1)]
+            : []),
+        ]),
+      ]),
+    ]),
   );
   const standalone = new Set([
     '/',

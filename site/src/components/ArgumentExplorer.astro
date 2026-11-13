@@ -1,0 +1,186 @@
+---
+import resetIcon from '../assets/icons/reset.svg?raw';
+---
+
+<div class="builder argument-explorer" data-argument-explorer>
+  <div data-argument-list>
+    <div class="builder-heading">
+      <span class="argument-subtitle">Registered arguments</span>
+      <button
+        type="button"
+        class="argument-action destructive"
+        data-reset
+        aria-label="Reset arguments"
+        title="Reset arguments"
+      >
+        <Fragment set:html={resetIcon} />
+      </button>
+    </div>
+    <ul class="argument-rows" aria-label="Registered arguments"></ul>
+    <div class="argument-actions">
+      <button
+        type="button"
+        class="argument-action"
+        data-add
+        aria-label="Register an argument"
+        title="Register an argument"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <form
+    data-argument-editor
+    aria-label="Argument code builder"
+    hidden
+    novalidate
+  >
+    <h3 class="argument-subtitle" data-editor-title>
+      Register an argument
+    </h3>
+    <label for="argument-destination">Destination variable</label>
+    <input
+      id="argument-destination"
+      name="destination"
+      required
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <label id="argument-kind-label">Kind</label>
+    <div class="argument-dropdown">
+      <button
+        type="button"
+        class="argument-kind-trigger"
+        aria-haspopup="listbox"
+        aria-expanded="false"
+        aria-labelledby="argument-kind-label argument-kind-value"
+      >
+        <span id="argument-kind-value">Flag</span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          aria-hidden="true"
+        >
+          <path d="m7 10 5 5 5-5" />
+        </svg>
+      </button>
+      <div role="listbox" aria-labelledby="argument-kind-label" hidden>
+        {['Flag', 'Option', 'Positional'].map((kind) => (
+          <button
+            type="button"
+            role="option"
+            aria-selected={kind === 'Flag' ? 'true' : 'false'}
+            data-kind={kind.toLowerCase()}
+            tabindex="-1"
+          >
+            {kind}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div class="field-pair" data-spellings>
+      <div>
+        <label for="argument-short">
+          Short name <span class="muted">(optional)</span>
+        </label>
+        <input id="argument-short" name="short" spellcheck="false" />
+      </div>
+      <div>
+        <label for="argument-long">
+          Long name <span class="muted">(optional)</span>
+        </label>
+        <input id="argument-long" name="long" spellcheck="false" />
+      </div>
+    </div>
+    <div data-default-control>
+      <label class="switch-label" for="argument-use-default">
+        Use a default{' '}
+        <button
+          id="argument-use-default"
+          type="button"
+          class="argument-switch"
+          role="switch"
+          aria-checked="false"
+          data-switch="useDefault"
+        >
+          <span></span>
+        </button>
+      </label>
+      <div data-default-value hidden>
+        <label for="argument-default">Default value</label>
+        <input id="argument-default" name="defaultValue" />
+      </div>
+    </div>
+    <div data-display-name>
+      <label for="argument-display">
+        Display name <span class="muted">(optional)</span>
+      </label>
+      <input id="argument-display" name="displayName" />
+    </div>
+    <label for="argument-description">Description</label>
+    <textarea
+      id="argument-description"
+      name="description"
+      rows="2"
+      required
+    ></textarea>
+    <label class="switch-label" for="argument-required">
+      Required{' '}
+      <button
+        id="argument-required"
+        type="button"
+        class="argument-switch"
+        role="switch"
+        aria-checked="false"
+        data-switch="required"
+      >
+        <span></span>
+      </button>
+    </label>
+    <div class="argument-actions">
+      <button
+        type="button"
+        class="argument-action"
+        data-cancel
+        aria-label="Cancel"
+        title="Cancel"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          aria-hidden="true"
+        >
+          <path d="m6 6 12 12M6 18 18 6" />
+        </svg>
+      </button>
+      <button
+        type="submit"
+        class="argument-action success"
+        aria-label="Save argument"
+        title="Save argument"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          aria-hidden="true"
+        >
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      </button>
+    </div>
+  </form>
+</div>

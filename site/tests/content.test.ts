@@ -14,12 +14,13 @@ import { search } from '../src/lib/search';
 test('published content has six API pages, excludes outlines, and expands executable examples', async () => {
   const docs = await getDocs();
   assert.equal(docs.filter((d) => d.group === 'API reference').length, 6);
-  assert.equal(docs.length, 17);
+  assert.equal(docs.length, 18);
   assert.ok(docs.every((d) => !d.file.startsWith('outlines/')));
   const addarg = docs.find((d) => d.slug === 'reference/addarg')!;
   assert.match(addarg.markdown, /__parseargs "\$@" \|\| return "\$koi_status"/);
   assert.doesNotMatch(addarg.markdown, /koi:include|koi:example|^---/);
   assert.match(addarg.example, /Copy code/);
+  assert.doesNotMatch(addarg.markdown, /# Usage: main/);
 });
 test('manifest rejects duplicate paths, DOM IDs, invalid sources, and unknown builders', () => {
   const entry = { file: 'a.md', slug: 'a', group: 'A' };
@@ -175,5 +176,21 @@ test('information callouts use a circle icon and purple theme class', async () =
     assert.match(html, /class="callout callout-information"/);
     assert.match(html, /<circle cx="12" cy="12" r="9"/);
     assert.match(html, /Good to know/);
+  }
+});
+
+test('reference headings expose route-local fragments and examples have no anchors', async () => {
+  const docs = (await getDocs()).filter((doc) =>
+    doc.slug.startsWith('reference/'),
+  );
+  for (const doc of docs) {
+    assert.doesNotMatch(doc.example, /heading-anchor|<h[1-6] id=/);
+    for (const heading of doc.headings) {
+      const fragment = heading.id.slice(doc.id.length + 1);
+      assert.ok(doc.prose.includes(`href="${doc.url}#${fragment}"`));
+      assert.ok(
+        doc.search.some((entry) => entry.url === `${doc.url}#${fragment}`),
+      );
+    }
   }
 });

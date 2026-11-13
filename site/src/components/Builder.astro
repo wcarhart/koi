@@ -1,5 +1,6 @@
 ---
-import { defaultArgument as arg, defaultHelp as help } from '../lib/builders';
+import ArgumentExplorer from './ArgumentExplorer.astro';
+import { defaultHelp as help } from '../lib/builders';
 interface Props {
   kind: 'addarg' | 'help';
 }
@@ -7,132 +8,60 @@ const { kind } = Astro.props;
 const prefix = `builder-${kind}`;
 ---
 
-<form
-  class="builder"
-  data-builder={kind}
-  aria-label={
-    kind === 'addarg'
-      ? 'Argument code builder'
-      : 'Help configuration code builder'
-  }
->
-  <div class="builder-heading">
-    <span class="eyebrow">MAKE IT YOURS</span>
-    <button type="reset" class="text-button">
-      Reset
-    </button>
-  </div>
-  {kind === 'addarg' ? (
-    <>
-      <label for={`${prefix}-kind`}>Argument kind</label>
-      <select id={`${prefix}-kind`} name="kind">
-        <option value="option">Scalar option</option>
-        <option value="flag">Boolean flag</option>
-        <option value="positional">Positional value</option>
-      </select>
-      <label for={`${prefix}-destination`}>Destination variable</label>
-      <input
-        id={`${prefix}-destination`}
-        name="destination"
-        value={arg.destination}
-        spellcheck="false"
-      />
-      <div class="field-pair" data-spellings>
-        <div>
-          <label for={`${prefix}-short`}>Short name</label>
-          <input
-            id={`${prefix}-short`}
-            name="short"
-            value={arg.short}
-            spellcheck="false"
-          />
-        </div>
-        <div>
-          <label for={`${prefix}-long`}>Long name</label>
-          <input
-            id={`${prefix}-long`}
-            name="long"
-            value={arg.long}
-            spellcheck="false"
-          />
-        </div>
-      </div>
-      <label for={`${prefix}-description`}>Description</label>
-      <textarea
-        id={`${prefix}-description`}
-        name="description"
-        rows="2"
-      >{arg.description}</textarea>
-      <label class="checkbox">
-        <input type="checkbox" name="required" checked={arg.required} />
-        Required
-      </label>
-      <label class="checkbox" data-default-control>
-        <input type="checkbox" name="useDefault" checked={arg.useDefault} />
-        Use a default
-      </label>
-      <div data-default-value>
-        <label for={`${prefix}-default`}>Default value</label>
-        <input
-          id={`${prefix}-default`}
-          name="defaultValue"
-          value={arg.defaultValue}
-        />
-      </div>
-      <div data-display-name>
-        <label for={`${prefix}-display`}>
-          Display name <span class="muted">(optional)</span>
-        </label>
-        <input
-          id={`${prefix}-display`}
-          name="displayName"
-          value={arg.displayName}
-        />
-      </div>
-    </>
-  ) : (
-    <>
-      <label for={`${prefix}-name`}>Script name</label>
-      <input id={`${prefix}-name`} name="name" value={help.name} />
-      <label for={`${prefix}-description`}>Description</label>
-      <textarea
-        id={`${prefix}-description`}
-        name="description"
-        rows="2"
-      >{help.description}</textarea>
-      <label for={`${prefix}-width`}>Help width</label>
-      <input
-        id={`${prefix}-width`}
-        name="width"
-        inputmode="numeric"
-        value={help.width}
-      />
-      <label class="checkbox">
-        <input type="checkbox" name="helpCommand" checked={help.helpCommand} />
-        Built-in branch help commands
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="verbose" checked={help.verbose} />
-        Root verbose help
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="hints" checked={help.hints} />
-        Root help hints
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="unknownHelp" checked={help.unknownHelp} />
-        Help on unknown commands
-      </label>
-      <label for={`${prefix}-missing`}>
-        Missing-command error <span class="muted">(optional)</span>
-      </label>
-      <input
-        id={`${prefix}-missing`}
-        name="missingMessage"
-        value={help.missingMessage}
-      />
-    </>
-  )}
-  <p class="builder-error" role="status" aria-live="polite"></p>
-  <p class="builder-note">Updates the code. No commands are executed.</p>
-</form>
+{kind === 'addarg' ? (
+  <ArgumentExplorer />
+) : (
+  <form
+    class="builder"
+    data-builder={kind}
+    aria-label="Help configuration code builder"
+  >
+    <div class="builder-heading">
+      <span class="eyebrow">MAKE IT YOURS</span>
+      <button type="reset" class="text-button">
+        Reset
+      </button>
+    </div>
+    <label for={`${prefix}-name`}>Script name</label>
+    <input id={`${prefix}-name`} name="name" value={help.name} />
+    <label for={`${prefix}-description`}>Description</label>
+    <textarea
+      id={`${prefix}-description`}
+      name="description"
+      rows="2"
+    >{help.description}</textarea>
+    <label for={`${prefix}-width`}>Help width</label>
+    <input
+      id={`${prefix}-width`}
+      name="width"
+      inputmode="numeric"
+      value={help.width}
+    />
+    <label class="checkbox">
+      <input type="checkbox" name="helpCommand" checked={help.helpCommand} />
+      Built-in branch help commands
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="verbose" checked={help.verbose} />
+      Root verbose help
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="hints" checked={help.hints} />
+      Root help hints
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="unknownHelp" checked={help.unknownHelp} />
+      Help on unknown commands
+    </label>
+    <label for={`${prefix}-missing`}>
+      Missing-command error <span class="muted">(optional)</span>
+    </label>
+    <input
+      id={`${prefix}-missing`}
+      name="missingMessage"
+      value={help.missingMessage}
+    />
+    <p class="builder-error" role="status" aria-live="polite"></p>
+    <p class="builder-note">Updates the code. No commands are executed.</p>
+  </form>
+)}

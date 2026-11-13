@@ -104,7 +104,7 @@ test('index headings navigate to isolated docs pages and article links restore t
   }
   await page.locator('.index-list a').first().click();
   await expect(page).toHaveURL('/docs/examples/function-entrypoint');
-  await expect(page.locator('[data-doc-section]')).toHaveCount(17);
+  await expect(page.locator('[data-doc-section]')).toHaveCount(18);
   await expect(
     page.locator('#doc-examples-function-entrypoint h1'),
   ).toBeInViewport();

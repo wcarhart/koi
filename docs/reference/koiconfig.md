@@ -8,11 +8,13 @@ layout: article
 __koiconfig KEY VALUE
 ```
 
-| Key | Default | Value |
-| --- | --- | --- |
-| `name` | Script basename | Nonempty display name for usage, hints, and script-prefixed errors |
-| `description` | None | Nonempty root description |
-| `help-width` | `100` | Positive decimal integer, at most nine digits |
+## Options
+
+| Parameter | Description |
+| --- | --- |
+| `name` | Nonempty display name for usage, hints, and script-prefixed errors. Defaults to the script basename. |
+| `description` | Nonempty root description. Unset by default. |
+| `help-width` | Positive decimal integer, at most nine digits. Defaults to `100`. |
 
 Call at script scope after sourcing koi and before consuming root registration or calling the application entrypoint. Settings apply throughout the script. Unknown keys, repeated keys, empty values, and function-scope calls fail with `2` and invalidate registration. Valid calls return `0`.
 

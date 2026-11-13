@@ -10,9 +10,9 @@ __koirun [SETTINGS] "$@"
 
 `"$@"` forwards root options, positional values, or the selected command and its arguments. Call once per library initialization. The first attempt consumes root registration even on help or error; a second call and later root declarations fail. Re-sourcing does not reset the lifecycle.
 
-## Runner settings
+## Options
 
-| Setting | Default / behavior |
+| Parameter | Description |
 | --- | --- |
 | `--koi-zero-argument-message MESSAGE` | Nonempty error text when no command is given; otherwise a branch shows help |
 | `--koi-enable-help-on-unknown-commands` | Accept an unknown command with a standalone help request; off by default |
