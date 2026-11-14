@@ -193,6 +193,28 @@ test('warning callouts render rich content and leave ordinary quotes intact', as
   assert.match(html, /<blockquote><p>Ordinary quote<\/p>\n<\/blockquote>/);
 });
 
+test('callout titles render inline Markdown with a plain text accessible label', async () => {
+  for (const marker of ['NOTE', 'WARNING', 'IMPORTANT']) {
+    const { html } = await renderMarkdown(
+      `> [!${marker}] What about \`$?\`? **Errors** and [help](/docs/reference/parseargs)\n>\n> Callout body.`,
+      'title',
+    );
+    assert.match(html, /aria-label="What about \$\?\? Errors and help"/);
+    assert.match(
+      html,
+      /<span>What about <code>\$\?<\/code>\? <strong>Errors<\/strong> and <a href="\/docs\/reference\/parseargs">help<\/a><\/span>/,
+    );
+    assert.match(html, /<p>Callout body\.<\/p>/);
+  }
+
+  const { html } = await renderMarkdown(
+    '> [!NOTE] Use `"<&>`\n>\n> Body.',
+    'escaped-title',
+  );
+  assert.match(html, /aria-label="Use &quot;&lt;&amp;&gt;"/);
+  assert.match(html, /<code>&quot;&lt;&amp;&gt;<\/code>/);
+});
+
 test('information callouts use a circle icon and purple theme class', async () => {
   for (const marker of ['NOTE', 'IMPORTANT']) {
     const { html } = await renderMarkdown(

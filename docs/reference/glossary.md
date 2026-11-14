@@ -34,7 +34,7 @@ In the context of koi, **a subcommand available on the CLI.** Commands are regis
 
 ## Destination
 
-**The name of the Bash variable an argument value will be read into upon successful parsing.** The destination (also called the _destination variable_) is the first parameter of [__addarg](/docs/reference/addarg). Its identifier (e.g. `$myVar` in the case of `__addarg myVar ...`) is independent of the associated argument label or override display name in generated help menus. If an override display name is not provided when registering an argumetn in [__addarg](/docs/reference/addarg) via `-n`/`--display-name`, then the destination is used as the fallback display name. See [destination variables and scope](/docs/concepts/destinations).
+**The Bash variable an argument value will be read into upon successful parsing.** The destination (also called the _destination variable_) is the first parameter of [__addarg](/docs/reference/addarg). Its identifier (e.g. `$myVar` in the case of `__addarg myVar ...`) is independent of the associated argument label or override display name in generated help menus. If an override display name is not provided when registering an argumetn in [__addarg](/docs/reference/addarg) via `-n`/`--display-name`, then the destination is used as the fallback display name. See [destination variables and scope](/docs/concepts/destinations).
 
 ## Direct call
 

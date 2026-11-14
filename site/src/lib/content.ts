@@ -135,6 +135,12 @@ export async function renderMarkdown(
             const title =
               match[2].trim() ||
               (kind === 'warning' ? 'Warning' : 'Information');
+            const titleTokens = md.Lexer.lexInline(title, md.defaults);
+            const titleHtml = this.parser.parseInline(titleTokens);
+            const titleText = this.parser.parseInline(
+              titleTokens,
+              this.parser.textRenderer,
+            );
             const shape =
               kind === 'warning'
                 ? '<path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/>'
@@ -144,7 +150,7 @@ export async function renderMarkdown(
             const remaining = body
               ? [...md.lexer(body), ...tokens.slice(1)]
               : tokens.slice(1);
-            return `<aside class="callout callout-${kind}" aria-label="${escapeHtml(title)}"><p class="callout-title">${icon}${escapeHtml(title)}</p>${this.parser.parse(remaining)}</aside>`;
+            return `<aside class="callout callout-${kind}" aria-label="${escapeHtml(titleText)}"><p class="callout-title">${icon}<span>${titleHtml}</span></p>${this.parser.parse(remaining)}</aside>`;
           }
         }
         return `<blockquote>${this.parser.parse(tokens)}</blockquote>`;
