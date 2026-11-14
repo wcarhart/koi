@@ -1,0 +1,122 @@
+---
+interface Props {
+  id: string;
+  label: string;
+  options: { value: string; label: string }[];
+  value?: string;
+  disabled?: boolean;
+}
+const {
+  id,
+  label,
+  options,
+  value = options[0].value,
+  disabled = false,
+} = Astro.props;
+---
+
+<div class="dropdown" id={id} data-dropdown>
+  <label id={`${id}-label`}>{label}</label>
+  <div class="dropdown-control">
+    <button
+      type="button"
+      class="dropdown-trigger"
+      disabled={disabled}
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-labelledby={`${id}-label ${id}-value`}
+    >
+      <span id={`${id}-value`}>
+        {options.find((option) => option.value === value)?.label}
+      </span>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        aria-hidden="true"
+      >
+        <path d="m7 10 5 5 5-5" />
+      </svg>
+    </button>
+    <div role="listbox" aria-labelledby={`${id}-label`} hidden>
+      {options.map((option) => (
+        <button
+          type="button"
+          role="option"
+          aria-selected={option.value === value ? 'true' : 'false'}
+          data-value={option.value}
+          tabindex="-1"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .dropdown [hidden] {
+    display: none !important;
+  }
+  .dropdown label {
+    display: block;
+    font-size: 11px;
+    font-weight: 550;
+    margin: 14px 0 5px;
+  }
+  .dropdown-control {
+    position: relative;
+  }
+  .dropdown-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font: 12px/1.5 var(--mono);
+  }
+  .dropdown [role='listbox'] {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 8px 24px #0002;
+  }
+  .dropdown [role='option'] {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: left;
+    font: 12px/1.5 var(--mono);
+  }
+  .dropdown [aria-selected='true'] {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  }
+  .dropdown-trigger:hover,
+  .dropdown [role='option']:hover {
+    background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  }
+  .dropdown [role='option'] + [role='option'] {
+    margin-top: 4px;
+  }
+  .dropdown-trigger svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+  .dropdown button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+</style>

@@ -1,5 +1,5 @@
 ---
-import ArgumentDropdown from './ArgumentDropdown.astro';
+import Dropdown from './Dropdown.astro';
 import resetIcon from '../assets/icons/reset.svg?raw';
 ---
 
@@ -55,16 +55,23 @@ import resetIcon from '../assets/icons/reset.svg?raw';
       spellcheck="false"
       autocomplete="off"
     />
-    <ArgumentDropdown
-      name="kind"
+    <Dropdown
+      id="argument-kind"
       label="Kind"
-      options={['Flag', 'Option', 'Positional']}
+      options={[
+        { value: 'flag', label: 'Flag' },
+        { value: 'option', label: 'Option' },
+        { value: 'positional', label: 'Positional' },
+      ]}
     />
     <div data-cardinality>
-      <ArgumentDropdown
-        name="cardinality"
+      <Dropdown
+        id="argument-cardinality"
         label="Cardinality"
-        options={['Scalar', 'Array']}
+        options={[
+          { value: 'scalar', label: 'Scalar' },
+          { value: 'array', label: 'Array' },
+        ]}
       />
     </div>
     <div class="field-pair" data-spellings>

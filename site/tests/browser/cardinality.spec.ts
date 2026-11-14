@@ -56,10 +56,10 @@ test('array editor generates typed locals and repeatable help, resets flags, and
     .poll(() => page.evaluate(() => document.body.dataset.copiedArray))
     .toContain('"${name[@]}"');
   await explorer.getByRole('button', { name: 'Edit name argument' }).click();
-  await explorer.locator('.argument-kind-trigger').click();
+  await explorer.getByRole('button', { name: /^Kind/ }).click();
   await explorer.getByRole('option', { name: 'Flag', exact: true }).click();
   await expect(explorer.locator('[data-cardinality]')).toBeHidden();
-  await explorer.locator('.argument-kind-trigger').click();
+  await explorer.getByRole('button', { name: /^Kind/ }).click();
   await explorer
     .getByRole('option', { name: 'Positional', exact: true })
     .click();
@@ -71,7 +71,7 @@ test('array editor generates typed locals and repeatable help, resets flags, and
     .getByRole('button', { name: 'Register an argument', exact: true })
     .click();
   await explorer.getByLabel('Destination variable').fill('files');
-  await explorer.locator('.argument-kind-trigger').click();
+  await explorer.getByRole('button', { name: /^Kind/ }).click();
   await explorer
     .getByRole('option', { name: 'Positional', exact: true })
     .click();

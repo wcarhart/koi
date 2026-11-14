@@ -7,6 +7,7 @@ import {
   type ArgumentSettings,
 } from '../lib/builders';
 import { highlightScript } from './highlight';
+import { initDropdown } from './dropdown';
 
 for (const explorer of document.querySelectorAll<HTMLElement>(
   '[data-argument-explorer]',
@@ -32,15 +33,20 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
   const list = explorer.querySelector<HTMLElement>('[data-argument-list]')!;
   const rows = explorer.querySelector<HTMLUListElement>('.argument-rows')!;
   const form = explorer.querySelector<HTMLFormElement>('form')!;
-  const dropdowns = [
-    ...form.querySelectorAll<HTMLElement>('[data-argument-dropdown]'),
-  ].map((group) => ({
-    key: group.dataset.argumentDropdown as 'kind' | 'cardinality',
-    trigger: group.querySelector<HTMLButtonElement>(
-      '.argument-dropdown-trigger',
-    )!,
-    choices: group.querySelector<HTMLElement>('[role=listbox]')!,
-    options: [...group.querySelectorAll<HTMLButtonElement>('[role=option]')],
+  const dropdowns = (['kind', 'cardinality'] as const).map((key) => ({
+    key,
+    control: initDropdown(
+      form.querySelector<HTMLElement>(`#argument-${key}`)!,
+      {
+        onOpen: () => closeChoices(),
+        onChange: (value) => {
+          if (key === 'kind') draft.kind = value as ArgumentSettings['kind'];
+          else draft.cardinality = value as ArgumentSettings['cardinality'];
+          sync();
+          closeChoices();
+        },
+      },
+    ),
   }));
   let args = [{ ...defaultArgument }];
   let draft: ArgumentSettings;
@@ -53,9 +59,9 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     const flag = draft.kind === 'flag';
     if (flag) draft.cardinality = 'scalar';
     const array = draft.cardinality === 'array';
-    dropdowns.find(
-      (dropdown) => dropdown.key === 'cardinality',
-    )!.trigger.disabled = flag;
+    dropdowns
+      .find((dropdown) => dropdown.key === 'cardinality')!
+      .control.setDisabled(flag);
     form.querySelector<HTMLElement>('[data-cardinality]')!.hidden = flag;
     if (array) {
       draft.useDefault = false;
@@ -80,15 +86,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     }
     input('defaultValue').required = draft.useDefault;
     for (const dropdown of dropdowns) {
-      const value = draft[dropdown.key];
-      form.querySelector(`#argument-${dropdown.key}-value`)!.textContent =
-        value[0].toUpperCase() + value.slice(1);
-      dropdown.options.forEach((option) =>
-        option.setAttribute(
-          'aria-selected',
-          String(option.dataset.value === value),
-        ),
-      );
+      dropdown.control.setValue(draft[dropdown.key]);
     }
     form
       .querySelectorAll<HTMLButtonElement>('[data-switch]')
@@ -100,10 +98,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       });
   };
   const closeChoices = () => {
-    for (const { choices, trigger } of dropdowns) {
-      choices.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-    }
+    for (const { control } of dropdowns) control.close();
   };
   const close = () => {
     form.hidden = true;
@@ -213,63 +208,6 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       sync();
     }),
   );
-  for (const { key, trigger, choices, options } of dropdowns) {
-    trigger.addEventListener('click', () => {
-      const opening = choices.hidden;
-      closeChoices();
-      if (!opening) return;
-      choices.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      options.find((option) => option.dataset.value === draft[key])!.focus();
-    });
-    options.forEach((option) =>
-      option.addEventListener('click', () => {
-        if (key === 'kind')
-          draft.kind = option.dataset.value as ArgumentSettings['kind'];
-        else
-          draft.cardinality = option.dataset
-            .value as ArgumentSettings['cardinality'];
-        sync();
-        closeChoices();
-        trigger.focus();
-      }),
-    );
-    trigger.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (choices.hidden) trigger.click();
-      }
-    });
-    choices.addEventListener('keydown', (event) => {
-      const index = options.indexOf(
-        document.activeElement as HTMLButtonElement,
-      );
-      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-        event.preventDefault();
-        options[
-          event.key === 'Home'
-            ? 0
-            : event.key === 'End'
-              ? options.length - 1
-              : (index +
-                  (event.key === 'ArrowDown' ? 1 : -1) +
-                  options.length) %
-                options.length
-        ].focus();
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        closeChoices();
-        trigger.focus();
-      } else if (event.key === 'Tab') closeChoices();
-    });
-    document.addEventListener('click', (event) => {
-      if (!trigger.parentElement!.contains(event.target as Node)) {
-        choices.hidden = true;
-        trigger.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
   form.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
