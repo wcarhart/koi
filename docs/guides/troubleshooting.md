@@ -3,7 +3,6 @@ title: "Troubleshoot common mistakes"
 description: "Diagnose guard, registration, routing, and scope mistakes."
 layout: article
 ---
-
 > Authoring outline: documentation to be written.
 
 ## Always guard parsing
@@ -50,3 +49,8 @@ layout: article
 
 - TODO: Show a second `koi::run` call, late root registration, and an attempted reset by re-sourcing; explain why each fails to establish a fresh root lifecycle.
 - TODO: Explain consumption on the first attempt even after help/error, contrast repeatable direct function calls, and link [koi::run](/docs/reference/run).
+
+## Misc
+
+- koi not found error - did you do `source ./koi` or `source koi` incorrectly based on how you installed koi?
+- Why do I see `koi: err: ...` and how do I change it - the prefix specifically

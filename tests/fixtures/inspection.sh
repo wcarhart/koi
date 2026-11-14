@@ -14,6 +14,7 @@ capture_spec() {
     local -A __koi_saved_arg_shorts=()
     local -A __koi_saved_arg_longs=()
     local -A __koi_saved_arg_kinds=()
+    local -A __koi_saved_arg_cardinalities=()
     local -A __koi_saved_arg_descriptions=()
     local -A __koi_saved_arg_requireds=()
     local -A __koi_saved_arg_defaults=()

@@ -19,9 +19,9 @@ Koi supports three argument kinds:
 
 All three kinds are optional by default, and any of them can be made required with `-r`/`--required`. An _option_ is an argument kind, while _optional_ means the caller can omit it. Required positionals must be registered before optional ones, and optional positional slots fill from left to right without skipping.
 
-Optional options and positionals use their declared default when omitted, or an empty string if no default is provided. An explicitly supplied empty string still counts as present. See [parsing and control flow](/docs/concepts/control-flow) for more on presence and defaults.
+Optional scalar options and positionals use their declared default when omitted, or an empty string if no default is provided. An explicitly supplied empty string still counts as present. See [parsing and control flow](/docs/concepts/control-flow) for more on presence and defaults.
 
-Currently, each argument writes a single value, called a _scalar_. Repeating an option keeps its last value by default. For example, `--option a --option b --option c` would assign value `c` for a scalar option. Support for array arguments, which would hold multiple values, is planned.
+Options and positionals are scalar by default, meaning their destinations can only hold a single value. Repeating a scalar option keeps its last value, e.g. `--option A --option B` would assign `B`. Use `-a`/`--array` to accumulate values in an indexed array. See [scalars and arrays](/docs/concepts/cardinality) and the [cardinality contract](/docs/reference/add_arg#cardinality).
 
 ## Labels, destinations, and display names
 

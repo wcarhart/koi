@@ -167,12 +167,14 @@ koi::add_command() {
 # current uninterrupted registration block. In functions, you must close the
 # registration block with koi::parse. In the root context, you must close the
 # registration with koi::run( koi::parse is only supported inside functions).
-# Usage: koi::add_arg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
+# Usage: koi::add_arg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-S|-a] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
 # Flags/options require a short or long spelling; positionals reject both.
 #   DEST                     the Bash destination variable name
 #   -f, --flag               register a boolean flag (e.g. '-f')
 #   -o, --option             register an option that consumes one value (e.g. '-o value')
-#   -p, --positional         consume one positional value, in declaration order
+#   -p, --positional         consume positional values in declaration order
+#   -S, --scalar             store one value (options and positionals only, default behavior)
+#   -a, --array              store an indexed array (options and positionals only)
 #   -s, --short              short spelling without its dash (one letter)
 #   -l, --long               long spelling without its dashes
 #   -d, --description        nonempty argument description
@@ -187,13 +189,14 @@ koi::add_arg() {
     local -n __koi_arg_shorts="${__koi_buffer}_arg_shorts"
     local -n __koi_arg_longs="${__koi_buffer}_arg_longs"
     local -n __koi_arg_kinds="${__koi_buffer}_arg_kinds"
+    local -n __koi_arg_cardinalities="${__koi_buffer}_arg_cardinalities"
     local -n __koi_arg_descriptions="${__koi_buffer}_arg_descriptions"
     local -n __koi_arg_requireds="${__koi_buffer}_arg_requireds"
     local -n __koi_arg_defaults="${__koi_buffer}_arg_defaults"
     local -n __koi_arg_display_names="${__koi_buffer}_arg_display_names"
 
     local __koi_dest=${1-} __koi_parameter __koi_value
-    local -A __koi_values=([short]='' [long]='' [kind]='' [description]='' [required]=0)
+    local -A __koi_values=([short]='' [long]='' [kind]='' [cardinality]=scalar [description]='' [required]=0)
     local -A __koi_seen=()
 
     if (( $# == 0 )); then
@@ -217,6 +220,14 @@ koi::add_arg() {
             -p|--positional)
                 __koi_parameter=kind
                 __koi_value=positional
+                ;;
+            -S|--scalar)
+                __koi_parameter=cardinality
+                __koi_value=scalar
+                ;;
+            -a|--array)
+                __koi_parameter=cardinality
+                __koi_value=array
                 ;;
             -r|--required)
                 __koi_parameter=required
@@ -249,7 +260,7 @@ koi::add_arg() {
         fi
 
         case $__koi_parameter in
-            kind|required)
+            kind|required|cardinality)
                 shift
                 ;;
             *)
@@ -272,6 +283,7 @@ koi::add_arg() {
     __koi_arg_shorts[$__koi_dest]=${__koi_values[short]}
     __koi_arg_longs[$__koi_dest]=${__koi_values[long]}
     __koi_arg_kinds[$__koi_dest]=${__koi_values[kind]}
+    __koi_arg_cardinalities[$__koi_dest]=${__koi_values[cardinality]}
     __koi_arg_descriptions[$__koi_dest]=${__koi_values[description]}
     __koi_arg_requireds[$__koi_dest]=${__koi_values[required]}
     if [[ ${__koi_seen[display_name]+present} ]]; then
@@ -283,15 +295,15 @@ koi::add_arg() {
     return 0
 }
 
-# Consume argument registration and parse arguments, assign literal scalar
+# Consume argument registration and parse arguments, assign literal scalar/array
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
 # return status and is used for exit/return control flow. Only supported from
 # inside application functions, not top-level/root context (use koi::run
 # in that scenario).
-# Usage: koi::parse [--koi-error-on-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
+# Usage: koi::parse [--koi-error-on-scalar-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
 # Internal usage: koi::parse --koi-inspect spec || return "$koi_status"
-#   --koi-error-on-duplicates  reject repeated occurrences of a destination
+#   --koi-error-on-scalar-duplicates  reject repeated scalar options and flags
 #   --koi-inspect MODE         run the registered command handler functions
 #                              in inspect mode (available modes: 'spec' -
 #                              internal-only spec collection)
@@ -312,6 +324,7 @@ koi::parse() {
     local -A __koi_parsed_arg_shorts=()
     local -A __koi_parsed_arg_longs=()
     local -A __koi_parsed_arg_kinds=()
+    local -A __koi_parsed_arg_cardinalities=()
     local -A __koi_parsed_arg_descriptions=()
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
@@ -413,6 +426,7 @@ koi::run() {
     local -A __koi_parsed_arg_shorts=()
     local -A __koi_parsed_arg_longs=()
     local -A __koi_parsed_arg_kinds=()
+    local -A __koi_parsed_arg_cardinalities=()
     local -A __koi_parsed_arg_descriptions=()
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
@@ -619,6 +633,7 @@ koi::internal::visit_command() {
     local -A __koi_visit_spec_arg_shorts=()
     local -A __koi_visit_spec_arg_longs=()
     local -A __koi_visit_spec_arg_kinds=()
+    local -A __koi_visit_spec_arg_cardinalities=()
     local -A __koi_visit_spec_arg_descriptions=()
     local -A __koi_visit_spec_arg_requireds=()
     local -A __koi_visit_spec_arg_defaults=()
@@ -743,6 +758,7 @@ koi::internal::parse_spec() {
     local -n __koi_handlers="${__koi_engine_prefix}_handlers"
     local -n __koi_args="${__koi_engine_prefix}_args"
     local -n __koi_arg_kinds="${__koi_engine_prefix}_arg_kinds"
+    local -n __koi_arg_cardinalities="${__koi_engine_prefix}_arg_cardinalities"
     local -n __koi_arg_requireds="${__koi_engine_prefix}_arg_requireds"
     local -n __koi_arg_defaults="${__koi_engine_prefix}_arg_defaults"
     local -n __koi_spec_valid="${__koi_engine_prefix}_spec_valid"
@@ -787,7 +803,7 @@ koi::internal::parse_spec() {
     # keep scanned values and presence separate until all checks pass
     local __koi_parse_result
     local __koi_parse_dest __koi_parse_error='' __koi_parse_declaration __koi_parse_attributes
-    local -A __koi_parse_values=() __koi_parse_seen=()
+    local -A __koi_parse_values=() __koi_parse_seen=() __koi_parse_elements=() __koi_parse_counts=()
 
     # pass variable names so the scanner can fill these through namerefs
     if koi::internal::scan_args "$__koi_engine_prefix" __koi_parse_values __koi_parse_seen __koi_parse_error __koi_engine_tail "$__koi_engine_command_root" "$@"; then
@@ -892,19 +908,38 @@ koi::internal::parse_spec() {
             fi
         fi
 
-        # only plain/exported scalars can preserve arbitrary literal values
+        # accept only destination attributes that preserve literal values
         if __koi_parse_declaration=$(declare -p "$__koi_parse_dest" 2>/dev/null); then
             __koi_parse_attributes=${__koi_parse_declaration#declare -}
             __koi_parse_attributes=${__koi_parse_attributes%% *}
-            if [[ $__koi_parse_attributes != - && $__koi_parse_attributes != x ]]; then
+
+            # require the declared cardinality's type, allowing only the export attribute
+            if { [[ ${__koi_arg_cardinalities[$__koi_parse_dest]} == array ]] &&
+                 [[ $__koi_parse_attributes != a && $__koi_parse_attributes != ax ]]; } ||
+               { [[ ${__koi_arg_cardinalities[$__koi_parse_dest]} != array ]] &&
+                 [[ $__koi_parse_attributes != - && $__koi_parse_attributes != x ]]; }; then
                 koi::internal::error "koi::parse: incompatible destination: '$__koi_parse_dest'"
                 return 2
             fi
         fi
     done
 
+    local __koi_parse_index
+    local -a __koi_parse_array=()
     # assign only after every value and destination has been checked
     for __koi_parse_dest in "${__koi_args[@]}"; do
+        # replace the complete array through the nearest visible destination
+        if [[ ${__koi_arg_cardinalities[$__koi_parse_dest]} == array ]]; then
+            __koi_parse_array=()
+            for ((__koi_parse_index=0; __koi_parse_index<${__koi_parse_counts[$__koi_parse_dest]:-0}; __koi_parse_index++)); do
+                __koi_parse_array+=("${__koi_parse_elements[$__koi_parse_dest,$__koi_parse_index]}")
+            done
+
+            local -n __koi_parse_target=$__koi_parse_dest
+            __koi_parse_target=("${__koi_parse_array[@]}")
+            continue
+        fi
+
         if ! printf -v "$__koi_parse_dest" '%s' "${__koi_parse_values[$__koi_parse_dest]}"; then
             # in the rare case that we couldn't assign the destination's value
             koi::internal::error "koi::parse: cannot assign destination: '$__koi_parse_dest'"
@@ -983,6 +1018,7 @@ koi::internal::validate_arg_spec() {
     local -n __koi_arg_shorts="${__koi_validation_prefix}_arg_shorts"
     local -n __koi_arg_longs="${__koi_validation_prefix}_arg_longs"
     local -n __koi_arg_kinds="${__koi_validation_prefix}_arg_kinds"
+    local -n __koi_arg_cardinalities="${__koi_validation_prefix}_arg_cardinalities"
     local __koi_validation_dest=$2 __koi_validation_existing __koi_validation_reserved
     local -n __koi_validation_values=$3 __koi_validation_seen=$4
 
@@ -1018,12 +1054,23 @@ koi::internal::validate_arg_spec() {
             koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
             return 2
         fi
+
         for __koi_validation_reserved in "${__koi_reserved_longs[@]}"; do
             if [[ ${__koi_validation_values[long]} == "$__koi_validation_reserved" ]]; then
                 koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
                 return 2
             fi
         done
+    fi
+
+    if [[ ${__koi_validation_seen[cardinality]+present} && ${__koi_validation_values[kind]} == flag ]]; then
+        koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: cardinality requires an option or positional'
+        return 2
+    fi
+
+    if [[ ${__koi_validation_values[cardinality]} == array && ${__koi_validation_seen[default]+present} ]]; then
+        koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: arrays cannot have defaults'
+        return 2
     fi
 
     if [[ ${__koi_validation_seen[display_name]+present} ]]; then
@@ -1069,6 +1116,8 @@ koi::internal::finalize_spec() {
     local -n __koi_layout_requireds="${__koi_layout_prefix}_arg_requireds"
     local -n __koi_layout_commands="${__koi_layout_prefix}_commands"
     local -n __koi_layout_meta="${__koi_layout_prefix}_meta"
+    local -n __koi_layout_cardinalities="${__koi_layout_prefix}_arg_cardinalities"
+    local __koi_layout_array=0
     __koi_layout_meta[positionals]=0
 
     # inspect positionals in declaration order, ignoring named arguments
@@ -1077,6 +1126,19 @@ koi::internal::finalize_spec() {
             continue
         fi
     
+        if (( __koi_layout_array )); then
+            koi::internal::error 'koi::parse: positional array must be the final positional'
+            return 2
+        fi
+
+        if [[ ${__koi_layout_cardinalities[$__koi_layout_dest]} == array ]]; then
+            if (( __koi_layout_optional )); then
+                koi::internal::error 'koi::parse: positional array cannot coexist with optional scalar positionals'
+                return 2
+            fi
+            __koi_layout_array=1
+        fi
+
         # count positional slots and reject required slots after optional ones
         __koi_layout_meta[positionals]=$((__koi_layout_meta[positionals] + 1))
         if [[ ${__koi_layout_requireds[$__koi_layout_dest]} == 1 ]]; then
@@ -1106,10 +1168,11 @@ koi::internal::finalize_spec() {
     return 0
 }
 
-# Scan script tokens into temporary values while allowing help to override errors
+# Scan script tokens into temporary values while allowing help to override errors. Array
+# elements and counts use invocation-local __koi_parse_elements/counts storage.
 # Usage: koi::internal::scan_args PREFIX VALUES_ARRAY SEEN_ARRAY ERROR_VAR TAIL_ARRAY ROOT "$@"
 #   PREFIX        parser-local spec prefix
-#   VALUES_ARRAY  associative output array of supplied values
+#   VALUES_ARRAY  associative output array of scalar values
 #   SEEN_ARRAY    associative output array tracking explicit presence
 #   ERROR_VAR     first input diagnostic, or empty text
 #   TAIL_ARRAY    receives the child command and remaining tokens
@@ -1125,9 +1188,11 @@ koi::internal::scan_args() {
     local -n __koi_arg_shorts="${__koi_scan_prefix}_arg_shorts"
     local -n __koi_arg_longs="${__koi_scan_prefix}_arg_longs"
     local -n __koi_arg_kinds="${__koi_scan_prefix}_arg_kinds"
+    local -n __koi_arg_cardinalities="${__koi_scan_prefix}_arg_cardinalities"
     local -n __koi_scan_meta="${__koi_scan_prefix}_meta"
     local -n __koi_scan_values=$2 __koi_scan_seen=$3 __koi_scan_error=$4 __koi_scan_tail=$5
     local __koi_scan_root=$6
+    local -n __koi_scan_elements=__koi_parse_elements __koi_scan_counts=__koi_parse_counts
     local __koi_scan_duplicates=0 __koi_scan_duplicate=''
     shift 6
 
@@ -1167,8 +1232,15 @@ koi::internal::scan_args() {
             # fill the next positional slot with bare data or any token after --
             if (( __koi_scan_slot < ${#__koi_scan_positionals[@]} )); then
                 __koi_scan_dest=${__koi_scan_positionals[$__koi_scan_slot]}
-                __koi_scan_slot=$((__koi_scan_slot + 1))
-                __koi_scan_values[$__koi_scan_dest]=$__koi_scan_token
+
+                # keep the array slot open while scalar slots advance after one value
+                if [[ ${__koi_arg_cardinalities[$__koi_scan_dest]} == array ]]; then
+                    __koi_scan_elements[$__koi_scan_dest,${__koi_scan_counts[$__koi_scan_dest]:-0}]=$__koi_scan_token
+                    __koi_scan_counts[$__koi_scan_dest]=$((${__koi_scan_counts[$__koi_scan_dest]:-0} + 1))
+                else
+                    __koi_scan_slot=$((__koi_scan_slot + 1))
+                    __koi_scan_values[$__koi_scan_dest]=$__koi_scan_token
+                fi
                 __koi_scan_seen[$__koi_scan_dest]=1
             elif [[ -z $__koi_scan_error ]]; then
                 __koi_scan_error="unsupported positional argument: '$__koi_scan_token'"
@@ -1179,10 +1251,10 @@ koi::internal::scan_args() {
         elif [[ $__koi_scan_token == -- ]]; then
             # end option recognition for the remaining tokens
             __koi_scan_positional=1
-        elif [[ $__koi_scan_token == --koi-error-on-duplicates ]]; then
+        elif [[ $__koi_scan_token == --koi-error-on-scalar-duplicates ]]; then
             # enable strict duplicate checking
             if (( __koi_scan_duplicates )) && [[ -z $__koi_scan_error ]]; then
-                __koi_scan_error='repeated --koi-error-on-duplicates setting'
+                __koi_scan_error='repeated --koi-error-on-scalar-duplicates setting'
             fi
             __koi_scan_duplicates=1
         elif [[ -n $__koi_scan_token && ${__koi_scan_lookup[$__koi_scan_token]+present} ]]; then
@@ -1209,11 +1281,18 @@ koi::internal::scan_args() {
                 shift
             fi
 
-            if [[ ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
+            if [[ ${__koi_arg_cardinalities[$__koi_scan_dest]} != array && ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
                 # remember the first repeated destination
                 __koi_scan_duplicate=$__koi_scan_dest
             fi
-            __koi_scan_values[$__koi_scan_dest]=$__koi_scan_value
+
+            if [[ ${__koi_arg_cardinalities[$__koi_scan_dest]} == array ]]; then
+                # append each literal option value in occurrence order across aliases
+                __koi_scan_elements[$__koi_scan_dest,${__koi_scan_counts[$__koi_scan_dest]:-0}]=$__koi_scan_value
+                __koi_scan_counts[$__koi_scan_dest]=$((${__koi_scan_counts[$__koi_scan_dest]:-0} + 1))
+            else
+                __koi_scan_values[$__koi_scan_dest]=$__koi_scan_value
+            fi
             __koi_scan_seen[$__koi_scan_dest]=1
         elif [[ $__koi_scan_token == -?* && $__koi_scan_token != --* && ${#__koi_scan_token} -gt 2 ]]; then
             # validate the whole cluster before accepting any of its flags
@@ -1254,7 +1333,7 @@ koi::internal::scan_args() {
             fi
 
             for __koi_scan_dest in "${__koi_scan_cluster[@]}"; do
-                if [[ ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
+                if [[ ${__koi_arg_cardinalities[$__koi_scan_dest]} != array && ${__koi_scan_seen[$__koi_scan_dest]+present} && -z $__koi_scan_duplicate ]]; then
                     # track duplicates within clusters and across spellings
                     __koi_scan_duplicate=$__koi_scan_dest
                 fi
@@ -1329,6 +1408,7 @@ koi::internal::print_help() {
     local -n __koi_arg_shorts="${__koi_help_prefix}_arg_shorts"
     local -n __koi_arg_longs="${__koi_help_prefix}_arg_longs"
     local -n __koi_arg_kinds="${__koi_help_prefix}_arg_kinds"
+    local -n __koi_arg_cardinalities="${__koi_help_prefix}_arg_cardinalities"
     local -n __koi_arg_descriptions="${__koi_help_prefix}_arg_descriptions"
     local -n __koi_arg_requireds="${__koi_help_prefix}_arg_requireds"
     local -n __koi_arg_defaults="${__koi_help_prefix}_arg_defaults"
@@ -1381,11 +1461,26 @@ koi::internal::print_help() {
             __koi_help_usage+=" $__koi_help_value"
         fi
 
+        # mark positional arrays with ellipses in both usage and detailed labels
+        if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == positional ]]; then
+            __koi_help_value+='...'
+            __koi_help_usage=$__koi_help_value
+        fi
+
         # bracket optional arguments and leave required arguments unbracketed
         if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
             printf ' %s' "$__koi_help_usage"
         else
             printf ' [%s]' "$__koi_help_usage"
+        fi
+
+        # repeat the full option-value unit since each occurrence consumes one value
+        if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+            if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
+                printf ' [%s]...' "$__koi_help_usage"
+            else
+                printf '...'
+            fi
         fi
 
         # start the options-table label with the short spelling if present
@@ -1436,6 +1531,10 @@ koi::internal::print_help() {
         fi
 
         __koi_help_description=${__koi_arg_descriptions[$__koi_help_dest]}
+        if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+            __koi_help_description+=' (repeatable)'
+        fi
+
         if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
             __koi_help_description+=' (required)'
         fi
@@ -1481,7 +1580,7 @@ fi
 
 # Re-sourcing preserves both unfinished registration and the root lifecycle
 if [[ ${__koi_initialized-} != 1 ]]; then
-    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_descriptions arg_requireds arg_defaults arg_display_names meta)
+    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_cardinalities arg_descriptions arg_requireds arg_defaults arg_display_names meta)
     declare -ga __koi_root_commands=()
     declare -gA __koi_root_handlers=()
     declare -gA __koi_root_descriptions=()
@@ -1489,6 +1588,7 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_root_arg_shorts=()
     declare -gA __koi_root_arg_longs=()
     declare -gA __koi_root_arg_kinds=()
+    declare -gA __koi_root_arg_cardinalities=()
     declare -gA __koi_root_arg_descriptions=()
     declare -gA __koi_root_arg_requireds=()
     declare -gA __koi_root_arg_defaults=()
@@ -1503,6 +1603,7 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_pending_arg_shorts=()
     declare -gA __koi_pending_arg_longs=()
     declare -gA __koi_pending_arg_kinds=()
+    declare -gA __koi_pending_arg_cardinalities=()
     declare -gA __koi_pending_arg_descriptions=()
     declare -gA __koi_pending_arg_requireds=()
     declare -gA __koi_pending_arg_defaults=()
@@ -1510,7 +1611,7 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_pending_meta=()
     declare -gi __koi_pending_spec_valid=1
     declare -gi __koi_root_used=0
-    declare -ga __koi_reserved_longs=(help koi-error-on-duplicates koi-error-on-duplicate koi-inspect)
+    declare -ga __koi_reserved_longs=(help koi-error-on-scalar-duplicates koi-error-on-duplicate koi-inspect)
     # shellcheck disable=SC2034
     declare -g koi_status=0
     __koi_initialized=1

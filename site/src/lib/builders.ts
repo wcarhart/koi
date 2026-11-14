@@ -1,6 +1,7 @@
 export type ArgumentKind = 'option' | 'flag' | 'positional';
 export interface ArgumentSettings {
   kind: ArgumentKind;
+  cardinality: 'scalar' | 'array';
   destination: string;
   short: string;
   long: string;
@@ -22,6 +23,7 @@ export interface HelpSettings {
 }
 export const defaultArgument: ArgumentSettings = {
   kind: 'option',
+  cardinality: 'scalar',
   destination: 'name',
   short: 'n',
   long: 'name',
@@ -54,7 +56,7 @@ const reservedDestinations = new Set(
 );
 const reservedLongNames = new Set([
   'help',
-  'koi-error-on-duplicates',
+  'koi-error-on-scalar-duplicates',
   'koi-error-on-duplicate',
   'koi-inspect',
 ]);
@@ -72,6 +74,12 @@ export function argumentFieldErrors(
   }
   if (!['flag', 'option', 'positional'].includes(s.kind))
     errors.kind = 'Choose a supported argument kind.';
+  if (!['scalar', 'array'].includes(s.cardinality))
+    errors.cardinality = 'Choose Scalar or Array.';
+  if (s.cardinality === 'array' && s.kind === 'flag')
+    errors.cardinality = 'Flags cannot have cardinality modifiers.';
+  if (s.cardinality === 'array' && s.useDefault)
+    errors.cardinality = 'Arrays cannot have defaults.';
   if (!s.description || s.description.includes('\0'))
     errors.description =
       'Provide a nonempty description without NUL characters.';
@@ -106,6 +114,7 @@ function argumentDeclaration(s: ArgumentSettings): string {
     s.destination,
     { flag: '-f', option: '-o', positional: '-p' }[s.kind],
   ];
+  if (s.cardinality === 'array') parts.push('-a');
   if (s.kind !== 'positional') {
     if (s.short) parts.push('-s', s.short);
     if (s.long) parts.push('-l', s.long);
@@ -129,6 +138,22 @@ export function argumentCollectionErrors(args: ArgumentSettings[]): string[] {
     if (new Set(values).size !== values.length)
       errors.push(`Each ${key} must be unique.`);
   }
+  const positionals = args.filter((arg) => arg.kind === 'positional');
+  let optional = false;
+  let array = false;
+  for (const arg of positionals) {
+    if (array) errors.push('A positional array must be the final positional.');
+    if (arg.cardinality === 'array') {
+      if (optional)
+        errors.push(
+          'A positional array requires all preceding scalars to be required.',
+        );
+      array = true;
+    }
+    if (optional && arg.required)
+      errors.push('Required positionals must precede optional positionals.');
+    if (!arg.required) optional = true;
+  }
   return errors;
 }
 
@@ -145,8 +170,27 @@ source ./koi
 # Usage: main "$@"
 #   $@  arguments forwarded to koi
 main() {
-${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    koi::parse "$@" || return "$koi_status"
-${args.length ? '\n' + args.map((arg) => `    printf '%s\\n' "$${arg.destination}"`).join('\n') + '\n' : ''}}
+${args.length ? (args.every((arg) => arg.cardinality !== 'array') ? '    local ' + args.map((arg) => arg.destination).join(' ') : args.map((arg) => '    local ' + (arg.cardinality === 'array' ? '-a ' : '') + arg.destination).join('\n')) + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    koi::parse "$@" || return "$koi_status"
+${
+  args.length
+    ? '\n' +
+      (args.some((arg) => arg.cardinality === 'array')
+        ? '    local __koi_example_value __koi_example_index\n'
+        : '') +
+      args
+        .map((arg) =>
+          arg.cardinality === 'array'
+            ? `    __koi_example_index=0
+    for __koi_example_value in "\${${arg.destination}[@]}"; do
+        printf '%s\\n' "${arg.destination}[$__koi_example_index]: $__koi_example_value"
+        __koi_example_index=$((__koi_example_index + 1))
+    done`
+            : `    printf '%s\\n' "${arg.destination}: $${arg.destination}"`,
+        )
+        .join('\n') +
+      '\n'
+    : ''
+}}
 
 main "$@"
 `;
@@ -169,16 +213,18 @@ export function argumentHelp(args: ArgumentSettings[]): string {
       .join(', ');
   const labels = ordered.map((arg) =>
     arg.kind === 'positional'
-      ? value(arg)
+      ? value(arg) + (arg.cardinality === 'array' ? '...' : '')
       : spelling(arg) + (arg.kind === 'option' ? ` ${value(arg)}` : ''),
   );
-  const width = Math.max(9, ...labels.map((label) => label.length));
+  const width = Math.max(10, ...labels.map((label) => label.length));
   const usage = ordered.map((arg) => {
     const label =
       arg.kind === 'positional'
-        ? value(arg)
+        ? value(arg) + (arg.cardinality === 'array' ? '...' : '')
         : (arg.short ? `-${arg.short}` : `--${arg.long}`) +
           (arg.kind === 'option' ? ` ${value(arg)}` : '');
+    if (arg.cardinality === 'array' && arg.kind === 'option')
+      return arg.required ? `${label} [${label}]...` : `[${label}]...`;
     return arg.required ? label : `[${label}]`;
   });
   let text = `Usage: greet.sh [-h]${usage.length ? ' ' + usage.join(' ') : ''}\n\nOptions:\n  ${'-h, --help'.padEnd(width)}  Show this help\n`;
@@ -190,6 +236,9 @@ export function argumentHelp(args: ArgumentSettings[]): string {
     }
     const description =
       arg.description +
+      (arg.cardinality === 'array' && arg.kind === 'option'
+        ? ' (repeatable)'
+        : '') +
       (arg.required ? ' (required)' : '') +
       (arg.kind !== 'flag' && !arg.required && arg.useDefault
         ? ` (default: ${arg.defaultValue})`

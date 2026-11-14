@@ -93,7 +93,11 @@ const groups = [...new Set(docs.map((d) => d.group))];
               .filter((d) => d.group === group)
               .map((doc) => (
                 <a
-                  class:list={{ 'nav-code': doc.title.startsWith('__') }}
+                  class:list={{
+                    'nav-code':
+                      doc.group === 'Reference' &&
+                      doc.title.startsWith('koi::'),
+                  }}
                   href={`${doc.url}#${doc.id}`}
                   data-doc-link={doc.id}
                   aria-current={doc.id === selected.id ? 'location' : undefined}

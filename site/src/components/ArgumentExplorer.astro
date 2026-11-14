@@ -1,4 +1,5 @@
 ---
+import ArgumentDropdown from './ArgumentDropdown.astro';
 import resetIcon from '../assets/icons/reset.svg?raw';
 ---
 
@@ -54,39 +55,17 @@ import resetIcon from '../assets/icons/reset.svg?raw';
       spellcheck="false"
       autocomplete="off"
     />
-    <label id="argument-kind-label">Kind</label>
-    <div class="argument-dropdown">
-      <button
-        type="button"
-        class="argument-kind-trigger"
-        aria-haspopup="listbox"
-        aria-expanded="false"
-        aria-labelledby="argument-kind-label argument-kind-value"
-      >
-        <span id="argument-kind-value">Flag</span>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          aria-hidden="true"
-        >
-          <path d="m7 10 5 5 5-5" />
-        </svg>
-      </button>
-      <div role="listbox" aria-labelledby="argument-kind-label" hidden>
-        {['Flag', 'Option', 'Positional'].map((kind) => (
-          <button
-            type="button"
-            role="option"
-            aria-selected={kind === 'Flag' ? 'true' : 'false'}
-            data-kind={kind.toLowerCase()}
-            tabindex="-1"
-          >
-            {kind}
-          </button>
-        ))}
-      </div>
+    <ArgumentDropdown
+      name="kind"
+      label="Kind"
+      options={['Flag', 'Option', 'Positional']}
+    />
+    <div data-cardinality>
+      <ArgumentDropdown
+        name="cardinality"
+        label="Cardinality"
+        options={['Scalar', 'Array']}
+      />
     </div>
     <div class="field-pair" data-spellings>
       <div>

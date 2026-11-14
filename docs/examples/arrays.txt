@@ -1,0 +1,6 @@
+source=<src>
+target=<dst>
+include=<one>
+include=<two words>
+file=<a>
+file=<b>

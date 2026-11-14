@@ -33,9 +33,11 @@ koi::add_arg output_file --option --long output-file --display-name FILE --descr
 
 Here, callers use `--output-file`, help shows `--output-file FILE`, and your code reads the value from `$output_file`. Destinations must be valid Bash identifiers, so use underscores rather than hyphens in variable names. Koi also reserves names such as `koi_status`, names starting with `__koi_`, and certain shell variables. See [koi::add_arg](/docs/reference/add_arg#arguments) for the naming rules.
 
-[Registration](/docs/concepts/lifecycle) records the destination name without assigning a value. During successful parsing, koi replaces every destination in the current context with its parsed value or fallback. Omitted flags receive `0`, and omitted optional options and positionals receive their declared default or an empty string. Initializing a variable before parsing doesn't provide a default, so use `--default` for that. Existing values also don't satisfy [required](/docs/reference/glossary#requiredness) arguments. Help leaves destination values unchanged.
+[Registration](/docs/concepts/lifecycle) records the destination name without assigning a value. During successful parsing, koi replaces every destination in the current context with its parsed value or fallback. Omitted flags receive `0`, and omitted optional scalar options and positionals receive their declared default or an empty string. Initializing a variable before parsing doesn't provide a default, so use `--default` for that. Existing values also don't satisfy [required](/docs/reference/glossary#requiredness) arguments. Help leaves destination values unchanged.
 
-Destinations can be unset, ordinary scalars, or exported scalars. Koi rejects arrays, integers, readonly variables, namerefs, and other incompatible variable attributes during parsing. For example, use `local count` rather than `local -i count`, even if you expect a numeric value.
+Destinations can be [scalars](/docs/reference/glossary#scalar) or [arrays](/docs/reference/glossary#array) (see [cardinality](/docs/concepts/cardinality)).
+
+Scalar destinations can be unset, ordinary scalars, or exported scalars. Array destinations must be absent or [indexed arrays](https://www.gnu.org/software/bash/manual/html_node/Arrays.html), optionally exported. Declare array locals with `local -a files` prior to parsing if you want them to specify their scope, otherwise koi will declare them according to Bash dynamic scope. Koi rejects incompatible attributes during parsing. For example, use `local count` rather than `local -i count`, even if you expect a numeric value. See the [destination contract](/docs/reference/add_arg#returns-and-assignment).
 
 ## Locals, globals, and dynamic scope
 

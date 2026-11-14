@@ -22,6 +22,11 @@
     "group": "Core concepts"
   },
   {
+    "file": "concepts/cardinality.md",
+    "slug": "concepts/cardinality",
+    "group": "Core concepts"
+  },
+  {
     "file": "concepts/lifecycle.md",
     "slug": "concepts/lifecycle",
     "group": "Core concepts"

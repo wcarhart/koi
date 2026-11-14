@@ -104,9 +104,9 @@ main'
             koi::add_arg third -p -r -d Third
             koi::add_arg fourth -p -r -d Fourth
             koi::parse "$@" || return "$koi_status"
-            [[ $first == - && $second == -12 && $third == --help && $fourth == --koi-error-on-duplicates ]]
+            [[ $first == - && $second == -12 && $third == --help && $fourth == --koi-error-on-scalar-duplicates ]]
         }
-        parse - -- -12 --help --koi-error-on-duplicates
+        parse - -- -12 --help --koi-error-on-scalar-duplicates
     '
     [ "$status" -eq 0 ]
 }
@@ -410,8 +410,8 @@ main'
             koi::parse "$@" || return "$koi_status"
             [[ $value == supplied && $name == -- && $flag == 1 ]]
         }
-        parse -n -- supplied -v --koi-error-on-duplicates
-        if parse supplied -v -v --koi-error-on-duplicates; then
+        parse -n -- supplied -v --koi-error-on-scalar-duplicates
+        if parse supplied -v -v --koi-error-on-scalar-duplicates; then
             exit 9
         fi
     '

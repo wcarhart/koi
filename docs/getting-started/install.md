@@ -8,6 +8,12 @@ layout: article
 
 <!-- koi:install koi -->
 
+Once installed, just `source` koi to use it:
+
+```bash
+source koi
+```
+
 ## Dependencies
 
 Koi requires **Bash 5.2 or newer**. You can check your current Bash version via:

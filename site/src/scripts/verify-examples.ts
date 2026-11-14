@@ -19,6 +19,11 @@ import {
 
 // Only these reviewed scripts and argument vectors may be executed by this check.
 const fixtures = [
+  {
+    script: 'arrays',
+    args: ['src', 'dst', '-I', 'one', 'a', '--include', 'two words', 'b'],
+    output: 'arrays',
+  },
   { script: 'direct-calls', args: [], output: 'direct-calls' },
   {
     script: 'archive',

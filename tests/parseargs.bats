@@ -99,11 +99,11 @@ parse_without_mutation() {
 }
 
 @test "reserved duplicate-check setting rejects repeated values and flags" {
-    assert_parse_error --koi-error-on-duplicates -n Alice --name Bob
-    assert_parse_error --koi-error-on-duplicates -v --verbose
-    assert_parse_error --koi-error-on-duplicates -vv
-    assert_parse_error --koi-error-on-duplicates -v -qv
-    assert_parse_error -v --verbose --koi-error-on-duplicates
+    assert_parse_error --koi-error-on-scalar-duplicates -n Alice --name Bob
+    assert_parse_error --koi-error-on-scalar-duplicates -v --verbose
+    assert_parse_error --koi-error-on-scalar-duplicates -vv
+    assert_parse_error --koi-error-on-scalar-duplicates -v -qv
+    assert_parse_error -v --verbose --koi-error-on-scalar-duplicates
 }
 
 @test "flags-only clusters match separate flags" {
@@ -139,9 +139,9 @@ parse_without_mutation() {
     koi::parse
     [ "$koi_status" -eq 0 ]
     setup
-    koi::parse --koi-error-on-duplicates -n Alice
+    koi::parse --koi-error-on-scalar-duplicates -n Alice
     [ "$name" = Alice ]
-    assert_parse_error --koi-error-on-duplicates --koi-error-on-duplicates
+    assert_parse_error --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates
 }
 
 @test "short e and the old unprefixed setting are not parser settings" {
@@ -150,15 +150,15 @@ parse_without_mutation() {
     koi::parse -e
     [ "$example" = 1 ]
     koi::add_arg example -f -s e -l error-on-duplicates -d Example
-    koi::parse --koi-error-on-duplicates --error-on-duplicates
+    koi::parse --koi-error-on-scalar-duplicates --error-on-duplicates
     [ "$example" = 1 ]
 }
 
 @test "reserved settings are literal option values and positionals after the separator" {
     local name
-    koi::parse -n --koi-error-on-duplicates
-    [ "$name" = --koi-error-on-duplicates ]
-    assert_parse_error -- --koi-error-on-duplicates
+    koi::parse -n --koi-error-on-scalar-duplicates
+    [ "$name" = --koi-error-on-scalar-duplicates ]
+    assert_parse_error -- --koi-error-on-scalar-duplicates
 }
 
 @test "separator ends recognition and is accepted alone" {
@@ -200,7 +200,7 @@ parse_without_mutation() {
         run --separate-stderr capture_parse -n "$flag"
         [ "$status" -eq 1 ]
         [ -z "$stderr" ]
-        run --separate-stderr capture_parse --koi-error-on-duplicates -v --verbose "$flag"
+        run --separate-stderr capture_parse --koi-error-on-scalar-duplicates -v --verbose "$flag"
         [ "$status" -eq 1 ]
         [ -z "$stderr" ]
         run --separate-stderr capture_parse -nv "$flag"
@@ -355,7 +355,7 @@ parse_without_mutation() {
 }
 
 @test "help overrides errors in reserved settings" {
-    run --separate-stderr capture_parse --koi-error-on-duplicates --koi-error-on-duplicates --help
+    run --separate-stderr capture_parse --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates --help
     [ "$status" -eq 1 ]
     [[ "$output" == *'return=1 status=0' ]]
     [ -z "$stderr" ]

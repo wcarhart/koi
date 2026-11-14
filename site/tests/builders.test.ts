@@ -6,6 +6,7 @@ import {
   argumentErrors,
   argumentFieldErrors,
   argumentScript,
+  argumentHelp,
   defaultArgument,
   helpScript,
   defaultHelp,
@@ -80,7 +81,7 @@ test('generated scripts run against koi and preserve hostile-looking data', () =
     });
     assert.equal(out.status, 0, out.stderr);
     assert.equal(out.stderr, '');
-    assert.equal(out.stdout, value + '\n');
+    assert.equal(out.stdout, 'name: ' + value + '\n');
   }
 });
 test('generated help configurations are accepted by koi', () => {
@@ -193,4 +194,99 @@ test('field validation identifies independent errors and empty collections produ
   assert.match(script, /# Usage: main "\$@"/);
   const result = spawnSync('bash', ['-n'], { input: script, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('array builders preserve elements, omit empty rows, and match runtime help', () => {
+  for (const kind of ['option', 'positional'] as const) {
+    for (const required of [false, true]) {
+      const arg = {
+        ...defaultArgument,
+        kind,
+        cardinality: 'array' as const,
+        useDefault: false,
+        required,
+        displayName: 'FILE',
+      };
+      const script = argumentScript(arg);
+      assert.match(script, /local -a name/);
+      assert.match(script, / -a /);
+      assert.match(script, /"\$\{name\[@\]\}"/);
+      const values = ['', 'two words', 'a\nb', '$(false) * \\'];
+      const tokens =
+        kind === 'option' ? values.flatMap((value) => ['-n', value]) : values;
+      const result = spawnSync('bash', ['-c', script, 'greet.sh', ...tokens], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        result.stdout,
+        values.map((value, index) => `name[${index}]: ${value}\n`).join(''),
+      );
+      const help = spawnSync('bash', ['-c', script, 'greet.sh', '--help'], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(help.status, 0, help.stderr);
+      assert.equal(help.stdout, argumentHelp([arg]));
+      const omitted = spawnSync('bash', ['-c', script, 'greet.sh'], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(omitted.status, required ? 2 : 0);
+      assert.equal(omitted.stdout, '');
+    }
+  }
+});
+
+test('builder validates positional array layout and array defaults', () => {
+  const array = {
+    ...defaultArgument,
+    kind: 'positional' as const,
+    cardinality: 'array' as const,
+    useDefault: false,
+  };
+  const scalar = {
+    ...defaultArgument,
+    kind: 'positional' as const,
+    destination: 'first',
+    useDefault: false,
+  };
+  assert.throws(() => argumentScript([scalar, array]));
+  assert.throws(() => argumentScript([array, { ...scalar, required: true }]));
+  assert.throws(() => argumentScript({ ...array, useDefault: true }));
+  assert.throws(() => argumentScript({ ...array, kind: 'flag' }));
+  assert.doesNotThrow(() =>
+    argumentScript([{ ...scalar, required: true }, array]),
+  );
+});
+
+test('multiple array loops share locals, reset indices, and preserve destinations named i or value', () => {
+  const args = ['i', 'value'].map((destination, index) => ({
+    ...defaultArgument,
+    destination,
+    short: '',
+    long: `items${index}`,
+    cardinality: 'array' as const,
+    useDefault: false,
+  }));
+  const script = argumentScript(args);
+  assert.equal(script.match(/local __koi_example_value/g)?.length, 1);
+  const result = spawnSync(
+    'bash',
+    [
+      '-euc',
+      script,
+      'greet.sh',
+      '--items0',
+      'one',
+      '--items0',
+      '',
+      '--items1',
+      'two',
+    ],
+    { cwd: root, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'i[0]: one\ni[1]: \nvalue[0]: two\n');
 });

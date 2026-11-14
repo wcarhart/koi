@@ -14,11 +14,15 @@ layout: article
 
 ## Array
 
-In the context of koi, **a [destination](#destination) that holds a multiple value rather than a single value.** [Scalars](#scalar) and arrays are essentially sub-[kinds](#kind) of [options](#option) and [positionals](#positional), where scalars can only assign one value and arrays can hold multiple values. During parsing, repeated array [arguments](#argument) accumulate in a Bash array, rather than overwriting the previous value.
+In the context of koi, **a [destination](#destination) that holds multiple values rather than a single value.** [Scalars](#scalar) and arrays are [cardinalities](#cardinality), where scalars can only assign one value and arrays can hold multiple values. [Options](#option) and [positionals](#positional) can have cardinality (e.g. both can be arrays or scalars), while [flags](#flag) do not have cardinality. During parsing, repeated array [arguments](#argument) accumulate in an [indexed array](https://www.gnu.org/software/bash/manual/html_node/Arrays.html), rather than overwriting the previous value.
 
 ## Branch
 
 **A [registration context](#registration-context) with one or more child [commands](#command).** For example, in `./app.sh deploy service`, `deploy` is a branch if it registers `service` as a child command. A branch either [dispatches](#dispatch) the selected child or displays its help menu when no child is selected. Its [guarded](#guard) parse does not continue into the branch's own business logic. Koi's built-in `help` command does not make a context a branch on its own. See [calls and command routing](/docs/concepts/routing).
+
+## Cardinality
+
+In the context of koi, **how many values a [destination](#destination) can hold while parsing.** Destinations that can hold at most a single value are called [scalars](#scalar) while destinations that can hold multiple values are called [arrays](#array). If you do not specify the cardinality of an argument via [koi::add_arg](/docs/reference/add_arg), is assumed to be a scalar. [Options](#option) and [positionals](#positional) can _have_ cardinality, meaning they can be scalars or arrays, while [flags](#flag) do not have cardinality because they are only ever assigned `0` or `1`.
 
 ## Cluster
 
@@ -30,7 +34,7 @@ In the context of koi, **a subcommand available on the CLI.** Commands are regis
 
 ## Default
 
-**The explicit value assigned to a registered [destination](#destination) for an omitted optional option or positional upon successful parsing.** You can specify a default value for optional [options](#option) or [positionals](#positional) when registering the argument via [koi::add_arg](/docs/reference/add_arg). When you register an optional option or positional and do not provide a default, the fallback default is the empty string (`''`). Flags do not have default values, they are either `0` if absent or `1` if present. In addition, defaults do not make required arguments present. See [parsing and control flow](/docs/concepts/control-flow).
+**The explicit value assigned to a registered [destination](#destination) for an omitted optional [scalar](#scalar) option or positional upon successful parsing.** You can specify a default value for optional scalar [options](#option) or [positionals](#positional) when registering the argument via [koi::add_arg](/docs/reference/add_arg). When you register an optional scalar option or positional and do not provide a default, the fallback default is the empty string (`''`). Arrays cannot have defaults. Omitted optional arrays become empty [indexed arrays](https://www.gnu.org/software/bash/manual/html_node/Arrays.html). Flags do not have default values, they are either `0` if absent or `1` if present. In addition, defaults do not make required arguments present. See [parsing and control flow](/docs/concepts/control-flow).
 
 ## Destination
 
@@ -46,7 +50,7 @@ In the context of koi, **invoking the [handler](#handler) for a selected CLI [co
 
 ## Display name
 
-**The token used to represent an [option](#option) or [positional](#positional) in generated help menus.** By default koi uses the registered argument's [destination](#destination), unless overridden in [koi::add_arg](/docs/reference/add_arg) via `-d`/`--display-name`. The display name only changes the presentation of the generated help menu, not the [destination variable](#destination) or [spelling](#argument-label).
+**The token used to represent an [option](#option) or [positional](#positional) in generated help menus.** By default koi uses the registered argument's [long spelling](#long-spelling) if one is provided, or the [destination](#destination) if not. You can manually set the display name in [koi::add_arg](/docs/reference/add_arg) via `-n`/`--display-name`. The display name only changes the presentation of the generated help menu, not the [destination variable](#destination) or [spelling](#argument-label).
 
 ## Flag
 
@@ -74,11 +78,11 @@ In the context of koi, **the caller-side control flow `|| return "$koi_status"` 
 
 ## Long spelling
 
-**An [argument label](#argument-label) with two leading dashes and multiple characters,** such as `--verbose`. See [koi::add_arg](/docs/reference/add_arg).
+**An [argument label](#argument-label) with two leading dashes and one or more characters** starting with a letter, such as `--verbose`. See [koi::add_arg](/docs/reference/add_arg).
 
 ## Option
 
-**An argument [kind](#kind) that consumes the next [argument](#argument) after its [label](#argument-label) as its [scalar](#scalar) value,** including dash-prefixed values except for `-h`/`--help`. A common example is from `git commit` is `-m 'Message'`/`--message 'Messsage'`. Upon successful parse, the next argument after the [argument label](#argument-label) will be assigned to the option's [destination](#destination). Options can be [required](#requiredness) and use [defaults](#default).
+**An argument [kind](#kind) that consumes the next [argument](#argument) after its [label](#argument-label) as a value,** including dash-prefixed values except for `-h`/`--help`. A common example is from `git commit` is `-m 'Message'`/`--message 'Messsage'`. Upon successful parse, the next argument after the [argument label](#argument-label) will be assigned to the option's [destination](#destination). Options can be [required](#requiredness). Scalar options can use [defaults](#default).
 
 ## Parsing boundary
 
@@ -86,7 +90,7 @@ In the context of koi, **the caller-side control flow `|| return "$koi_status"` 
 
 ## Positional
 
-**An argument [kind](#kind) that consumes the next [argument](#argument) as its [scalar](#scalar) value without a [label](#argument-label).** A common example is `mv ~/Downloads/image.png .` where `~/Downloads/image.png` and `.` are positional arguments. Positional [values](#value) (the values provided when parsing a positional argument) fill slots in registration order (see [koi::add_arg](/docs/reference/add_arg)), and required positionals must precede all optional positionals. Positionals can be [required](#requiredness) and use [defaults](#default). Use `--` to supply dash-prefixed positional values.
+**An argument [kind](#kind) that consumes the next [argument](#argument) or arguments as a value without a [label](#argument-label).** A common example is `mv ~/Downloads/image.png .` where `~/Downloads/image.png` and `.` are positional arguments. Positional arguments can be [scalars](#scalar) or [arrays](#array). Positional [values](#value) (the values provided when parsing a positional argument) fill slots in registration order (see [koi::add_arg](/docs/reference/add_arg)), and required positionals must precede all optional positionals. Positionals can be [required](#requiredness). Scalar positionals can use [defaults](#default). Positional arrays must be the last registered positional argument and consume the remaining positional values (see [cardinality](/docs/reference/add_arg)). Use `--` to supply dash-prefixed positional values.
 
 ## Presence
 
@@ -100,7 +104,7 @@ koi::add_description "My function's description"
 koi::add_arg force --flag --short f --long force -d 'Force the operation'
 koi::parse "$@" || return "$koi_status"
 ```
-In a function: zero or more function declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) followed by exactly one [guarded](#guard) [__parsearg](/docs/reference/parse) statement. At the [root](#root-context) level: zero or more root declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) followed by exactly one [koi::run](/docs/reference/run) statement.
+In a function: zero or more function declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) followed by exactly one [guarded](#guard) [koi::parse](/docs/reference/parse) statement. At the [root](#root-context) level: zero or more root declarations ([koi::add_arg](/docs/reference/add_arg) or [koi::add_command](/docs/reference/add_command)) followed by exactly one [koi::run](/docs/reference/run) statement.
 
 Registration blocks must be closed properly (via [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run)) or koi will not function properly. Conditional argument registration is supported (e.g. custom logic inside of a registration block) but comes with additional risk.
 
@@ -126,11 +130,11 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 
 ## Root context
 
-**The [context](#registration-context) built by script-scope declarations,** including declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) sourced at script scope. In contrast to [function context](#registration-context), only [koi::run](/docs/reference/run) can consumes root-level [registration specs](#registration-spec), once per library initialization/script invocation. Parsing arguments in [function context](#registration-context) uses a separate [registration buffer](#registration-buffer). See [registration contexts and blocks](/docs/concepts/lifecycle).
+**The [context](#registration-context) built by script-scope declarations,** including declarations ([koi::add_arg](/docs/reference/add_arg) or [koi::add_command](/docs/reference/add_command)) sourced at script scope. In contrast to [function context](#registration-context), only [koi::run](/docs/reference/run) can consumes root-level [registration specs](#registration-spec), once per library initialization/script invocation. Parsing arguments in [function context](#registration-context) uses a separate [registration buffer](#registration-buffer). See [registration contexts and blocks](/docs/concepts/lifecycle).
 
 ## Scalar
 
-**A [destination](#destination) that holds a single value rather than an [array](#array) of values.** Scalars and arrays are essentially sub-[kinds](#kind) of [options](#option) and [positionals](#positional), where scalars can only assign one value and arrays can hold multiple values. During parsing, repeated scalar [arguments](#argument) overwrite the previous value by default, rather than accumulating in an array.
+**A [destination](#destination) that holds a single value rather than an [array](#array) of values.** Scalars and [arrays](#array) are [cardinalities](#cardinality), where scalars can only assign one value and arrays can hold multiple values. [Options](#option) and [positionals](#positional) can have cardinality (e.g. both can be arrays or scalars), while [flags](#flag) do not have cardinality. During parsing, repeated scalar [arguments](#argument) overwrite the previous value by default, rather than accumulating in an [indexed array](https://www.gnu.org/software/bash/manual/html_node/Arrays.html).
 
 ## Short spelling
 

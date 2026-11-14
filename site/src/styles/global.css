@@ -2460,7 +2460,9 @@ html:not(.js) [data-open-menu] {
 }
 .argument-rows {
   display: grid;
-  grid-template-columns: minmax(0, max-content) max-content minmax(0, 1fr) 44px;
+  grid-template-columns:
+    minmax(0, max-content) max-content max-content minmax(0, 1fr)
+    44px;
   column-gap: 12px;
   list-style: none;
   margin: 0 !important;
@@ -2491,7 +2493,7 @@ html:not(.js) [data-open-menu] {
 .argument-row {
   display: grid;
   grid-template-columns: subgrid;
-  grid-column: 1 / 4;
+  grid-column: 1 / 5;
   align-items: center;
   min-width: 0;
   padding: 10px 0;
@@ -2503,7 +2505,8 @@ html:not(.js) [data-open-menu] {
   position: relative;
   z-index: 1;
 }
-.argument-kind {
+.argument-kind,
+.argument-cardinality {
   justify-self: start;
   font: 10px/1.6 var(--mono);
   color: var(--muted);
@@ -2554,7 +2557,7 @@ html:not(.js) [data-open-menu] {
   border-color: color-mix(in srgb, #23734a 35%, var(--line));
 }
 .argument-action:hover,
-.argument-kind-trigger:hover,
+.argument-dropdown-trigger:hover,
 .argument-dropdown [role='option']:hover {
   background: color-mix(in srgb, var(--ink) 6%, var(--surface));
 }
@@ -2573,7 +2576,7 @@ html:not(.js) [data-open-menu] {
 .argument-dropdown {
   position: relative;
 }
-.argument-kind-trigger {
+.argument-dropdown-trigger {
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -2675,7 +2678,7 @@ html:not(.js) [data-open-menu] {
 .argument-dropdown [role='option'] + [role='option'] {
   margin-top: 4px;
 }
-.argument-kind-trigger svg {
+.argument-dropdown-trigger svg {
   display: block;
   width: 18px;
   height: 18px;
@@ -2705,5 +2708,17 @@ html:not(.js) [data-open-menu] {
 @media (prefers-reduced-motion: reduce) {
   .argument-invalid-shake {
     animation: none;
+  }
+}
+
+.argument-demo + .argument-demo {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+@media screen and (min-width: 1151px) {
+  #doc-reference-add_arg .doc-prose {
+    padding-bottom: var(--argument-demo-space, 0px);
   }
 }

@@ -4,7 +4,13 @@ description: "Write your first koi-powered script"
 layout: split
 ---
 
-Once you've [installed](/docs/install) koi, you're ready to write your first script. Within a Bash function, register parsable arguments with [koi::add_arg](/docs/reference/add_arg) and then call [koi::parse](/docs/reference/parse) to parse them. `koi::add_arg` lines followed by a `koi::parse` line is called the [registration block](/docs/concepts/lifecycle).
+Once you've [installed](/docs/install) koi, you're ready to write your first script. Start by sourcing the koi library. If you manually installed koi, use `./koi` instead of `koi` in following examples.
+
+```bash
+source koi
+```
+
+Within a Bash function, register parsable arguments with [koi::add_arg](/docs/reference/add_arg) and then call [koi::parse](/docs/reference/parse) to parse them. `koi::add_arg` lines followed by a `koi::parse` line is called the [registration block](/docs/concepts/lifecycle).
 
 In this simple example, we're using koi with direct function calls. This means we pass the command line arguments (`"$@"`) from the command line directly to our function. Koi can also treat individual functions as CLI subcommands. To learn more, see [registration & control flow](/docs/concepts/lifecycle) and [direct calls](/docs/concepts/routing).
 

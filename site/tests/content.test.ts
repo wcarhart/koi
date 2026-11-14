@@ -18,12 +18,13 @@ test('published content includes concept and guide outlines, excludes planned dr
   const reference = docs.filter((d) => d.group === 'Reference');
   assert.equal(reference.length, 8);
   assert.equal(reference.at(-1)!.slug, 'reference/conventions');
-  assert.equal(docs.length, 24);
+  assert.equal(docs.length, 25);
   const concepts = docs.filter((d) => d.group === 'Core concepts');
   assert.deepEqual(
     concepts.map((d) => d.title),
     [
       'Arguments and values',
+      'Scalars and arrays',
       'Registration contexts and blocks',
       'Calls and command routing',
       'Destination variables and scope',
@@ -32,9 +33,7 @@ test('published content includes concept and guide outlines, excludes planned dr
   );
   const guides = docs.filter((d) => d.group === 'Guides');
   assert.equal(guides.length, 5);
-  for (const doc of [...concepts, ...guides].filter(
-    (d) => !['concepts/arguments', 'concepts/lifecycle'].includes(d.slug),
-  )) {
+  for (const doc of guides) {
     assert.match(
       doc.markdown,
       /Authoring outline: documentation to be written/,
@@ -46,7 +45,19 @@ test('published content includes concept and guide outlines, excludes planned dr
   assert.match(addarg.markdown, /koi::parse "\$@" \|\| return "\$koi_status"/);
   assert.doesNotMatch(addarg.markdown, /koi:include|koi:example|^---/);
   assert.match(addarg.example, /Copy code/);
-  assert.doesNotMatch(addarg.markdown, /# Usage: main/);
+  assert.doesNotMatch(
+    addarg.markdown,
+    /Array example|arrays\.sh|source=<|include=</,
+  );
+  const cardinality = docs.find((d) => d.slug === 'concepts/cardinality')!;
+  assert.ok(
+    cardinality.markdown
+      .split('\n')
+      .every(
+        (line) =>
+          !line.trim() || line.startsWith('#') || line.startsWith('- TODO:'),
+      ),
+  );
 });
 test('manifest rejects duplicate paths, DOM IDs, invalid sources, and unknown builders', () => {
   const entry = { file: 'a.md', slug: 'a', group: 'A' };

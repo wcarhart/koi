@@ -84,9 +84,11 @@ Koi tracks whether an argument was explicitly supplied separately from its value
 
 All arguments are optional unless declared with `--required`. Required arguments need explicit input on each parse, regardless of any value already in their [destination](/docs/reference/glossary#destination). Required options and positionals cannot have defaults.
 
-After successful parsing, omitted flags receive `0`, and omitted optional options and positionals receive their declared default or an empty string. Every destination in the context gets a fresh value, so initializing a variable before parsing doesn't provide a default. See [destination variables and scope](/docs/concepts/destinations).
+After successful parsing, omitted flags receive `0`, and omitted optional scalar options and positionals receive their declared default or an empty string. Every destination in the context gets a fresh value, so initializing a variable before parsing doesn't provide a default. See [destination variables and scope](/docs/concepts/destinations).
 
-Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated arguments, use `koi::parse --koi-error-on-duplicates "$@" || return "$koi_status"` (see [koi::parse](/docs/reference/parse)).
+Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated scalar options and flags, use `koi::parse --koi-error-on-scalar-duplicates "$@" || return "$koi_status"` (see [koi::parse](/docs/reference/parse)).
+
+Optional arrays become empty [indexed arrays](https://www.gnu.org/software/bash/manual/html_node/Arrays.html) when omitted. Required arrays need at least one explicit element, including an empty string. See [scalars and arrays](/docs/concepts/cardinality).
 
 ## Help executes application code
 

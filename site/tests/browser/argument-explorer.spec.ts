@@ -112,7 +112,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
   expect(new Set(labels.map((label) => label.x)).size).toBe(1);
   expect(badges[0]).toBeGreaterThan(labels[0].x + labels[0].width);
   await expect(explorer.locator('.argument-row').last()).toHaveText(
-    'sourcePOSITIONAL',
+    'sourcePOSITIONALSCALAR',
   );
   const firstRow = explorer.locator('.argument-rows li').first();
   const rowBounds = (await firstRow.boundingBox())!;

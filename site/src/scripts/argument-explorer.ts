@@ -2,6 +2,7 @@ import {
   argumentScript,
   argumentHelp,
   argumentFieldErrors,
+  argumentCollectionErrors,
   defaultArgument,
   type ArgumentSettings,
 } from '../lib/builders';
@@ -12,18 +13,35 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
 )) {
   const section = explorer.closest('[data-doc-section]')!;
   const outputs = section.querySelectorAll<HTMLElement>(
-    '.doc-example .code-block code',
+    '.doc-example [data-argument-sample] .code-block code',
   );
+  const prose = section.querySelector<HTMLElement>('.doc-prose')!;
+  const demo = section.querySelector<HTMLElement>('.example-sticky')!;
+  // Keep the demo pinned until the editor reaches the top, even when the demo is taller.
+  const reserveDemoSpace = () => {
+    const inset = parseFloat(getComputedStyle(demo).top) || 0;
+    const space = Math.max(
+      0,
+      demo.offsetHeight - explorer.offsetHeight + inset,
+    );
+    prose.style.setProperty('--argument-demo-space', `${space}px`);
+  };
+  const demoResize = new ResizeObserver(reserveDemoSpace);
+  demoResize.observe(demo);
+  demoResize.observe(explorer);
   const list = explorer.querySelector<HTMLElement>('[data-argument-list]')!;
   const rows = explorer.querySelector<HTMLUListElement>('.argument-rows')!;
   const form = explorer.querySelector<HTMLFormElement>('form')!;
-  const trigger = form.querySelector<HTMLButtonElement>(
-    '.argument-kind-trigger',
-  )!;
-  const choices = form.querySelector<HTMLElement>('[role=listbox]')!;
-  const options = [
-    ...choices.querySelectorAll<HTMLButtonElement>('[role=option]'),
-  ];
+  const dropdowns = [
+    ...form.querySelectorAll<HTMLElement>('[data-argument-dropdown]'),
+  ].map((group) => ({
+    key: group.dataset.argumentDropdown as 'kind' | 'cardinality',
+    trigger: group.querySelector<HTMLButtonElement>(
+      '.argument-dropdown-trigger',
+    )!,
+    choices: group.querySelector<HTMLElement>('[role=listbox]')!,
+    options: [...group.querySelectorAll<HTMLButtonElement>('[role=option]')],
+  }));
   let args = [{ ...defaultArgument }];
   let draft: ArgumentSettings;
   let editing = -1;
@@ -33,10 +51,24 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
   const sync = () => {
     const positional = draft.kind === 'positional';
     const flag = draft.kind === 'flag';
-    if (draft.required || flag) draft.useDefault = false;
+    if (flag) draft.cardinality = 'scalar';
+    const array = draft.cardinality === 'array';
+    dropdowns.find(
+      (dropdown) => dropdown.key === 'cardinality',
+    )!.trigger.disabled = flag;
+    form.querySelector<HTMLElement>('[data-cardinality]')!.hidden = flag;
+    if (array) {
+      draft.useDefault = false;
+      draft.defaultValue = '';
+      input('defaultValue').value = '';
+    }
+    form.querySelector<HTMLButtonElement>(
+      '[data-switch="useDefault"]',
+    )!.disabled = array;
+    if (draft.required || flag || array) draft.useDefault = false;
     for (const [selector, hidden] of [
       ['[data-spellings]', positional],
-      ['[data-default-control]', flag || draft.required],
+      ['[data-default-control]', flag || draft.required || array],
       ['[data-default-value]', flag || draft.required || !draft.useDefault],
       ['[data-display-name]', flag],
     ] as const) {
@@ -47,14 +79,17 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
         .forEach((field) => (field.disabled = hidden));
     }
     input('defaultValue').required = draft.useDefault;
-    form.querySelector('#argument-kind-value')!.textContent =
-      draft.kind[0].toUpperCase() + draft.kind.slice(1);
-    options.forEach((option) =>
-      option.setAttribute(
-        'aria-selected',
-        String(option.dataset.kind === draft.kind),
-      ),
-    );
+    for (const dropdown of dropdowns) {
+      const value = draft[dropdown.key];
+      form.querySelector(`#argument-${dropdown.key}-value`)!.textContent =
+        value[0].toUpperCase() + value.slice(1);
+      dropdown.options.forEach((option) =>
+        option.setAttribute(
+          'aria-selected',
+          String(option.dataset.value === value),
+        ),
+      );
+    }
     form
       .querySelectorAll<HTMLButtonElement>('[data-switch]')
       .forEach((button) => {
@@ -65,8 +100,10 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       });
   };
   const closeChoices = () => {
-    choices.hidden = true;
-    trigger.setAttribute('aria-expanded', 'false');
+    for (const { choices, trigger } of dropdowns) {
+      choices.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
   };
   const close = () => {
     form.hidden = true;
@@ -129,7 +166,10 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
           : [arg.short && `-${arg.short}`, arg.long && `--${arg.long}`]
               .filter(Boolean)
               .join(', ');
-      button.append(spelling, kind);
+      const cardinality = document.createElement('span');
+      cardinality.className = 'argument-cardinality';
+      cardinality.textContent = arg.cardinality.toUpperCase();
+      button.append(spelling, kind, cardinality);
       button.setAttribute('aria-label', `Edit ${arg.destination} argument`);
       button.addEventListener('click', () => open(index, button));
       const remove = document.createElement('button');
@@ -173,51 +213,63 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       sync();
     }),
   );
-  trigger.addEventListener('click', () => {
-    if (!choices.hidden) {
+  for (const { key, trigger, choices, options } of dropdowns) {
+    trigger.addEventListener('click', () => {
+      const opening = choices.hidden;
       closeChoices();
-      return;
-    }
-    choices.hidden = false;
-    trigger.setAttribute('aria-expanded', 'true');
-    options.find((option) => option.dataset.kind === draft.kind)!.focus();
-  });
-  options.forEach((option) =>
-    option.addEventListener('click', () => {
-      draft.kind = option.dataset.kind as ArgumentSettings['kind'];
-      sync();
-      closeChoices();
-      trigger.focus();
-    }),
-  );
-  trigger.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (choices.hidden) trigger.click();
-    }
-  });
-  choices.addEventListener('keydown', (event) => {
-    const index = options.indexOf(document.activeElement as HTMLButtonElement);
-    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-      event.preventDefault();
-      options[
-        event.key === 'Home'
-          ? 0
-          : event.key === 'End'
-            ? options.length - 1
-            : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) %
-              options.length
-      ].focus();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      closeChoices();
-      trigger.focus();
-    } else if (event.key === 'Tab') closeChoices();
-  });
-  document.addEventListener('click', (event) => {
-    if (!trigger.parentElement!.contains(event.target as Node)) closeChoices();
-  });
+      if (!opening) return;
+      choices.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      options.find((option) => option.dataset.value === draft[key])!.focus();
+    });
+    options.forEach((option) =>
+      option.addEventListener('click', () => {
+        if (key === 'kind')
+          draft.kind = option.dataset.value as ArgumentSettings['kind'];
+        else
+          draft.cardinality = option.dataset
+            .value as ArgumentSettings['cardinality'];
+        sync();
+        closeChoices();
+        trigger.focus();
+      }),
+    );
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (choices.hidden) trigger.click();
+      }
+    });
+    choices.addEventListener('keydown', (event) => {
+      const index = options.indexOf(
+        document.activeElement as HTMLButtonElement,
+      );
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault();
+        options[
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? options.length - 1
+              : (index +
+                  (event.key === 'ArrowDown' ? 1 : -1) +
+                  options.length) %
+                options.length
+        ].focus();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeChoices();
+        trigger.focus();
+      } else if (event.key === 'Tab') closeChoices();
+    });
+    document.addEventListener('click', (event) => {
+      if (!trigger.parentElement!.contains(event.target as Node)) {
+        choices.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
   form.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -260,6 +312,10 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     if (editing < 0) next.push({ ...draft });
     else next[editing] = { ...draft };
     const errors = argumentFieldErrors(draft);
+    const layoutErrors = argumentCollectionErrors(next).filter((error) =>
+      error.includes('positional'),
+    );
+    if (layoutErrors.length) errors.destination = layoutErrors.join(' ');
     const others = args.filter((_, index) => index !== editing);
     for (const field of ['destination', 'short', 'long'] as const) {
       if (field !== 'destination' && draft.kind === 'positional') continue;
