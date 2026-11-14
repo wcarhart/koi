@@ -14,7 +14,7 @@ __parseargs [--koi-error-on-duplicates] "$@" || return "$koi_status"
 
 The parser consumes the current block before validation, help, or child dispatch. Successful leaf parsing assigns destination variables. Help and errors skip assignments. Selecting a child must not run the parent's business logic too.
 
-## Options and status
+## Arguments and status
 
 `--koi-error-on-duplicates` rejects repeated destinations instead of keeping the last scalar value. Its singular alias `--koi-error-on-duplicate` is also accepted. Administrative settings precede application arguments.
 

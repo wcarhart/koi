@@ -12,7 +12,7 @@ layout: split
 __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [-n NAME]
 ```
 
-## Options
+## Arguments
 
 | Parameter | Description |
 | --- | --- |

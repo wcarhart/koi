@@ -8,7 +8,7 @@ layout: article
 __koiconfig KEY VALUE
 ```
 
-## Options
+## Arguments
 
 | Parameter | Description |
 | --- | --- |

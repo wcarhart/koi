@@ -12,7 +12,7 @@ layout: split
 __addcommand NAME -f HANDLER -d DESCRIPTION
 ```
 
-## Options
+## Arguments
 
 | Parameter | Description |
 | --- | --- |

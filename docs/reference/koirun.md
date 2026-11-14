@@ -10,7 +10,7 @@ __koirun [SETTINGS] "$@"
 
 `"$@"` forwards root options, positional values, or the selected command and its arguments. Call once per library initialization. The first attempt consumes root registration even on help or error; a second call and later root declarations fail. Re-sourcing does not reset the lifecycle.
 
-## Options
+## Arguments
 
 | Parameter | Description |
 | --- | --- |

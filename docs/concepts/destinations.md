@@ -31,7 +31,7 @@ The destination is independent of the [argument labels and display name](/docs/c
 __addarg output_file --option --long output-file --display-name FILE --description 'Where to write output'
 ```
 
-Here, callers use `--output-file`, help shows `--output-file FILE`, and your code reads the value from `$output_file`. Destinations must be valid Bash identifiers, so use underscores rather than hyphens in variable names. Koi also reserves names such as `koi_status`, names starting with `__koi_`, and certain shell variables. See [__addarg](/docs/reference/addarg#options) for the naming rules.
+Here, callers use `--output-file`, help shows `--output-file FILE`, and your code reads the value from `$output_file`. Destinations must be valid Bash identifiers, so use underscores rather than hyphens in variable names. Koi also reserves names such as `koi_status`, names starting with `__koi_`, and certain shell variables. See [__addarg](/docs/reference/addarg#arguments) for the naming rules.
 
 [Registration](/docs/concepts/lifecycle) records the destination name without assigning a value. During successful parsing, koi replaces every destination in the current context with its parsed value or fallback. Omitted flags receive `0`, and omitted optional options and positionals receive their declared default or an empty string. Initializing a variable before parsing doesn't provide a default, so use `--default` for that. Existing values also don't satisfy [required](/docs/reference/glossary#requiredness) arguments. Help leaves destination values unchanged.
 
