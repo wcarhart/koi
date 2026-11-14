@@ -4,7 +4,7 @@ description: "Consume root registration and enter the command tree once."
 layout: article
 ---
 
-```bash
+```text usage
 __koirun [SETTINGS] "$@"
 ```
 

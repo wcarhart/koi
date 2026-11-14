@@ -8,7 +8,7 @@ layout: article
 
 ## Usage
 
-```bash
+```text usage
 __adddescription TEXT
 ```
 

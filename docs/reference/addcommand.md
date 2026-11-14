@@ -8,7 +8,7 @@ layout: split
 
 ## Usage
 
-```bash
+```text usage
 __addcommand NAME -f HANDLER -d DESCRIPTION
 ```
 

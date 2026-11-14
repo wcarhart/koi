@@ -4,7 +4,7 @@ description: "Set script-wide display metadata before the entrypoint runs."
 layout: article
 ---
 
-```bash
+```text usage
 __koiconfig KEY VALUE
 ```
 

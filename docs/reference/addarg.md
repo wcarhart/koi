@@ -8,7 +8,7 @@ layout: split
 
 ## Usage
 
-```TEXT
+```text usage
 __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [-n NAME]
 ```
 
