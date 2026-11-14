@@ -52,7 +52,7 @@ SCRIPT
             if [[ $mode == sourced ]]; then
                 [ "$output" = $'recovered\nsurvived' ]
             fi
-            [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
+            [ "$stderr" = 'koi: koi::parse: must be called inside a function, use koi::run at top level' ]
         done
     done
 }
@@ -73,7 +73,7 @@ SCRIPT
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
+    [ "$stderr" = 'koi: koi::parse: must be called inside a function, use koi::run at top level' ]
 }
 
 @test "moving only the parser into a function does not consume root declarations" {

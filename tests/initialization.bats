@@ -33,6 +33,75 @@ setup() {
     [ -z "$stderr" ]
 }
 
+@test "POSIX mode before Bash 5.3 returns before defining functions or initializing state" {
+    local interpreter tested=0
+    for interpreter in bash /bin/bash; do
+        if ! command -v "$interpreter" >/dev/null; then
+            continue
+        fi
+        if "$interpreter" -c '(( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 3) ))'; then
+            continue
+        fi
+        tested=1
+        run --separate-stderr "$interpreter" --posix -c '
+            before=$(set +o)
+            source "$KOI_LIBRARY"
+            result=$?
+            [[ $result == 2 && $(set +o) == "$before" ]] || exit 1
+            [[ ! ${__koi_initialized+present} ]] || exit 1
+            [[ $(declare -F) != *koi::* ]] || exit 1
+            printf "survived\n"
+            exit "$result"
+        '
+        [ "$status" -eq 2 ]
+        [ "$output" = survived ]
+        [ "$stderr" = 'koi: POSIX mode requires Bash >= 5.3' ]
+    done
+    if [[ $tested == 0 ]]; then
+        skip 'no Bash older than 5.3 available'
+    fi
+}
+
+@test "Bash 5.3 or later sources and parses in POSIX mode without changing shell options" {
+    if ! bash -c '(( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 3) ))'; then
+        skip 'Bash 5.3 or later unavailable'
+    fi
+    run --separate-stderr bash --posix -eu -c '
+        before=$(set +o)
+        flags=$-
+        source "$KOI_LIBRARY"
+        [[ $__koi_initialized == 1 && $(set +o) == "$before" && $- == "$flags" ]]
+        app::main() {
+            local name
+            koi::add_arg name -o -l name -d Name
+            koi::parse "$@" || return "$koi_status"
+            printf "%s\n" "$name"
+        }
+        app::main --name Ada
+    '
+    [ "$status" -eq 0 ]
+    [ "$output" = Ada ]
+    [ -z "$stderr" ]
+}
+
+@test "Bash 5.3 or later permits function-scoped sourcing after enabling POSIX mode" {
+    if ! bash -c '(( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 3) ))'; then
+        skip 'Bash 5.3 or later unavailable'
+    fi
+    run --separate-stderr bash -eu -c '
+        load_library() {
+            source "$KOI_LIBRARY"
+        }
+        set -o posix
+        load_library
+        [[ $__koi_initialized == 1 ]]
+        shopt -qo posix
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ -z "$stderr" ]
+}
+
 @test "sourcing preserves traps" {
     run --separate-stderr bash -c '
         trap ":" USR1

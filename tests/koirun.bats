@@ -296,7 +296,7 @@ Options:
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *'koi::run: call only once per script; koi::run has already been called' ]]
+        [[ "$stderr" == *'koi::run: call only once per script, koi::run has already been called' ]]
     done
 }
 
@@ -336,7 +336,7 @@ Options:
     ' -m safe
     [ "$status" -eq 0 ]
     [ "$output" = safe ]
-    [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
+    [ "$stderr" = 'koi: koi::parse: must be called inside a function, use koi::run at top level' ]
 }
 
 @test "root help and errors return without terminating the sourcing shell" {
