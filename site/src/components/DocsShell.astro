@@ -5,6 +5,7 @@ import ThemeToggle from './ThemeToggle.astro';
 import Icon from './Icon.astro';
 import Search from './Search.astro';
 import KoiMark from './KoiMark.astro';
+import HumanNote from './HumanNote.astro';
 import { docsIndexes } from '../lib/docs-indexes';
 import { getDocs } from '../lib/content';
 interface Props {
@@ -114,6 +115,7 @@ const groups = [...new Set(docs.map((d) => d.group))];
       >
         GitHub <span>↗</span>
       </a>
+      <HumanNote />
     </div>
   </aside>
   <main id="main" class="docs-main" data-initial-section={selected.id}>

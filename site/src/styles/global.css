@@ -619,10 +619,92 @@ kbd {
   margin-top: auto;
   font: 11px var(--mono);
 }
-.sidebar-bottom a {
+.sidebar-bottom > a {
   display: flex;
   justify-content: space-between;
   color: var(--muted);
+}
+.human-note-divider {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.human-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 12px/1.6 var(--sans);
+  text-align: left;
+}
+.human-note img {
+  flex-shrink: 0;
+  width: 2lh;
+  height: 2lh;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.human-note:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+.human-card {
+  position: fixed;
+  inset: auto;
+  width: min(320px, calc(100vw - 24px));
+  margin: 0;
+  padding: 20px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: 14px/1.65 var(--sans);
+}
+.human-card-profile {
+  display: flex;
+  width: max-content;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto 16px;
+}
+.human-card-profile:is(:hover, :focus-visible) {
+  text-decoration: none;
+}
+.human-card-profile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.human-card-profile img {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.human-card-badge {
+  position: relative;
+  height: 24px;
+  margin-top: -12px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--subtle);
+  color: var(--ink);
+  font: 11px/22px var(--mono);
+}
+.human-card h2 {
+  margin: 0 0 8px;
+  font: 650 18px/1.4 var(--sans);
+}
+.human-card p {
+  margin: 0;
 }
 .docs-main {
   margin-left: 264px;

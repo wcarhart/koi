@@ -1,3 +1,5 @@
+import { setupHumanNote } from './human-note';
+
 const sections = [
   ...document.querySelectorAll<HTMLElement>('[data-doc-section]'),
 ];
@@ -171,9 +173,11 @@ const sidebar = document.getElementById('docs-sidebar')!;
 const menuButton =
   document.querySelector<HTMLButtonElement>('[data-open-menu]')!;
 const mobile = matchMedia('(max-width: 900px)');
+const closeHumanNote = setupHumanNote(sidebar);
 let previouslyFocused: HTMLElement | null = null;
 let menuY = 0;
 function closeMenu() {
+  closeHumanNote();
   document.body.classList.remove('menu-open');
   main.inert = false;
   menuButton.setAttribute('aria-expanded', 'false');
