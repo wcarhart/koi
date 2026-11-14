@@ -122,7 +122,7 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 
 ## Requiredness
 
-**Whether an argument must be explicitly present in the current parse.** Use `-r`/`--required` in [__addarg](/docs/reference/addarg) to make an argument required, otherwise all argument registrations are optional by default. Required [options](#option) and [positionals](#positional) cannot have defaults.
+**Whether an argument must be explicitly present in the current parse.** Use `-r`/`--required` in [__addarg](/docs/reference/addarg) to make an argument required, otherwise all argument registrations are optional by default. Required [options](#option) and [positionals](#positional) cannot have defaults. Existing values in [destinations](#destination) do not satisfy requiredness.
 
 ## Root context
 
