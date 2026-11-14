@@ -21,7 +21,13 @@ const glossary =
   kind === 'reference'
     ? entries.find((doc) => doc.slug === 'reference/glossary')
     : undefined;
-const commands = entries.filter((doc) => doc !== glossary);
+const conventions =
+  kind === 'reference'
+    ? entries.find((doc) => doc.slug === 'reference/conventions')
+    : undefined;
+const commands = entries.filter(
+  (doc) => doc !== glossary && doc !== conventions,
+);
 const featured = kind === 'guides' ? entries.slice(0, 4) : [];
 const remaining = kind === 'guides' ? entries.slice(4) : commands;
 const albums =
@@ -75,9 +81,16 @@ const albums =
       {glossary ? (
         <div class="index-title-row">
           <h1>{selected.title}</h1>
-          <a class="button" href={glossary.url}>
-            Glossary <CtaArrow />
-          </a>
+          <div class="reference-supporting-links">
+            <a class="button" href={glossary.url}>
+              Glossary <CtaArrow />
+            </a>
+            {conventions && (
+              <a class="button" href={conventions.url}>
+                Conventions <CtaArrow />
+              </a>
+            )}
+          </div>
         </div>
       ) : (
         <h1>{selected.title}</h1>

@@ -110,31 +110,31 @@ test('deep links, refresh, scroll URLs, explicit navigation, and browser history
   page,
   isMobile,
 }) => {
-  await page.goto('/docs/reference/addarg');
-  await expect(page.locator('#doc-reference-addarg h1')).toBeInViewport();
-  await expect(page).toHaveURL(/\/docs\/reference\/addarg$/);
+  await page.goto('/docs/reference/add_arg');
+  await expect(page.locator('#doc-reference-add_arg h1')).toBeInViewport();
+  await expect(page).toHaveURL(/\/docs\/reference\/add_arg$/);
   await page.reload();
-  await expect(page.locator('#doc-reference-addarg h1')).toBeInViewport();
+  await expect(page.locator('#doc-reference-add_arg h1')).toBeInViewport();
   if (isMobile)
     await page.getByRole('button', { name: 'Open documentation menu' }).click();
   await page
     .getByRole('navigation', { name: 'Documentation sections' })
-    .getByRole('link', { name: '__parseargs', exact: true })
+    .getByRole('link', { name: 'koi::parse', exact: true })
     .click();
-  await expect(page).toHaveURL(/\/docs\/reference\/parseargs$/);
-  await expect(page.locator('#doc-reference-parseargs h1')).toBeInViewport();
+  await expect(page).toHaveURL(/\/docs\/reference\/parse$/);
+  await expect(page.locator('#doc-reference-parse h1')).toBeInViewport();
   await page.goBack();
-  await expect(page.locator('#doc-reference-addarg h1')).toBeInViewport();
+  await expect(page.locator('#doc-reference-add_arg h1')).toBeInViewport();
   await page.goForward();
-  await expect(page.locator('#doc-reference-parseargs h1')).toBeInViewport();
-  await page.locator('#doc-reference-koiconfig').scrollIntoViewIfNeeded();
+  await expect(page.locator('#doc-reference-parse h1')).toBeInViewport();
+  await page.locator('#doc-reference-config').scrollIntoViewIfNeeded();
   await page.waitForTimeout(200);
   await page.evaluate(() =>
-    document.getElementById('doc-reference-koiconfig')!.scrollIntoView(),
+    document.getElementById('doc-reference-config')!.scrollIntoView(),
   );
-  await expect(page).toHaveURL(/\/docs\/reference\/koiconfig$/);
-  await page.goto('/docs/reference/addarg#options');
-  await expect(page.locator('#doc-reference-addarg-options')).toBeInViewport();
+  await expect(page).toHaveURL(/\/docs\/reference\/config$/);
+  await page.goto('/docs/reference/add_arg#options');
+  await expect(page.locator('#doc-reference-add_arg-options')).toBeInViewport();
 });
 
 test('keyboard search navigates, closes, and ignores editable inputs', async ({
@@ -146,17 +146,19 @@ test('keyboard search navigates, closes, and ignores editable inputs', async ({
   const dialog = page.getByRole('dialog', { name: 'Search documentation' });
   await expect(dialog).toBeVisible();
   const search = dialog.getByRole('combobox', { name: 'Search documentation' });
-  await search.fill('__addarg');
-  await expect(dialog.getByRole('option').first()).toContainText('__addarg');
+  await search.fill('koi::add_arg');
+  await expect(dialog.getByRole('option').first()).toContainText(
+    'koi::add_arg',
+  );
   await search.press('Enter');
   await expect(dialog).not.toBeVisible();
-  await expect(page).toHaveURL(/\/docs\/reference\/addarg$/);
+  await expect(page).toHaveURL(/\/docs\/reference\/add_arg$/);
   await page.getByRole('button', { name: 'Edit name argument' }).click();
   const dest = page.getByLabel('Destination variable');
   await dest.fill('name');
   await dest.press('/');
   await expect(dialog).not.toBeVisible();
-  await page.locator('h1').filter({ hasText: '__addarg' }).click();
+  await page.locator('h1').filter({ hasText: 'koi::add_arg' }).click();
   await page.keyboard.press('/');
   await expect(dialog).toBeVisible();
   await search.fill('zzz-not-a-match');
@@ -172,8 +174,8 @@ test('keyboard search navigates, closes, and ignores editable inputs', async ({
 test('code builders update, constrain fields, and reset to documented defaults', async ({
   page,
 }) => {
-  await page.goto('/docs/reference/addarg');
-  const section = page.locator('#doc-reference-addarg');
+  await page.goto('/docs/reference/add_arg');
+  const section = page.locator('#doc-reference-add_arg');
   const code = section.locator('.doc-example code').first();
   const initial = await code.textContent();
   await section.getByRole('button', { name: 'Edit name argument' }).click();
@@ -194,7 +196,7 @@ test('code builders update, constrain fields, and reset to documented defaults',
     section.getByRole('switch', { name: 'Use a default' }),
   ).not.toBeVisible();
   await section.getByRole('button', { name: 'Save argument' }).click();
-  await expect(code).toContainText('__addarg recipient -p');
+  await expect(code).toContainText('koi::add_arg recipient -p');
   await expect(code).not.toContainText(' -D ');
   await section
     .getByRole('button', { name: 'Edit recipient argument' })
@@ -237,16 +239,16 @@ test('copy buttons use Markdown response, checkmark feedback, and failure feedba
       },
     });
   });
-  await page.goto('/docs/reference/addarg');
-  const section = page.locator('#doc-reference-addarg');
+  await page.goto('/docs/reference/add_arg');
+  const section = page.locator('#doc-reference-add_arg');
   const copy = section.locator('[data-copy-markdown]');
   await copy.click();
   await expect(copy).toHaveAttribute('data-copy-state', 'success');
   const markdown = await (
-    await page.request.get('/docs/reference/addarg.md')
+    await page.request.get('/docs/reference/add_arg.md')
   ).text();
   expect(matter(markdown).data).toEqual({
-    title: '__addarg',
+    title: 'koi::add_arg',
     subtitle:
       'Define one flag, option, or positional argument in the current registration context.',
   });
@@ -262,7 +264,7 @@ test('copy buttons use Markdown response, checkmark feedback, and failure feedba
   await expect(codeCopy).toHaveAttribute('data-copy-state', 'success');
   expect(
     await page.evaluate(() => (window as unknown as { copied: string }).copied),
-  ).toContain('__parseargs "$@" || return "$koi_status"');
+  ).toContain('koi::parse "$@" || return "$koi_status"');
   await page.evaluate(() => {
     navigator.clipboard.writeText = async () => {
       throw new Error('denied');
@@ -299,7 +301,7 @@ test('theme persists, mobile does not overflow, and search handles fetch failure
 });
 
 test('templates pass accessibility checks', async ({ page, isMobile }) => {
-  for (const route of ['/', '/install', '/docs/reference/addarg']) {
+  for (const route of ['/', '/install', '/docs/reference/add_arg']) {
     await page.goto(route);
     const report = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
@@ -342,7 +344,7 @@ test('no-JavaScript reading and reduced-motion support', async ({
     page.getByRole('heading', { name: 'Meet koi', exact: true }),
   ).toBeVisible();
   await expect(
-    page.locator('#doc-reference-addarg code').first(),
+    page.locator('#doc-reference-add_arg code').first(),
   ).toBeAttached();
   await expect(
     page.getByRole('form', { name: 'Argument code builder' }),
@@ -354,7 +356,7 @@ test('dark templates retain contrast and reduced motion stops the cursor', async
   page,
 }) => {
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  for (const route of ['/', '/docs/reference/addarg']) {
+  for (const route of ['/', '/docs/reference/add_arg']) {
     await page.goto(route);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const report = await new AxeBuilder({ page })
@@ -395,24 +397,24 @@ test('search retries after a failed fetch and opens heading results', async ({
   );
   await dialog.getByRole('combobox').press('Enter');
   await expect(page).toHaveURL(
-    /\/docs\/reference\/addarg#returns-and-assignment$/,
+    /\/docs\/reference\/add_arg#returns-and-assignment$/,
   );
   await expect(
-    page.locator('#doc-reference-addarg-returns-and-assignment'),
+    page.locator('#doc-reference-add_arg-returns-and-assignment'),
   ).toBeInViewport();
 });
 
 test('Markdown routes open as raw text and drafts stay unpublished', async ({
   page,
 }) => {
-  await page.goto('/docs/reference/addarg');
+  await page.goto('/docs/reference/add_arg');
   await page
-    .locator('#doc-reference-addarg')
+    .locator('#doc-reference-add_arg')
     .getByRole('link', { name: 'View as Markdown' })
     .click();
-  await expect(page).toHaveURL(/\/docs\/reference\/addarg\.md$/);
-  await expect(page.locator('body')).toContainText('title: __addarg');
-  await expect(page.locator('body')).toContainText('__addarg DEST');
+  await expect(page).toHaveURL(/\/docs\/reference\/add_arg\.md$/);
+  await expect(page.locator('body')).toContainText("title: 'koi::add_arg'");
+  await expect(page.locator('body')).toContainText('koi::add_arg DEST');
   expect(await page.locator('html').getAttribute('data-theme')).toBeNull();
   const index = await page.request.get('/search.json');
   expect(JSON.stringify(await index.json())).not.toContain(
@@ -622,7 +624,7 @@ test('homepage heading font, button fills, copy alignment, and window hover are 
       parseFloat(style.paddingLeft) -
       parseFloat(style.paddingRight);
     const declarations = [...pre.querySelectorAll('.line')].filter((line) =>
-      line.textContent?.includes('__addarg '),
+      line.textContent?.includes('koi::add_arg '),
     );
     return {
       titleLines:

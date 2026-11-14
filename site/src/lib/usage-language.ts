@@ -5,7 +5,10 @@ export const usageLanguage: LanguageRegistration = {
   name: 'koi-usage',
   scopeName: 'source.koi-usage',
   patterns: [
-    { match: '\\b__[A-Za-z_][A-Za-z0-9_]*\\b', name: 'entity.name.function' },
+    {
+      match: '\\bkoi::(?:internal::)?[A-Za-z_][A-Za-z0-9_]*\\b',
+      name: 'entity.name.function',
+    },
     { match: '\\|\\|', name: 'keyword.operator.logical' },
     { match: '\\breturn\\b', name: 'keyword.control' },
     {

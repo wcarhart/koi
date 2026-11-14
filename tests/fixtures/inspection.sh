@@ -2,7 +2,7 @@
 
 # Capture one spec and let a checker examine caller-owned arrays
 # Usage: capture_spec HANDLER CHECKER
-#   HANDLER  parsing function or __koirun
+#   HANDLER  parsing function or koi::run
 #   CHECKER  assertion function called after successful collection
 # Returns the inspection or assertion status without printing the spec
 capture_spec() {
@@ -23,7 +23,7 @@ capture_spec() {
     local __koi_inspection_sink=__koi_saved __koi_inspection_received=0
     local __koi_inspection_handler=$__koi_test_handler
     local __koi_inspection_depth=$((${#FUNCNAME[@]} + 2))
-    if [[ $__koi_test_handler == __koirun ]]; then
+    if [[ $__koi_test_handler == koi::run ]]; then
         __koi_inspection_depth=$((${#FUNCNAME[@]} + 1))
     fi
     "$__koi_test_handler" --koi-inspect spec || return $?

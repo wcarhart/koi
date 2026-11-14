@@ -13,12 +13,12 @@ import {
 } from '../src/lib/content';
 
 const references = [
-  'addarg',
-  'addcommand',
-  'adddescription',
-  'parseargs',
-  'koiconfig',
-  'koirun',
+  'add_arg',
+  'add_command',
+  'add_description',
+  'parse',
+  'config',
+  'run',
 ];
 
 test('all API reference signatures use highlighted usage notation without changing source text', async () => {
@@ -29,7 +29,7 @@ test('all API reference signatures use highlighted usage notation without changi
       'utf8',
     );
     const signature = source.match(/```text usage\n([^]*?)\n```/)![1];
-    assert.ok(signature.startsWith(`__${name} `));
+    assert.ok(signature.startsWith(`koi::${name} `));
     const { html } = await renderMarkdown(
       `\`\`\`text usage\n${signature}\n\`\`\``,
       'usage',
@@ -60,7 +60,7 @@ test('usage grammar distinguishes alternatives, options, placeholders, and the B
   try {
     for (const theme of ['github-light', 'github-dark']) {
       const { tokens } = high.codeToTokens(
-        '__addarg DEST (-f|-o|-p) [-s SHORT] [--long LONG] "$@" || return "$koi_status"',
+        'koi::add_arg DEST (-f|-o|-p) [-s SHORT] [--long LONG] "$@" || return "$koi_status"',
         {
           lang: 'koi-usage',
           theme,
@@ -71,7 +71,7 @@ test('usage grammar distinguishes alternatives, options, placeholders, and the B
         .flat()
         .flatMap((token) => token.explanation ?? []);
       for (const [text, scope] of [
-        ['__addarg', 'entity.name.function'],
+        ['koi::add_arg', 'entity.name.function'],
         ['DEST', 'constant.other'],
         ['SHORT', 'constant.other'],
         ['-f', 'variable.parameter'],
@@ -106,7 +106,7 @@ test('usage grammar distinguishes alternatives, options, placeholders, and the B
 
 test('usage rendering escapes content and composes with line numbers and disabled copying', async () => {
   const { html } = await renderMarkdown(
-    '```text usage line-numbers\n__adddescription TEXT\n\n<tag>&\n```',
+    '```text usage line-numbers\nkoi::add_description TEXT\n\n<tag>&\n```',
     'usage',
     new Map(),
     { copy: false },
@@ -124,5 +124,49 @@ test('usage rendering escapes content and composes with line numbers and disable
     );
     assert.doesNotMatch(html, /<span>Usage<\/span>/);
     assert.match(html, new RegExp(`<span>${fence.split(' ')[0]}<\\/span>`));
+  }
+});
+
+test('namespaced public and internal usage functions are whole tokens and preserve text', async () => {
+  const high = await createHighlighterCore({
+    themes: [import('shiki/themes/github-light.mjs')],
+    langs: [usageLanguage],
+    engine: createJavaScriptRegexEngine(),
+  });
+  try {
+    for (const name of [
+      'koi::add_arg',
+      'koi::parse',
+      'koi::internal::parse_spec',
+    ]) {
+      const source = `${name} "$@" || return "$koi_status"`;
+      const { tokens } = high.codeToTokens(source, {
+        lang: 'koi-usage',
+        theme: 'github-light',
+        includeExplanation: true,
+      });
+      assert.equal(
+        tokens
+          .flat()
+          .map((token) => token.content)
+          .join(''),
+        source,
+      );
+      assert.ok(
+        tokens
+          .flat()
+          .some(
+            (token) =>
+              token.content === name &&
+              token.explanation?.some((part) =>
+                part.scopes.some(
+                  (scope) => scope.scopeName === 'entity.name.function',
+                ),
+              ),
+          ),
+      );
+    }
+  } finally {
+    high.dispose();
   }
 });

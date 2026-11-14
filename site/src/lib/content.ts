@@ -65,7 +65,7 @@ export function validateManifest(entries: ManifestEntry[]): void {
   const ids = new Set<string>();
   for (const entry of entries) {
     if (
-      (entry.slug && !/^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(entry.slug)) ||
+      (entry.slug && !/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/.test(entry.slug)) ||
       slugs.has(entry.slug) ||
       ids.has(sectionId(entry.slug))
     )

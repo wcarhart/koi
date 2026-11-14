@@ -4,7 +4,7 @@ description: "The vocabulary and input tokens used by koi."
 layout: article
 ---
 
-An argument is an input you declare with [__addarg](/docs/reference/addarg), such as a flag to enable verbose output or an option to choose an output file. When calling a script or function, Bash also calls each string you pass an _argument_. We'll use _token_ when referring to those individual strings. For example, `--output-file report.txt` is two tokens supplying one declared argument.
+An argument is an input you declare with [koi::add_arg](/docs/reference/add_arg), such as a flag to enable verbose output or an option to choose an output file. When calling a script or function, Bash also calls each string you pass an _argument_. We'll use _token_ when referring to those individual strings. For example, `--output-file report.txt` is two tokens supplying one declared argument.
 
 > [!NOTE] A note on nomenclature
 > The term _argument_ is overloaded and ambiguous in different contexts related to argument parsing. To understand what this and other related terms mean in the context of koi, please take a look at the [glossary](/docs/reference/glossary).
@@ -28,14 +28,14 @@ Currently, each argument writes a single value, called a _scalar_. Repeating an 
 An argument has a Bash variable to hold its value and, for flags and options, labels the caller uses to supply it. You can also choose how the value appears in help:
 
 ```bash
-__addarg output_file --option --short o --long output-file --display-name FILE --description 'Write output to a file'
+koi::add_arg output_file --option --short o --long output-file --display-name FILE --description 'Write output to a file'
 ```
 
 Here, `output_file` is the **destination**, the Bash variable koi assigns after successful parsing. After successful parsing, you'd be able to access the assigned value via `$output_file`. `-o` and `--output-file` are **argument labels**, also called _spellings_. They are aliases for the same option, so `-o report.txt` and `--output-file report.txt` both assign `report.txt` to `output_file`.
 
 A short label has one dash and one letter. A long label has two dashes and a name. Flags and options need at least one label, while positionals cannot have either.
 
-`FILE` is the **display name** used in generated help, such as `--output-file FILE`. It changes only the help text. If you omit `--display-name`, koi uses the destination name instead. For example, if you used `__addarg output_file --option --short o --long output-file --description 'Write output to a file'` without `--display-name FILE`, koi would render `[-o OUTPUT-FILE]` in the usage line of the help menu. You can set this to `[-o FILE]` by using `--display-name FILE`.
+`FILE` is the **display name** used in generated help, such as `--output-file FILE`. It changes only the help text. If you omit `--display-name`, koi uses the destination name instead. For example, if you used `koi::add_arg output_file --option --short o --long output-file --description 'Write output to a file'` without `--display-name FILE`, koi would render `[-o OUTPUT-FILE]` in the usage line of the help menu. You can set this to `[-o FILE]` by using `--display-name FILE`.
 
 See [destination variables and scope](/docs/concepts/destinations) for where values are assigned, or the [glossary](/docs/reference/glossary) for related terms.
 

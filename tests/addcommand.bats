@@ -14,7 +14,7 @@ setup() {
 reject_registration() {
     local before after result
     before=$(declare -p __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
-    __addcommand "$@"
+    koi::add_command "$@"
     result=$?
     after=$(declare -p __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
     if [[ $before != "$after" ]]; then
@@ -29,7 +29,7 @@ reject_registration() {
 }
 
 @test "long options register command metadata" {
-    __addcommand deploy --function deploy_application --description "Deploy application"
+    koi::add_command deploy --function deploy_application --description "Deploy application"
     [ "$__koi_pending_spec_valid" -eq 1 ]
     [ "${__koi_pending_commands[0]}" = deploy ]
     [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
@@ -37,34 +37,34 @@ reject_registration() {
 }
 
 @test "short options register command metadata" {
-    __addcommand deploy -f deploy_application -d 'Deploy application'
+    koi::add_command deploy -f deploy_application -d 'Deploy application'
     [ "${__koi_pending_commands[0]}" = deploy ]
     [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
     [ "${__koi_pending_descriptions[deploy]}" = 'Deploy application' ]
 }
 
 @test "option aliases can be mixed and supplied in either order" {
-    __addcommand deploy -d 'Deploy application' --function deploy_application
+    koi::add_command deploy -d 'Deploy application' --function deploy_application
     [ "${__koi_pending_handlers[deploy]}" = deploy_application ]
     [ "${__koi_pending_descriptions[deploy]}" = 'Deploy application' ]
 }
 
 @test "registration is silent and does not require a defined handler" {
-    run --separate-stderr __addcommand deploy -f not_defined -d Deploy
+    run --separate-stderr koi::add_command deploy -f not_defined -d Deploy
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     [ -z "$stderr" ]
 }
 
 @test "command names accept digits, hyphens and underscores" {
-    __addcommand 1-deploy_job -f _deploy_job2 -d Deploy
+    koi::add_command 1-deploy_job -f _deploy_job2 -d Deploy
     [ "${__koi_pending_commands[0]}" = 1-deploy_job ]
     [ "${__koi_pending_handlers[1-deploy_job]}" = _deploy_job2 ]
 }
 
 @test "description preserves whitespace and shell-looking text literally" {
     local description=$'  first line\nsecond "$value" \\ end  '
-    __addcommand deploy -f deploy -d "$description"
+    koi::add_command deploy -f deploy -d "$description"
     [ "${__koi_pending_descriptions[deploy]}" = "$description" ]
 }
 
@@ -72,39 +72,39 @@ reject_registration() {
     run --separate-stderr reject_registration
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addcommand: command name required' ]
+    [ "$stderr" = 'koi: koi::add_command: command name required' ]
 }
 
 @test "invalid command names fail without registration" {
-    for name in '' 'two words' 'bad/name' '-name' '_name'; do
+    for name in '' 'two words' 'bad/name' '-name' '_name' 'app::deploy'; do
         run --separate-stderr reject_registration "$name" -f handler -d Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: __addcommand: invalid command name: '$name'" ]
+        [ "$stderr" = "koi: koi::add_command: invalid command name: '$name'" ]
     done
 }
 
 @test "missing or invalid handler fails without registration" {
-    for handler in '' 'bad-name' 'two words' '1handler'; do
+    for handler in '' 'bad-name' 'two words' '1handler' 'bad/name' '$(true)' '${handler}' 'handler;true'; do
         run --separate-stderr reject_registration deploy -f "$handler" -d Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: __addcommand: handler identifier required' ]
+        [ "$stderr" = 'koi: koi::add_command: handler identifier required' ]
     done
     run --separate-stderr reject_registration deploy -d Description
     [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: __addcommand: handler identifier required' ]
+    [ "$stderr" = 'koi: koi::add_command: handler identifier required' ]
 }
 
 @test "missing or empty description fails without registration" {
     run --separate-stderr reject_registration deploy -f handler
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addcommand: nonempty description required' ]
+    [ "$stderr" = 'koi: koi::add_command: nonempty description required' ]
     run --separate-stderr reject_registration deploy -f handler -d ''
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addcommand: nonempty description required' ]
+    [ "$stderr" = 'koi: koi::add_command: nonempty description required' ]
 }
 
 @test "options missing a value fail without registration" {
@@ -112,13 +112,13 @@ reject_registration() {
         run --separate-stderr reject_registration deploy "$option"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: __addcommand: invalid --function' ]
+        [ "$stderr" = 'koi: koi::add_command: invalid --function' ]
     done
     for option in -d --description; do
         run --separate-stderr reject_registration deploy -f handler "$option"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: __addcommand: invalid --description' ]
+        [ "$stderr" = 'koi: koi::add_command: invalid --description' ]
     done
 }
 
@@ -128,7 +128,7 @@ reject_registration() {
             run --separate-stderr reject_registration deploy "$first" handler "$second" other -d Description
             [ "$status" -eq 2 ]
             [ -z "$output" ]
-            [ "$stderr" = 'koi: __addcommand: invalid --function' ]
+            [ "$stderr" = 'koi: koi::add_command: invalid --function' ]
         done
     done
 }
@@ -139,13 +139,13 @@ reject_registration() {
             run --separate-stderr reject_registration deploy -f handler "$first" Description "$second" Other
             [ "$status" -eq 2 ]
             [ -z "$output" ]
-            [ "$stderr" = 'koi: __addcommand: invalid --description' ]
+            [ "$stderr" = 'koi: koi::add_command: invalid --description' ]
         done
     done
 }
 
 @test "duplicate command preserves the existing registration" {
-    __addcommand deploy -f original -d Original
+    koi::add_command deploy -f original -d Original
     run --separate-stderr reject_registration deploy -f replacement -d Replacement
     [ "$status" -eq 2 ]
     [ -z "$output" ]
@@ -157,7 +157,7 @@ reject_registration() {
         run --separate-stderr reject_registration deploy -f handler "$option" Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: __addcommand: unknown registration parameter: $option" ]
+        [ "$stderr" = "koi: koi::add_command: unknown registration parameter: $option" ]
     done
 }
 
@@ -165,13 +165,40 @@ reject_registration() {
     # shellcheck disable=SC2016
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addcommand
+        koi::add_command
         result=$?
         [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
-        __addarg mode -o -l mode -d Mode || exit
+        koi::add_arg mode -o -l mode -d Mode || exit
         [[ $__koi_root_spec_valid == 0 && ${__koi_root_args[0]} == mode ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addcommand: command name required' ]
+    [ "$stderr" = 'koi: koi::add_command: command name required' ]
+}
+
+@test "handler names accept namespaces and single colons with either declaration alias" {
+    local command
+    for option in -f --function; do
+        for handler in app::deploy app::internal::deploy app:deploy; do
+            command="deploy${#__koi_pending_commands[@]}"
+            koi::add_command "$command" "$option" "$handler" -d Deploy
+            [ "${__koi_pending_handlers[$command]}" = "$handler" ]
+        done
+    done
+}
+
+@test "destination variables still reject colons" {
+    run --separate-stderr koi::add_arg app::value -o -l value -d Value
+    [ "$status" -eq 2 ]
+}
+
+@test "a not-yet-defined namespaced handler registers but fails at parse time" {
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY"
+        koi::add_command deploy --function app::missing -d Deploy || exit
+        koi::run deploy
+    '
+    [ "$status" -eq 2 ]
+    [[ "$stderr" == *app::missing* ]]
+    [ -z "$output" ]
 }

@@ -1,15 +1,15 @@
 ---
-title: "__koiconfig"
+title: "koi::config"
 description: "Set script-wide koi metadata."
 layout: article
 ---
 
-`__koiconfig KEY VALUE` configures script-level metadata, like script name, root description, and help word-wrap width. Call it at script scope after sourcing koi, before [__koirun](/docs/reference/koirun) or your application's entrypoint function runs.
+`koi::config KEY VALUE` configures script-level metadata, like script name, root description, and help word-wrap width. Call it at script scope after sourcing koi, before [koi::run](/docs/reference/run) or your application's entrypoint function runs.
 
 ## Usage
 
 ```text usage
-__koiconfig KEY VALUE
+koi::config KEY VALUE
 ```
 
 ## Arguments
@@ -23,12 +23,12 @@ __koiconfig KEY VALUE
 Both `KEY` and `VALUE` are required. Supply one setting per call, and quote values containing spaces. Each key can be set only once, even if you supply the same value again. All values must be nonempty.
 
 ```bash
-__koiconfig name infra
-__koiconfig description 'Manage infrastructure'
-__koiconfig help-width 80
+koi::config name infra
+koi::config description 'Manage infrastructure'
+koi::config help-width 80
 ```
 
-Configuration stays in effect throughout the script, including direct function calls and nested commands. `__koiconfig` statements must come before `__koirun` but do not necessarily need to be within the root-level [registration block](/docs/concepts/lifecycle). `__koiconfig` cannot be used in functions, it's only supported at the script-level.
+Configuration stays in effect throughout the script, including direct function calls and nested commands. `koi::config` statements must come before `koi::run` but do not necessarily need to be within the root-level [registration block](/docs/concepts/lifecycle). `koi::config` cannot be used in functions, it's only supported at the script-level.
 
 ## Return
 
@@ -45,18 +45,18 @@ Consider the following example script, locally named `~/app.sh`:
 #!/usr/bin/env bash
 source koi
 
-__koiconfig name infra
-__koiconfig description 'Manage infrastructure'
-__koiconfig help-width 80
+koi::config name infra
+koi::config description 'Manage infrastructure'
+koi::config help-width 80
 
 deploy() {
-    __parseargs "$@" || return "$koi_status"
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Deploying\n'
 }
 
-__addcommand deploy --function deploy --description 'Deploy the application'
-__koirun "$@"
+koi::add_command deploy --function deploy --description 'Deploy the application'
+koi::run "$@"
 ```
 
 Running `./app.sh --help` shows:
@@ -76,7 +76,7 @@ Options:
 
 The configured name also appears in child usage lines, so `./app.sh deploy --help` shows `Usage: infra deploy [-h]`. The script is still invoked as `app.sh`.
 
-The root description applies only to root help. Routed commands use their [__addcommand](/docs/reference/addcommand) descriptions, while directly called functions use [__adddescription](/docs/reference/adddescription). See [how help follows the call](/docs/concepts/routing#help-follows-the-call).
+The root description applies only to root help. Routed commands use their [koi::add_command](/docs/reference/add_command) descriptions, while directly called functions use [koi::add_description](/docs/reference/add_description). See [how help follows the call](/docs/concepts/routing#help-follows-the-call).
 
 Help wraps descriptions at word boundaries and preserves explicit line breaks. Long words and argument labels can exceed `help-width`. The usage statement stays on one line.
 

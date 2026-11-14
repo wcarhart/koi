@@ -19,7 +19,7 @@ test('quickstart displays the guard, example, and sidebar labels in both themes'
     });
     await expect(callout).toBeVisible();
     await expect(callout).toContainText(
-      '__parseargs "$@" || return "$koi_status"',
+      'koi::parse "$@" || return "$koi_status"',
     );
     await expect(
       callout.getByRole('button', { name: 'Copy code' }),

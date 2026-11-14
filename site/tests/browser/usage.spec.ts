@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-for (const name of ['addarg', 'parseargs']) {
+for (const name of [
+  'add_arg',
+  'add_command',
+  'add_description',
+  'parse',
+  'config',
+  'run',
+]) {
   test(`${name} usage highlights in both themes and copies the original signature`, async ({
     page,
     isMobile,
@@ -28,7 +35,7 @@ for (const name of ['addarg', 'parseargs']) {
     expect(await code.textContent()).toBe(signature);
     const fn = code
       .locator('span[style]')
-      .filter({ hasText: `__${name}` })
+      .filter({ hasText: `koi::${name}` })
       .first();
     const light = await fn.evaluate((node) => getComputedStyle(node).color);
     expect(light).not.toBe(

@@ -16,9 +16,9 @@ import { search } from '../src/lib/search';
 test('published content includes concept and guide outlines, excludes planned drafts, and expands executable examples', async () => {
   const docs = await getDocs();
   const reference = docs.filter((d) => d.group === 'Reference');
-  assert.equal(reference.length, 7);
-  assert.equal(reference.at(-1)!.slug, 'reference/glossary');
-  assert.equal(docs.length, 23);
+  assert.equal(reference.length, 8);
+  assert.equal(reference.at(-1)!.slug, 'reference/conventions');
+  assert.equal(docs.length, 24);
   const concepts = docs.filter((d) => d.group === 'Core concepts');
   assert.deepEqual(
     concepts.map((d) => d.title),
@@ -42,8 +42,8 @@ test('published content includes concept and guide outlines, excludes planned dr
     assert.match(doc.markdown, /- TODO:/);
   }
   assert.ok(docs.every((d) => !d.file.startsWith('outlines/')));
-  const addarg = docs.find((d) => d.slug === 'reference/addarg')!;
-  assert.match(addarg.markdown, /__parseargs "\$@" \|\| return "\$koi_status"/);
+  const addarg = docs.find((d) => d.slug === 'reference/add_arg')!;
+  assert.match(addarg.markdown, /koi::parse "\$@" \|\| return "\$koi_status"/);
   assert.doesNotMatch(addarg.markdown, /koi:include|koi:example|^---/);
   assert.match(addarg.example, /Copy code/);
   assert.doesNotMatch(addarg.markdown, /# Usage: main/);
@@ -82,7 +82,7 @@ test('exports generate title and subtitle frontmatter, omit layout markers, and 
   );
   const docs = await getDocs();
   for (const doc of docs.filter((doc) =>
-    ['', 'quickstart', 'reference/addarg'].includes(doc.slug),
+    ['', 'quickstart', 'reference/add_arg'].includes(doc.slug),
   )) {
     const markdown = exportMarkdown(doc);
     const { data, content } = matter(markdown);
@@ -116,7 +116,7 @@ test('broken local routes and fragments are diagnosed', async () => {
 });
 test('search favors exact API names, handles empty and missing results, and links headings', async () => {
   const entries = (await getDocs()).flatMap((d) => d.search);
-  assert.equal(search(entries, '__addarg')[0].title, '__addarg');
+  assert.equal(search(entries, 'koi::add_arg')[0].title, 'koi::add_arg');
   assert.equal(search(entries, '  ').length, 0);
   assert.equal(search(entries, 'a-word-that-does-not-exist').length, 0);
   assert.ok(search(entries, 'Parser result').some((e) => e.url.includes('#')));
@@ -180,7 +180,7 @@ test('Markdown external origins open safely in a new tab while local destination
 
 test('warning callouts render rich content and leave ordinary quotes intact', async () => {
   const { html } = await renderMarkdown(
-    '> [!WARNING] Always use a guard\n>\n> **Always** guard parsing.\n>\n> ```bash\n> __parseargs "$@" || return "$koi_status"\n> ```\n>\n> [Learn more](/docs/concepts/lifecycle)\n\n> Ordinary quote',
+    '> [!WARNING] Always use a guard\n>\n> **Always** guard parsing.\n>\n> ```bash\n> koi::parse "$@" || return "$koi_status"\n> ```\n>\n> [Learn more](/docs/concepts/lifecycle)\n\n> Ordinary quote',
     'callout-test',
   );
   assert.match(
@@ -196,13 +196,13 @@ test('warning callouts render rich content and leave ordinary quotes intact', as
 test('callout titles render inline Markdown with a plain text accessible label', async () => {
   for (const marker of ['NOTE', 'WARNING', 'IMPORTANT']) {
     const { html } = await renderMarkdown(
-      `> [!${marker}] What about \`$?\`? **Errors** and [help](/docs/reference/parseargs)\n>\n> Callout body.`,
+      `> [!${marker}] What about \`$?\`? **Errors** and [help](/docs/reference/parse)\n>\n> Callout body.`,
       'title',
     );
     assert.match(html, /aria-label="What about \$\?\? Errors and help"/);
     assert.match(
       html,
-      /<span>What about <code>\$\?<\/code>\? <strong>Errors<\/strong> and <a href="\/docs\/reference\/parseargs">help<\/a><\/span>/,
+      /<span>What about <code>\$\?<\/code>\? <strong>Errors<\/strong> and <a href="\/docs\/reference\/parse">help<\/a><\/span>/,
     );
     assert.match(html, /<p>Callout body\.<\/p>/);
   }
@@ -368,4 +368,54 @@ test('short fragments disambiguate duplicate headings across both halves of a do
   );
   assert.match(prose.html, /href="\/docs\/example#values--defaults"/);
   assert.match(example.html, /href="\/docs\/example#values--defaults-1"/);
+});
+
+test('canonical API routes, exports, signatures, examples, and search links agree', async () => {
+  const docs = await getDocs();
+  const names = [
+    'add_arg',
+    'add_command',
+    'add_description',
+    'parse',
+    'config',
+    'run',
+  ];
+  for (const name of names) {
+    const doc = docs.find((doc) => doc.slug === `reference/${name}`)!;
+    assert.equal(doc.title, `koi::${name}`);
+    assert.equal(doc.url, `/docs/reference/${name}`);
+    assert.ok(exportMarkdown(doc).includes(`koi::${name} `));
+    assert.ok(doc.prose.includes('data-copy-code'));
+    assert.equal(
+      search(
+        docs.flatMap((doc) => doc.search),
+        `koi::${name}`,
+      )[0].url,
+      doc.url,
+    );
+    validateManifest([
+      { file: `${name}.md`, slug: doc.slug, group: 'Reference' },
+    ]);
+  }
+  const conventions = docs.find((doc) => doc.slug === 'reference/conventions')!;
+  assert.equal(docs[docs.indexOf(conventions) - 1].slug, 'reference/glossary');
+  assert.match(
+    exportMarkdown(conventions),
+    /- TODO: Document that public API functions start with `koi::`/,
+  );
+  for (const slug of [
+    '../oops',
+    '/a',
+    'a/',
+    'a//b',
+    'A',
+    'a.b',
+    'a:b',
+    'a b',
+    'a?b',
+  ]) {
+    assert.throws(() =>
+      validateManifest([{ file: 'a.md', slug, group: 'Reference' }]),
+    );
+  }
 });

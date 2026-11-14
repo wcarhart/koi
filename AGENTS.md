@@ -24,11 +24,11 @@ Example:
 
 ```bash
 # Register a command with koi
-# Usage: __addcommand NAME -f HANDLER -d DESCRIPTION
+# Usage: koi::add_command NAME -f HANDLER -d DESCRIPTION
 #   NAME               the name of the command
 #   -f, --function     the command's associated handler function
 #   -d, --description  the description of the command
-__addcommand() {
+koi::add_command() {
     # Implementation goes here.
     :
 }

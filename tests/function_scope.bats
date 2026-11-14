@@ -11,30 +11,30 @@ setup() {
 @test "executed and sourced top-level parsing rejects requests and preserves root state" {
     cat > "$BATS_TEST_TMPDIR/app.sh" <<'SCRIPT'
 source "$KOI_LIBRARY"
-__koiconfig name tool
-__addarg value -o -s v -d Value
+koi::config name tool
+koi::add_arg value -o -s v -d Value
 value=original
 state_vars=(__koi_root_used __koi_root_spec_valid __koi_config)
 for field in "${__koi_spec_fields[@]}"; do
     state_vars+=("__koi_root_$field")
 done
 before=$(declare -p "${state_vars[@]}")
-if __parseargs "$@"; then
+if koi::parse "$@"; then
     exit 9
 else
     result=$?
 fi
 [[ $result == 2 && $koi_status == 2 && $value == original ]]
 [[ $(declare -p "${state_vars[@]}") == "$before" ]]
-__koiconfig description Application
-__addarg verbose -f -s V -d Verbose
+koi::config description Application
+koi::add_arg verbose -f -s V -d Verbose
 handler() {
-    __parseargs "$@" || return "$koi_status"
+    koi::parse "$@" || return "$koi_status"
     [[ $value == parsed && $verbose == 1 ]]
     printf 'recovered\n'
 }
-__addcommand run -f handler -d Run
-__koirun -v parsed -V run
+koi::add_command run -f handler -d Run
+koi::run -v parsed -V run
 SCRIPT
     local mode request
     for mode in executed sourced; do
@@ -52,7 +52,7 @@ SCRIPT
             if [[ $mode == sourced ]]; then
                 [ "$output" = $'recovered\nsurvived' ]
             fi
-            [ "$stderr" = 'koi: __parseargs: must be called inside a function; use __koirun at top level' ]
+            [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
         done
     done
 }
@@ -60,12 +60,12 @@ SCRIPT
 @test "scope rejection leaves invalid root registration invalid" {
     run --separate-stderr bash -euc '
         source "$KOI_LIBRARY"
-        __addarg 2>/dev/null || :
-        if __parseargs --help; then
+        koi::add_arg 2>/dev/null || :
+        if koi::parse --help; then
             exit 9
         fi
         [[ $koi_status == 2 && $__koi_root_used == 0 && $__koi_root_spec_valid == 0 ]]
-        if __koirun --help; then
+        if koi::run --help; then
             exit 9
         else
             [[ $? == 2 && $__koi_root_used == 1 ]]
@@ -73,16 +73,16 @@ SCRIPT
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __parseargs: must be called inside a function; use __koirun at top level' ]
+    [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
 }
 
 @test "moving only the parser into a function does not consume root declarations" {
     run --separate-stderr bash -euc '
         source "$KOI_LIBRARY"
-        __addarg value -o -s v -d Value
+        koi::add_arg value -o -s v -d Value
         value=original
         main() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         if main -v supplied; then
             exit 9
@@ -92,13 +92,13 @@ SCRIPT
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = "koi: __parseargs: unsupported positional argument: '-v'" ]
+    [ "$stderr" = "koi: koi::parse: unsupported positional argument: '-v'" ]
 }
 
 @test "a real script main and a sourced parser inside it use function scope" {
     cat > "$BATS_TEST_TMPDIR/parse.sh" <<'SCRIPT'
-__addarg value -p -r -d Value
-__parseargs "$@" || return "$koi_status"
+koi::add_arg value -p -r -d Value
+koi::parse "$@" || return "$koi_status"
 printf '%s\n' "$value"
 SCRIPT
     cat > "$BATS_TEST_TMPDIR/main.sh" <<'SCRIPT'

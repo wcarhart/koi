@@ -141,7 +141,8 @@ test('argument collections preserve order, detect collisions, and generate match
   const script = argumentScript(args);
   assert.match(script, /local name file verbose/);
   assert.ok(
-    script.indexOf('__addarg file') < script.indexOf('__addarg verbose'),
+    script.indexOf('koi::add_arg file') <
+      script.indexOf('koi::add_arg verbose'),
   );
   assert.ok(argumentCollectionErrors([...args, { ...defaultArgument }]).length);
   for (const collection of [
@@ -188,7 +189,8 @@ test('field validation identifies independent errors and empty collections produ
   assert.equal(corrected.destination, undefined);
   assert.ok(corrected.description);
   const script = argumentScript([]);
-  assert.doesNotMatch(script, /local |# Usage: main/);
+  assert.doesNotMatch(script, /local /);
+  assert.match(script, /# Usage: main "\$@"/);
   const result = spawnSync('bash', ['-n'], { input: script, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
 });

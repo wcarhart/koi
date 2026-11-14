@@ -48,7 +48,7 @@ setup() {
 @test "repeated sourcing preserves registered names and metadata" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addcommand deploy -f handler -d Description || exit
+        koi::add_command deploy -f handler -d Description || exit
         source "$KOI_LIBRARY" || exit
         [[ $__koi_root_spec_valid == 1 && ${#__koi_root_commands[@]} == 1 && ${__koi_root_commands[0]} == deploy &&
            ${__koi_root_handlers[deploy]} == handler && ${__koi_root_descriptions[deploy]} == Description ]]
@@ -109,7 +109,7 @@ setup() {
 @test "repeated sourcing preserves an invalid spec" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addarg
+        koi::add_arg
         result=$?
         [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         source "$KOI_LIBRARY" || exit
@@ -117,5 +117,31 @@ setup() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addarg: destination required' ]
+    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
+}
+
+@test "runtime defines only canonical public APIs and namespaced internal functions" {
+    run --separate-stderr env -i PATH="$PATH" KOI_LIBRARY="$KOI_LIBRARY" bash -c '
+        source "$KOI_LIBRARY"
+        for name in add_arg add_command add_description parse config run; do
+            declare -F "koi::$name" >/dev/null || exit 1
+        done
+        for name in add_group add_validator; do
+            if declare -F "koi::$name" >/dev/null; then
+                exit 1
+            fi
+        done
+        while read -r _ _ name; do
+            case "$name" in
+                koi::add_arg|koi::add_command|koi::add_description|koi::parse|koi::config|koi::run|koi::internal::*)
+                    ;;
+                *)
+                    exit 1
+                    ;;
+            esac
+        done < <(declare -F)
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ -z "$stderr" ]
 }

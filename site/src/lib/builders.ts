@@ -102,7 +102,7 @@ function argumentDeclaration(s: ArgumentSettings): string {
   const errors = argumentErrors(s);
   if (errors.length) throw new Error(errors.join(' '));
   const parts = [
-    '__addarg',
+    'koi::add_arg',
     s.destination,
     { flag: '-f', option: '-o', positional: '-p' }[s.kind],
   ];
@@ -141,8 +141,11 @@ export function argumentScript(
   return `#!/usr/bin/env bash
 source ./koi
 
+# Print the parsed value
+# Usage: main "$@"
+#   $@  arguments forwarded to koi
 main() {
-${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    __parseargs "$@" || return "$koi_status"
+${args.length ? '    local ' + args.map((arg) => arg.destination).join(' ') + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    koi::parse "$@" || return "$koi_status"
 ${args.length ? '\n' + args.map((arg) => `    printf '%s\\n' "$${arg.destination}"`).join('\n') + '\n' : ''}}
 
 main "$@"
@@ -233,5 +236,5 @@ export function helpScript(s: HelpSettings): string {
   if (s.unknownHelp) flags.push('--koi-enable-help-on-unknown-commands');
   if (s.missingMessage)
     flags.push('--koi-zero-argument-message', shellQuote(s.missingMessage));
-  return `#!/usr/bin/env bash\nsource ./koi\n\n__koiconfig name ${shellQuote(s.name)}\n__koiconfig description ${shellQuote(s.description)}\n__koiconfig help-width ${s.width}\n__addcommand status -f status -d 'Show application status'\n\n# Show application status\n# Usage: status "$@"\n#   $@  arguments forwarded to koi\nstatus() {\n    __parseargs "$@" || return "$koi_status"\n\n    printf 'Ready\\n'\n}\n\n__koirun${flags.length ? ' ' + flags.join(' ') : ''} "$@"\n`;
+  return `#!/usr/bin/env bash\nsource ./koi\n\nkoi::config name ${shellQuote(s.name)}\nkoi::config description ${shellQuote(s.description)}\nkoi::config help-width ${s.width}\nkoi::add_command status -f status -d 'Show application status'\n\n# Show application status\n# Usage: status "$@"\n#   $@  arguments forwarded to koi\nstatus() {\n    koi::parse "$@" || return "$koi_status"\n\n    printf 'Ready\\n'\n}\n\nkoi::run${flags.length ? ' ' + flags.join(' ') : ''} "$@"\n`;
 }

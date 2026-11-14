@@ -11,7 +11,7 @@ Koi uses guarded parsing to decide whether a function should continue into its b
 Always close a function's [registration block](/docs/concepts/lifecycle) with this exact form:
 
 ```bash
-__parseargs "$@" || return "$koi_status"
+koi::parse "$@" || return "$koi_status"
 ```
 
 The `|| return "$koi_status"` portion is the _guard_. It returns from your function when the parser says to stop. For example:
@@ -25,8 +25,8 @@ source koi
 #   $@  arguments to parse, including optional --name NAME
 greet() {
     local name
-    __addarg name --option --long name --default world --description 'Who to greet'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg name --option --long name --default world --description 'Who to greet'
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Hello, %s!\n' "$name"
 }
@@ -38,16 +38,16 @@ Running `./greet.sh --name Will` prints `Hello, Will!`. Running `./greet.sh --he
 
 The guarded parse is the **parsing boundary**. Declare locals and do any necessary preparation before registration, then place business logic after the guard, where parsed [destinations](/docs/reference/glossary#destination) are available. Keep the registration block uninterrupted until parsing. See [registration contexts and blocks](/docs/concepts/lifecycle) for the full lifecycle.
 
-An ordinary Bash function can only return from itself. [__parseargs](/docs/reference/parseargs) cannot return from `greet`, so a bare `__parseargs "$@"` leaves `greet` free to continue after help or an error. Moving the guard into a helper function has the same problem. The `return` must be inside the function that owns the registration block, even when that function has no custom arguments.
+An ordinary Bash function can only return from itself. [koi::parse](/docs/reference/parse) cannot return from `greet`, so a bare `koi::parse "$@"` leaves `greet` free to continue after help or an error. Moving the guard into a helper function has the same problem. The `return` must be inside the function that owns the registration block, even when that function has no custom arguments.
 
 > [!WARNING] There are unintended consequences when you skip the guard
 >
-> When you use the bare `__parseargs "$@"` without the associated `|| return "$koi_status"`, your function's business logic can execute even when rendering help. This means if your function looks like this:
+> When you use the bare `koi::parse "$@"` without the associated `|| return "$koi_status"`, your function's business logic can execute even when rendering help. This means if your function looks like this:
 > ```bash
 > rmdir() {
->     __adddescription 'Remove a directory on the host'
->     __addarg dir --positional --required --description 'The directory to remove'
->     __parseargs "$@" # <-- note the dangerous bare __parseargs without the guard
+>     koi::add_description 'Remove a directory on the host'
+>     koi::add_arg dir --positional --required --description 'The directory to remove'
+>     koi::parse "$@" # <-- note the dangerous bare koi::parse without the guard
 >
 >     rm -rf "$dir"
 > }
@@ -72,7 +72,7 @@ After dispatch, the parent returns even if the child succeeded. A [branch](/docs
 
 The guard only returns from the current function. A caller can still continue after `greet --help` because help returns success, and callers must handle failures explicitly when they need to stop their own work.
 
-At script scope, [__koirun](/docs/reference/koirun) returns the child's status after dispatch, `2` on a parsing error, or `0` for help or successful terminal parsing. Code after it cannot distinguish help from success by status alone. For scripts with local business logic, use a guarded function entrypoint such as `greet "$@"` above.
+At script scope, [koi::run](/docs/reference/run) returns the child's status after dispatch, `2` on a parsing error, or `0` for help or successful terminal parsing. Code after it cannot distinguish help from success by status alone. For scripts with local business logic, use a guarded function entrypoint such as `greet "$@"` above.
 
 > [!NOTE] What about `$?`?
 >
@@ -86,7 +86,7 @@ All arguments are optional unless declared with `--required`. Required arguments
 
 After successful parsing, omitted flags receive `0`, and omitted optional options and positionals receive their declared default or an empty string. Every destination in the context gets a fresh value, so initializing a variable before parsing doesn't provide a default. See [destination variables and scope](/docs/concepts/destinations).
 
-Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated arguments, use `__parseargs --koi-error-on-duplicates "$@" || return "$koi_status"` (see [__parseargs](/docs/reference/parseargs)).
+Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated arguments, use `koi::parse --koi-error-on-duplicates "$@" || return "$koi_status"` (see [koi::parse](/docs/reference/parse)).
 
 ## Help executes application code
 
@@ -96,7 +96,7 @@ Help bypasses required-input checks and destination assignments in its own conte
 
 ## Errexit and application failures
 
-You may ask, _What if I just use `set -e` in my script, do I still need the guard?_ It's a good question. Unfortunately, `set -e` alone cannot replace the guard. Bash suppresses `errexit` inside functions called conditionally, such as the parser on the left side of `||`. This also affects child handlers dispatched by `__parseargs`, so handle failures in business logic explicitly:
+You may ask, _What if I just use `set -e` in my script, do I still need the guard?_ It's a good question. Unfortunately, `set -e` alone cannot replace the guard. Bash suppresses `errexit` inside functions called conditionally, such as the parser on the left side of `||`. This also affects child handlers dispatched by `koi::parse`, so handle failures in business logic explicitly:
 
 ```bash
 # Copy a file and report success
@@ -104,9 +104,9 @@ You may ask, _What if I just use `set -e` in my script, do I still need the guar
 #   $@  arguments to parse, including required SOURCE and TARGET positionals
 copy_file() {
     local source target
-    __addarg source --positional --required --description 'File to copy'
-    __addarg target --positional --required --description 'Where to copy it'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg source --positional --required --description 'File to copy'
+    koi::add_arg target --positional --required --description 'Where to copy it'
+    koi::parse "$@" || return "$koi_status"
 
     cp -- "$source" "$target" || return "$?"
     printf 'Copied to %s\n' "$target"
@@ -115,12 +115,12 @@ copy_file() {
 
 If `cp` fails, this returns its exit status without printing the success message, including when `errexit` is suppressed. Using `"$?"` here preserves `cp`'s failure status. The parser guard needs `"$koi_status"` because of its separate control signals.
 
-Root dispatch through an unconditional `__koirun "$@"` preserves normal `errexit` behavior in the selected handler. Calling the runner conditionally can suppress it too. Declaration errors can stop execution where `errexit` applies, otherwise they mark the [registration block](/docs/concepts/lifecycle) invalid for the parser to reject.
+Root dispatch through an unconditional `koi::run "$@"` preserves normal `errexit` behavior in the selected handler. Calling the runner conditionally can suppress it too. Declaration errors can stop execution where `errexit` applies, otherwise they mark the [registration block](/docs/concepts/lifecycle) invalid for the parser to reject.
 
 Koi uses returns for routine help and errors, so it can be used in sourced scripts without exiting the caller's shell. Your own `exit` calls and applicable shell options still affect that shell.
 
 > [!NOTE] What changes if I run koi with `set -e`?
 >
-> Koi works with both `set -e` and `set +e`. When `errexit` applies, an invalid argument declaration can stop execution mid-registration rather than waiting for parsing to reject the block. Failures in business logic can also stop execution immediately. Conditional calls and children dispatched by `__parseargs` suppress `errexit`, so explicit failure handling is still needed.
+> Koi works with both `set -e` and `set +e`. When `errexit` applies, an invalid argument declaration can stop execution mid-registration rather than waiting for parsing to reject the block. Failures in business logic can also stop execution immediately. Conditional calls and children dispatched by `koi::parse` suppress `errexit`, so explicit failure handling is still needed.
 > 
 > With a bare, unguarded parse, `set -e` can exit on the parser's `1` for successful help. That turns a successful help request into a failed script, and conditional calls can let business logic run anyway. Always use the guard regardless of shell options.

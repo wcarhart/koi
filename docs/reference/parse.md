@@ -1,22 +1,22 @@
 ---
-title: "__parseargs"
+title: "koi::parse"
 description: "Parse arguments inside a Bash function."
 layout: article
 ---
 
-`__parseargs` closes a function's [registration block](/docs/concepts/lifecycle), parses its arguments, and assigns values to its [destination variables](/docs/concepts/destinations). If the function has child commands, it also [dispatches](/docs/concepts/routing) the selected child. Use it inside application functions, including handlers registered with [__addcommand](/docs/reference/addcommand). At script scope, use [__koirun](/docs/reference/koirun) instead.
+`koi::parse` closes a function's [registration block](/docs/concepts/lifecycle), parses its arguments, and assigns values to its [destination variables](/docs/concepts/destinations). If the function has child commands, it also [dispatches](/docs/concepts/routing) the selected child. Use it inside application functions, including handlers registered with [koi::add_command](/docs/reference/add_command). At script scope, use [koi::run](/docs/reference/run) instead.
 
 ## Usage
 
 ```text usage
-__parseargs [--koi-error-on-duplicates] "$@" || return "$koi_status"
+koi::parse [--koi-error-on-duplicates] "$@" || return "$koi_status"
 ```
 
 Always include `|| return "$koi_status"`, even when the function declares no custom arguments (see [control flow](/docs/concepts/control-flow)). This guard returns from your function after help, a parsing error, or child dispatch, keeping those outcomes from reaching the function's business logic. Forward arguments with `"$@"` to preserve token boundaries, including empty strings and values containing whitespace.
 
-> [!WARNING] Never use bare `__parseargs`
+> [!WARNING] Never use bare `koi::parse`
 >
-> Always use `__parseargs "$@"` with `|| return "$koi_status"`, e.g. `__parseargs "$@" || return "$koi_status"`. `__parseargs "$@"` alone is unsupported and dangerous, and will cause koi to malfunction. See [control flow](/docs/concepts/control-flow) for why that's the case.
+> Always use `koi::parse "$@"` with `|| return "$koi_status"`, e.g. `koi::parse "$@" || return "$koi_status"`. `koi::parse "$@"` alone is unsupported and dangerous, and will cause koi to malfunction. See [control flow](/docs/concepts/control-flow) for why that's the case.
 
 ## Arguments
 
@@ -28,7 +28,7 @@ Always include `|| return "$koi_status"`, even when the function declares no cus
 By default, repeated scalar options keep their last value and repeated flags remain `1`. With `--koi-error-on-duplicates`, both are errors, including when callers mix short and long labels for the same argument. For example, `-n Will --name Ada` repeats the argument if `-n` and `--name` are its labels. Put the setting before `"$@"`:
 
 ```bash
-__parseargs --koi-error-on-duplicates "$@" || return "$koi_status"
+koi::parse --koi-error-on-duplicates "$@" || return "$koi_status"
 ```
 
 This setting applies only to the current parser and does not carry into child commands. See [arguments and values](/docs/concepts/arguments#recognizing-options) for supported input forms, flag clusters, and the `--` separator.
@@ -52,7 +52,7 @@ Successful parsing replaces every [destination](/docs/concepts/destinations) in 
 
 Help prints to `stdout` and skips required-input checks and destination assignments. Invalid declarations, invalid positional layouts, and missing child handlers still prevent help. Code before the guarded parse executes during help too, so keep operations with side effects after the guard. Again, see [control flow](/docs/concepts/control-flow) for the full nuance here.
 
-The parser consumes and clears the [registration block](/docs/concepts/lifecycle) before validation, help, or dispatch. Each call must build its own block, including calls after help or errors. `__parseargs` is not supported at the script-level, you should only use it in functions.
+The parser consumes and clears the [registration block](/docs/concepts/lifecycle) before validation, help, or dispatch. Each call must build its own block, including calls after help or errors. `koi::parse` is not supported at the script-level, you should only use it in functions.
 
 ## Example
 
@@ -65,8 +65,8 @@ source koi
 #   $@  arguments to parse, including optional -n/--name NAME
 greet() {
     local name
-    __addarg name --option --short n --long name --default world --description 'Who to greet'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg name --option --short n --long name --default world --description 'Who to greet'
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Hello, %s!\n' "$name"
 }

@@ -8,9 +8,9 @@ setup() {
     export KOI_LIBRARY="$BATS_TEST_DIRNAME/../koi"
     # shellcheck source=koi
     source "$KOI_LIBRARY"
-    __addarg name -o -s n -l name -d 'Person name'
-    __addarg verbose -f -s v -l verbose -d 'Print progress'
-    __addarg quiet -f -s q -l quiet -d 'Suppress output'
+    koi::add_arg name -o -s n -l name -d 'Person name'
+    koi::add_arg verbose -f -s v -l verbose -d 'Print progress'
+    koi::add_arg quiet -f -s q -l quiet -d 'Suppress output'
 }
 
 # Parse and expose the guard status without hiding the parser's return code.
@@ -18,7 +18,7 @@ setup() {
 #   $@  parser settings and script arguments
 capture_parse() {
     local result
-    __parseargs "$@"
+    koi::parse "$@"
     result=$?
     printf 'return=%s status=%s\n' "$result" "$koi_status"
     return "$result"
@@ -31,7 +31,7 @@ assert_parse_error() {
     run --separate-stderr parse_without_mutation "$@"
     [ "$status" -eq 2 ]
     [ "$output" = 'return=2 status=2' ]
-    [[ "$stderr" == 'koi: __parseargs:'* ]]
+    [[ "$stderr" == 'koi: koi::parse:'* ]]
 }
 
 # Retain old values while checking error paths in the same shell as parsing.
@@ -50,7 +50,7 @@ parse_without_mutation() {
 
 @test "plain options and flags assign values into caller locals" {
     local name verbose quiet
-    __parseargs --name Alice -v
+    koi::parse --name Alice -v
     [ "$koi_status" -eq 0 ]
     [ "$name" = Alice ]
     [ "$verbose" = 1 ]
@@ -59,7 +59,7 @@ parse_without_mutation() {
 
 @test "unset destinations become globals without author status initialization" {
     unset name verbose quiet
-    __parseargs -n Alice
+    koi::parse -n Alice
     [ "$name" = Alice ]
     [ "$verbose" = 0 ]
     [ "$quiet" = 0 ]
@@ -68,14 +68,14 @@ parse_without_mutation() {
 
 @test "explicit empty values are accepted" {
     local name=old
-    __parseargs -n ''
+    koi::parse -n ''
     [ "$name" = '' ]
 }
 
 @test "option values preserve literal whitespace, newlines and shell syntax" {
     local name
     local value=$'  first\n"quotes" $variable $(false) `false` \\ %s  '
-    __parseargs --name "$value"
+    koi::parse --name "$value"
     [ "$name" = "$value" ]
 }
 
@@ -85,7 +85,7 @@ parse_without_mutation() {
         if [[ $value != -n ]]; then
             setup
         fi
-        __parseargs -n "$value"
+        koi::parse -n "$value"
         [ "$name" = "$value" ]
         [ "$verbose" = 0 ]
     done
@@ -93,7 +93,7 @@ parse_without_mutation() {
 
 @test "last scalar occurrence wins and repeated flags remain enabled" {
     local name verbose quiet
-    __parseargs -n Alice --name Bob -v --verbose
+    koi::parse -n Alice --name Bob -v --verbose
     [ "$name" = Bob ]
     [ "$verbose" = 1 ]
 }
@@ -108,7 +108,7 @@ parse_without_mutation() {
 
 @test "flags-only clusters match separate flags" {
     local name verbose quiet
-    __parseargs -vqv
+    koi::parse -vqv
     [ "$verbose" = 1 ]
     [ "$quiet" = 1 ]
     [ "$name" = '' ]
@@ -136,34 +136,34 @@ parse_without_mutation() {
 
 @test "no delimiter is required and reserved settings cannot be repeated" {
     local name verbose quiet
-    __parseargs
+    koi::parse
     [ "$koi_status" -eq 0 ]
     setup
-    __parseargs --koi-error-on-duplicates -n Alice
+    koi::parse --koi-error-on-duplicates -n Alice
     [ "$name" = Alice ]
     assert_parse_error --koi-error-on-duplicates --koi-error-on-duplicates
 }
 
 @test "short e and the old unprefixed setting are not parser settings" {
-    __addarg example -f -s e -l error-on-duplicates -d Example
+    koi::add_arg example -f -s e -l error-on-duplicates -d Example
     local example
-    __parseargs -e
+    koi::parse -e
     [ "$example" = 1 ]
-    __addarg example -f -s e -l error-on-duplicates -d Example
-    __parseargs --koi-error-on-duplicates --error-on-duplicates
+    koi::add_arg example -f -s e -l error-on-duplicates -d Example
+    koi::parse --koi-error-on-duplicates --error-on-duplicates
     [ "$example" = 1 ]
 }
 
 @test "reserved settings are literal option values and positionals after the separator" {
     local name
-    __parseargs -n --koi-error-on-duplicates
+    koi::parse -n --koi-error-on-duplicates
     [ "$name" = --koi-error-on-duplicates ]
     assert_parse_error -- --koi-error-on-duplicates
 }
 
 @test "separator ends recognition and is accepted alone" {
     local name verbose quiet
-    __parseargs -v --
+    koi::parse -v --
     [ "$verbose" = 1 ]
     assert_parse_error -- --name
     assert_parse_error -- --help
@@ -173,7 +173,7 @@ parse_without_mutation() {
 
 @test "separator used as an option value does not end recognition" {
     local name verbose quiet
-    __parseargs -n -- -v
+    koi::parse -n -- -v
     [ "$name" = -- ]
     [ "$verbose" = 1 ]
 }
@@ -223,13 +223,13 @@ parse_without_mutation() {
 
 @test "help is not recognized inside ordinary option values" {
     local name verbose quiet
-    __parseargs -n -vh
+    koi::parse -n -vh
     [ "$name" = -vh ]
     [ "$verbose" = 0 ]
 }
 
 @test "help precedes requiredness and destination writability checks" {
-    __addarg token -o -l token -r -d Token
+    koi::add_arg token -o -l token -r -d Token
     local -r name=original
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
@@ -239,7 +239,7 @@ parse_without_mutation() {
 
 @test "help leaves destinations unchanged" {
     local name=original verbose=original quiet=original result
-    if __parseargs -v -n Alice --help > "$BATS_TEST_TMPDIR/help"; then
+    if koi::parse -v -n Alice --help > "$BATS_TEST_TMPDIR/help"; then
         return 1
     else
         result=$?
@@ -252,26 +252,26 @@ parse_without_mutation() {
 }
 
 @test "requiredness depends on presence including empty option values" {
-    __addarg token -o -l token -r -d Token
-    __addarg accept -f -l accept -r -d Accept
+    koi::add_arg token -o -l token -r -d Token
+    koi::add_arg accept -f -l accept -r -d Accept
     assert_parse_error --accept
     assert_parse_error --token ''
     local token accept
-    __parseargs --token '' --accept
+    koi::parse --token '' --accept
     [ "$token" = '' ]
     [ "$accept" = 1 ]
 }
 
 @test "absent destinations get fresh empty values, defaults and zero flags" {
-    __addarg mode -o -l mode -d Mode -D safe
-    __addarg blank -o -l blank -d Blank -D ''
+    koi::add_arg mode -o -l mode -d Mode -D safe
+    koi::add_arg blank -o -l blank -d Blank -D ''
     local name verbose quiet mode blank
-    __parseargs -n Alice -v --mode fast --blank value
+    koi::parse -n Alice -v --mode fast --blank value
     [ "$mode" = fast ]
     setup
-    __addarg mode -o -l mode -d Mode -D safe
-    __addarg blank -o -l blank -d Blank -D ''
-    __parseargs
+    koi::add_arg mode -o -l mode -d Mode -D safe
+    koi::add_arg blank -o -l blank -d Blank -D ''
+    koi::parse
     [ "$name" = '' ]
     [ "$verbose" = 0 ]
     [ "$quiet" = 0 ]
@@ -280,7 +280,7 @@ parse_without_mutation() {
 }
 
 @test "help displays literal defaults and declaration order" {
-    __addarg mode -o -l mode -d Mode -D 'safe %s'
+    koi::add_arg mode -o -l mode -d Mode -D 'safe %s'
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
     [[ "$output" == *'--mode MODE'*'Mode (default: safe %s)'* ]]
@@ -291,14 +291,14 @@ parse_without_mutation() {
 @test "exported plain scalars are supported" {
     local name=old
     export name
-    __parseargs -n Alice
+    koi::parse -n Alice
     [ "$name" = Alice ]
 }
 
 @test "readonly destinations fail before earlier destinations are assigned" {
     local name=original result
     local -r quiet=original
-    if __parseargs -n Alice -q > "$BATS_TEST_TMPDIR/out" 2> "$BATS_TEST_TMPDIR/err"; then
+    if koi::parse -n Alice -q > "$BATS_TEST_TMPDIR/out" 2> "$BATS_TEST_TMPDIR/err"; then
         return 1
     else
         result=$?
@@ -306,7 +306,7 @@ parse_without_mutation() {
     [ "$result" -eq 2 ]
     [ "$koi_status" -eq 2 ]
     [ ! -s "$BATS_TEST_TMPDIR/out" ]
-    [ "$(cat "$BATS_TEST_TMPDIR/err")" = "koi: __parseargs: incompatible destination: 'quiet'" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/err")" = "koi: koi::parse: incompatible destination: 'quiet'" ]
     [ "$name" = original ]
     [ "$quiet" = original ]
 }
@@ -316,14 +316,14 @@ parse_without_mutation() {
     for declaration in '-i' '-l' '-u' '-a' '-A' '-n'; do
         run --separate-stderr bash -c '
             source "$KOI_LIBRARY" || exit
-            __koiconfig description Application
+            koi::config description Application
             main() {
-                __addarg first -o -l first -d First || return
-                __addarg second -o -l second -d Second || return
+                koi::add_arg first -o -l first -d First || return
+                koi::add_arg second -o -l second -d Second || return
                 first=original
                 target=original
                 declare "$1" second
-                __parseargs --first changed --second changed
+                koi::parse --first changed --second changed
                 result=$?
                 [[ $first == original && $target == original && $koi_status == 2 ]] || return 9
                 return "$result"
@@ -332,17 +332,17 @@ parse_without_mutation() {
         ' bash "$declaration"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: __parseargs: incompatible destination: 'second'" ]
+        [ "$stderr" = "koi: koi::parse: incompatible destination: 'second'" ]
     done
 }
 
 @test "invalid specs fail silently even for help and consume registration" {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __koiconfig description Application
+        koi::config description Application
         main() {
-            __addarg 2>/dev/null
-            __parseargs --help
+            koi::add_arg 2>/dev/null
+            koi::parse --help
             result=$?
             [[ $koi_status == 2 && $__koi_pending_spec_valid == 1 && ${#__koi_pending_args[@]} == 0 ]] || return 9
             return "$result"
@@ -363,7 +363,7 @@ parse_without_mutation() {
 
 @test "parsing consumes metadata and a later cycle starts valid" {
     local name verbose quiet
-    __parseargs -n Alice
+    koi::parse -n Alice
     [ "${#__koi_pending_args[@]}" -eq 0 ]
     [ "${#__koi_pending_arg_kinds[@]}" -eq 0 ]
     [ "$__koi_pending_spec_valid" -eq 1 ]
@@ -375,8 +375,8 @@ parse_without_mutation() {
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
         business() {
-            __addarg name -o -l name -d Name
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg name -o -l name -d Name
+            koi::parse "$@" || return "$koi_status"
             printf "business:%s\\n" "$name"
         }
         business --name Alice || exit
@@ -390,7 +390,7 @@ parse_without_mutation() {
     [[ "$output" == business:Alice* ]]
     [[ "$output" != *'business:'*'business:'* ]]
     [[ "$output" == *survived ]]
-    [[ "$stderr" == 'koi: __parseargs:'* ]]
+    [[ "$stderr" == 'koi: koi::parse:'* ]]
 }
 
 @test "guard is reliable when errexit is enabled but suppressed by a conditional call" {
@@ -398,8 +398,8 @@ parse_without_mutation() {
         set -e
         source "$KOI_LIBRARY"
         business() {
-            __addarg name -o -l name -d Name
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg name -o -l name -d Name
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\\n"
         }
         if business --unknown; then
@@ -411,13 +411,13 @@ parse_without_mutation() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [[ "$stderr" == 'koi: __parseargs:'* ]]
+    [[ "$stderr" == 'koi: koi::parse:'* ]]
 }
 
 @test "parse outcomes overwrite stale status and preserve optional caller-local status" {
     local koi_status=99
     empty() {
-        __parseargs "$@" || return "$koi_status"
+        koi::parse "$@" || return "$koi_status"
     }
     # Consume setup's interface before the empty invocations.
     empty
@@ -435,11 +435,11 @@ parse_without_mutation() {
 @test "parser works with nounset enabled" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY" || exit
-        __koiconfig description Application
+        koi::config description Application
         main() {
             local name
-            __addarg name -o -l name -d Name || return
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg name -o -l name -d Name || return
+            koi::parse "$@" || return "$koi_status"
             [[ $name == "" && $koi_status == 0 ]]
         }
         main --name ""
@@ -453,9 +453,9 @@ parse_without_mutation() {
     cat > "$BATS_TEST_TMPDIR/test.sh" <<'SCRIPT'
 source "$KOI_LIBRARY"
 main() {
-    __addarg env -o -s e -l environment -d 'Deploy environment'
-    __addarg dry -f -s d -l dry-run -d 'Dry run'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg env -o -s e -l environment -d 'Deploy environment'
+    koi::add_arg dry -f -s d -l dry-run -d 'Dry run'
+    koi::parse "$@" || return "$koi_status"
 }
 main "$@"
 SCRIPT
@@ -471,8 +471,8 @@ Options:
 }
 
 @test "usage falls back to long spellings and distinguishes required arguments" {
-    __addarg token -o -l token -r -d Token
-    __addarg xflag -f -s x -d Xflag
+    koi::add_arg token -o -l token -r -d Token
+    koi::add_arg xflag -f -s x -d Xflag
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
     [[ "${lines[0]}" == 'Usage: '*' [-h] [-n NAME] [-v] [-q] --token TOKEN [-x]' ]]
@@ -481,7 +481,7 @@ Options:
 }
 
 @test "short-only options use uppercase destinations as value labels" {
-    __addarg output_file -o -s O -d Output
+    koi::add_arg output_file -o -s O -d Output
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
     [[ "${lines[0]}" == *'[-O OUTPUT_FILE]' ]]
@@ -490,7 +490,7 @@ Options:
 }
 
 @test "multiline descriptions continue at the same description column" {
-    __addarg env -o -s e -l environment -d $'Deploy environment\nContinuation text'
+    koi::add_arg env -o -s e -l environment -d $'Deploy environment\nContinuation text'
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
     [ -z "$stderr" ]
@@ -518,9 +518,9 @@ Options:
     cat > "$BATS_TEST_TMPDIR/test.sh" <<'SCRIPT'
 source "$KOI_LIBRARY"
 main() {
-    __addarg env -o -s e -l environment -d 'Deploy environment' -n env
-    __addarg dry -f -s d -l dry-run -d 'Dry run'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg env -o -s e -l environment -d 'Deploy environment' -n env
+    koi::add_arg dry -f -s d -l dry-run -d 'Dry run'
+    koi::parse "$@" || return "$koi_status"
 }
 main "$@"
 SCRIPT
@@ -536,8 +536,8 @@ Options:
 }
 
 @test "custom display names also work for long-only and short-only options" {
-    __addarg env -o -l environment --display-name target -d Environment
-    __addarg file -o -s F -n path -d File
+    koi::add_arg env -o -l environment --display-name target -d Environment
+    koi::add_arg file -o -s F -n path -d File
     run --separate-stderr capture_parse --help
     [ "$status" -eq 1 ]
     [[ "${lines[0]}" == *'[--environment TARGET] [-F PATH]' ]]
@@ -547,9 +547,9 @@ Options:
 }
 
 @test "display names do not change spelling, destination or parsed values" {
-    __addarg env -o -l environment -s e -n target -d Environment
+    koi::add_arg env -o -l environment -s e -n target -d Environment
     local env
-    __parseargs -e production
+    koi::parse -e production
     [ "$env" = production ]
     assert_parse_error --target production
 }

@@ -8,7 +8,7 @@ layout: article
 
 ## Always guard parsing
 
-- TODO: Contrast bare `__parseargs "$@"` with `__parseargs "$@" || return "$koi_status"`; show business logic continuing after help or a parsing error without the guard.
+- TODO: Contrast bare `koi::parse "$@"` with `koi::parse "$@" || return "$koi_status"`; show business logic continuing after help or a parsing error without the guard.
 - TODO: Explain why the guard must be in the owning function rather than hidden in a helper; link [parsing and control flow](/docs/concepts/control-flow).
 
 ## Preserve the caller result
@@ -48,5 +48,5 @@ layout: article
 
 ## Run the root entrypoint once
 
-- TODO: Show a second `__koirun` call, late root registration, and an attempted reset by re-sourcing; explain why each fails to establish a fresh root lifecycle.
-- TODO: Explain consumption on the first attempt even after help/error, contrast repeatable direct function calls, and link [__koirun](/docs/reference/koirun).
+- TODO: Show a second `koi::run` call, late root registration, and an attempted reset by re-sourcing; explain why each fails to establish a fresh root lifecycle.
+- TODO: Explain consumption on the first attempt even after help/error, contrast repeatable direct function calls, and link [koi::run](/docs/reference/run).

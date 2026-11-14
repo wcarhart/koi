@@ -1,15 +1,15 @@
 ---
-title: "__addarg"
+title: "koi::add_arg"
 description: "Define one flag, option, or positional argument in the current registration context."
 layout: split
 ---
 
-`__addarg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/concepts/lifecycle#contexts-blocks-and-specs)). Use `__addarg` to define an argument that can be parsed by your function. `__addarg` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [__parseargs](/docs/reference/parseargs) statement at the function level or a [__koirun](/docs/reference/koirun) statement at the root level.
+`koi::add_arg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/concepts/lifecycle#contexts-blocks-and-specs)). Use `koi::add_arg` to define an argument that can be parsed by your function. `koi::add_arg` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [koi::parse](/docs/reference/parse) statement at the function level or a [koi::run](/docs/reference/run) statement at the root level.
 
 ## Usage
 
 ```text usage
-__addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [-n NAME]
+koi::add_arg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-r] [-D DEFAULT] [-n NAME]
 ```
 
 ## Arguments
@@ -44,9 +44,9 @@ Display names are uppercased in generated help. If you omit `-n`/`--display-name
 
 ## Kind
 
-Each argument you define with `__addarg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/reference/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `__addarg` calls.
+Each argument you define with `koi::add_arg` has a _kind_, either _flag_, _option_, or _positional_ (see [glossary](/docs/reference/glossary)). Only one kind can be used per registered argument, think of it as the argument's type or what action koi should take when parsing an argument. **Flags**, which you specify via `-f` or `--flag`, do not require an additional argument. **Options**, which you specify via `-o` or `--option`, consume the next token as their additional, required value (even if it starts with `-`, with exception for `-h`/`--help`). **Positionals**, which you specify via `-p` or `--positional`, do not require an argument label like `-a` or `--my-option` and consume the next value in the order the positionals are defined by `koi::add_arg` calls.
 
-Exactly one kind and a nonempty description are required. Flags and options need at least one short or long spelling, and you can supply both as aliases for the same argument. Koi only recognizes the spellings you declare. Positionals cannot have either spelling or share a context with child commands registered via [__addcommand](/docs/reference/addcommand).
+Exactly one kind and a nonempty description are required. Flags and options need at least one short or long spelling, and you can supply both as aliases for the same argument. Koi only recognizes the spellings you declare. Positionals cannot have either spelling or share a context with child commands registered via [koi::add_command](/docs/reference/add_command).
 
 See [arguments and values](/docs/concepts/arguments#recognizing-options) for flag clusters, repeated scalar values, and supported input forms.
 
@@ -61,13 +61,13 @@ An option waiting for a value consumes `--` as that value, so `./myscript.sh --o
 > [!NOTE] Optional positionals
 > Optional positionals create a bit of complexity during parsing, since it's easy for the provided arguments to be ambiguous. Koi uses the following parsing rules for optional positionals:
 > 1. Provided positional values fill the registered positional arguments from left to right.
-> 2. All required positional arguments must be registered via `__addarg` before any optional positional arguments.
+> 2. All required positional arguments must be registered via `koi::add_arg` before any optional positional arguments.
 >
 > This means you cannot skip a preceding optional positional and supply a later one, as doing so would create ambiguity. For example, with two optional `source` and `target` positionals, a single provided positional value will always fill `source` and leave `target` the empty string or its specified default value.
 
 ## Returns and assignment
 
-`__addarg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/concepts/lifecycle) even if its individual status is ignored by Bash control flow. An invalid `__addarg` declaration may stop execution when `set -e` applies, but conditional calling contexts can suppress this behavior. Without applicable `errexit` or explicit error handling, execution continues with the block marked invalid (see [parsing and control flow](/docs/concepts/control-flow)). Destination variables are assigned value during successful parsing in [__parseargs](/docs/reference/parseargs), not at argument registration (see [using a guard](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard)).
+`koi::add_arg` returns `0` for valid argument declaration or `2` for invalid declaration. A single invalid argument declaration invalidates the entire [registration block](/docs/concepts/lifecycle) even if its individual status is ignored by Bash control flow. An invalid `koi::add_arg` declaration may stop execution when `set -e` applies, but conditional calling contexts can suppress this behavior. Without applicable `errexit` or explicit error handling, execution continues with the block marked invalid (see [parsing and control flow](/docs/concepts/control-flow)). Destination variables are assigned value during successful parsing in [koi::parse](/docs/reference/parse), not at argument registration (see [using a guard](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard)).
 
 Successful parsing replaces previous destination values within the context. Omitted flags receive `0`, while omitted optional options and positionals receive their default or an empty string. An explicitly supplied empty string counts as present, including for required arguments. A value left over in `DEST` from an earlier call or context does not satisfy requiredness for its associated argument at parse time.
 
@@ -75,7 +75,7 @@ Destinations must be ordinary or exported scalar variables. Arrays, integers, re
 
 ## Explore
 
-Use the controls below to update the `__addarg` calls in the sample koi script.
+Use the controls below to update the `koi::add_arg` calls in the sample koi script.
 
 <!-- koi:example -->
 
@@ -87,8 +87,8 @@ source ./koi
 
 main() {
     local name
-    __addarg name -o -s n -l name -d 'Who to greet' -D 'world'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg name -o -s n -l name -d 'Who to greet' -D 'world'
+    koi::parse "$@" || return "$koi_status"
 
     printf '%s\n' "$name"
 }

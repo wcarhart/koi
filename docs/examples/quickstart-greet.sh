@@ -6,8 +6,8 @@ source koi
 #   $@  command line arguments forwarded to koi
 main() {
     local name
-    __addarg name --option --short n --long name --description 'Who to greet' --default 'world'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg name --option --short n --long name --description 'Who to greet' --default 'world'
+    koi::parse "$@" || return "$koi_status"
 
     printf '%s\n' "Hello, ${name}!"
 }

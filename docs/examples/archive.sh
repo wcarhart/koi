@@ -3,10 +3,10 @@ source koi
 
 main() {
     local directory output verbose
-    __addarg directory -p -r -d 'Directory to archive'
-    __addarg output -o -s o -l output -D backup.tar.gz -d 'Archive path'
-    __addarg verbose -f -s v -l verbose -d 'Print progress'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg directory -p -r -d 'Directory to archive'
+    koi::add_arg output -o -s o -l output -D backup.tar.gz -d 'Archive path'
+    koi::add_arg verbose -f -s v -l verbose -d 'Print progress'
+    koi::parse "$@" || return "$koi_status"
 
     tar -czf "$output" -C "$directory" . || return "$?"
     if (( verbose )); then

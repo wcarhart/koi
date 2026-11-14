@@ -15,16 +15,16 @@ setup() {
 run_help() {
     local body=$1
     shift
-    printf 'source "$KOI_LIBRARY"\n__koiconfig description "Application"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
+    printf 'source "$KOI_LIBRARY"\nkoi::config description "Application"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
     run --separate-stderr bash -eu "$BATS_TEST_TMPDIR/app.sh" "$@"
 }
 
 @test "root help without a description starts with usage and consumes registration" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koirun --help || exit
+        koi::run --help || exit
         [[ $__koi_root_used == 1 ]]
-        __koirun --help
+        koi::run --help
     ' app.sh
     [ "$status" -eq 2 ]
     [[ "$output" == 'Usage: app.sh [-h]'$'\n\nOptions:'* ]]
@@ -35,7 +35,7 @@ run_help() {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
         main() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         main --help
     ' app.sh
@@ -49,8 +49,8 @@ run_help() {
         source "$KOI_LIBRARY"
         main() {
             local value
-            __addarg value -o -s v -d Value
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -o -s v -d Value
+            koi::parse "$@" || return "$koi_status"
             printf "%s\n" "$value"
         }
         main -v parsed
@@ -61,12 +61,12 @@ run_help() {
 
     run --separate-stderr bash -euc '
         source "$KOI_LIBRARY"
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             printf "dispatched\n"
         }
-        __koirun leaf
+        koi::run leaf
     ' app.sh
     [ "$status" -eq 0 ]
     [ "$output" = dispatched ]
@@ -75,51 +75,51 @@ run_help() {
 
 @test "configured name reaches nested help hints and diagnostics" {
     run_help '
-        __koiconfig name tool
-        __addcommand alias -f leaf -d "Selected alias"
+        koi::config name tool
+        koi::add_command alias -f leaf -d "Selected alias"
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        __koirun --koi-enable-verbose-help --koi-enable-help-hints "$@"
+        koi::run --koi-enable-verbose-help --koi-enable-help-hints "$@"
     ' --help
     [ "$status" -eq 0 ]
     [[ "$output" == Application*'Usage: tool [-h] COMMAND'*'tool help --verbose'*'tool COMMAND --help'* ]]
     run_help '
-        __koiconfig name tool
-        __addcommand alias -f leaf -d "Selected alias"
+        koi::config name tool
+        koi::add_command alias -f leaf -d "Selected alias"
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' alias --help
     [ "$status" -eq 0 ]
     [[ "$output" == 'Selected alias'*'Usage: tool alias [-h]'* ]]
-    run_help '__koiconfig name tool; __koirun "$@"' nonexistent
+    run_help 'koi::config name tool; koi::run "$@"' nonexistent
     [ "$status" -eq 2 ]
     [ "$stderr" = "tool: unknown command 'nonexistent'" ]
 }
 
 @test "configuration rejects malformed unknown repeated and late settings" {
     local declaration
-    for declaration in         '__koiconfig'         '__koiconfig name'         '__koiconfig name ""'         '__koiconfig unknown value'         '__koiconfig help-width 0'         '__koiconfig help-width -1'         '__koiconfig help-width abc'         '__koiconfig help-width 1+2'         '__koiconfig name one; __koiconfig name two'         '__koiconfig help-width 20; __koiconfig help-width 30'; do
+    for declaration in         'koi::config'         'koi::config name'         'koi::config name ""'         'koi::config unknown value'         'koi::config help-width 0'         'koi::config help-width -1'         'koi::config help-width abc'         'koi::config help-width 1+2'         'koi::config name one; koi::config name two'         'koi::config help-width 20; koi::config help-width 30'; do
         run_help "
             $declaration
-            __koirun --help
+            koi::run --help
         "
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *'__koiconfig:'* ]]
+        [[ "$stderr" == *'koi::config:'* ]]
     done
-    run_help '__koirun --help >/dev/null; __koiconfig name late'
+    run_help 'koi::run --help >/dev/null; koi::config name late'
     [ "$status" -eq 2 ]
     [[ "$stderr" == *'root registration already consumed'* ]]
 }
 
 @test "invalid configuration poisons registration even when its error is ignored" {
     run_help '
-        __koiconfig unknown value 2>/dev/null || :
-        __koirun --help
+        koi::config unknown value 2>/dev/null || :
+        koi::run --help
     '
     [ "$status" -eq 2 ]
     [ -z "$output" ]
@@ -129,14 +129,14 @@ run_help() {
 @test "function configuration fails without invalidating root metadata" {
     run_help '
         helper() {
-            __koiconfig name forbidden 2>/dev/null || :
-            __parseargs "$@" || return "$koi_status"
+            koi::config name forbidden 2>/dev/null || :
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         if helper; then
             exit 9
         fi
-        __koirun --help
+        koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == Application* ]]
@@ -146,39 +146,39 @@ run_help() {
 
 @test "description registration is function-only nonempty and unique" {
     local declaration
-    for declaration in '__adddescription' '__adddescription ""' '__adddescription A B' '__adddescription A; __adddescription B'; do
+    for declaration in 'koi::add_description' 'koi::add_description ""' 'koi::add_description A B' 'koi::add_description A; koi::add_description B'; do
         run_help "
             helper() {
                 $declaration
-                __parseargs \"\$@\" || return \"\$koi_status\"
+                koi::parse \"\$@\" || return \"\$koi_status\"
                 echo BAD
             }
             helper
         "
         [ "$status" -eq 2 ]
-        if [[ $declaration == '__adddescription A; __adddescription B' ]]; then
-            [ "$stderr" = 'koi: __adddescription: repeated description' ]
+        if [[ $declaration == 'koi::add_description A; koi::add_description B' ]]; then
+            [ "$stderr" = 'koi: koi::add_description: repeated description' ]
         else
-            [ "$stderr" = 'koi: __adddescription: expected exactly one nonempty description' ]
+            [ "$stderr" = 'koi: koi::add_description: expected exactly one nonempty description' ]
         fi
         [[ "$output" != *BAD* ]]
     done
-    run_help '__adddescription Root'
+    run_help 'koi::add_description Root'
     [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: __adddescription: call inside a function; use __koiconfig description TEXT for the script description' ]
+    [ "$stderr" = 'koi: koi::add_description: call inside a function; use koi::config description TEXT for the script description' ]
 }
 
 @test "direct descriptions are rebuilt and routed descriptions take precedence" {
     run_help '
         leaf() {
-            __adddescription "Direct description"
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description "Direct description"
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         leaf --help
         leaf --help
-        __addcommand alias -f leaf -d "Alias description"
-        __koirun alias --help
+        koi::add_command alias -f leaf -d "Alias description"
+        koi::run alias --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == 'Direct description'*'Direct description'*'Alias description'*'Usage: app.sh alias [-h]'* ]]
@@ -190,12 +190,12 @@ run_help() {
     run_help '
         helper() {
             if [[ $1 == invalid ]]; then
-                __adddescription "" 2>/dev/null || :
+                koi::add_description "" 2>/dev/null || :
             else
-                __adddescription "Fresh description"
+                koi::add_description "Fresh description"
             fi
             shift
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         if helper invalid; then
             exit 9
@@ -209,22 +209,22 @@ run_help() {
 
 @test "width wraps descriptions with aligned continuations and preserves blank lines" {
     run_help '
-        __koiconfig help-width 030
-        __addcommand leaf -f leaf -d "A description that wraps neatly"
+        koi::config help-width 030
+        koi::add_command leaf -f leaf -d "A description that wraps neatly"
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __addarg opt -o -l option -d "A lengthy option description that wraps"
-        __koirun --help
+        koi::add_arg opt -o -l option -d "A lengthy option description that wraps"
+        koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *$'  leaf  A description that\n        wraps neatly'* ]]
     [[ "$output" == *$'  --option OPTION  A lengthy\n                   option\n                   description\n                   that wraps'* ]]
     run_help '
-        __koiconfig help-width 5
+        koi::config help-width 5
         f() {
-            __adddescription $'"'"'one\n\nextraordinarilylongword'"'"'
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description $'"'"'one\n\nextraordinarilylongword'"'"'
+            koi::parse "$@" || return "$koi_status"
         }
         f --help
     '
@@ -234,10 +234,10 @@ run_help() {
 
 @test "script configuration survives re-sourcing" {
     run_help '
-        __koiconfig name stable
-        __koiconfig help-width 40
+        koi::config name stable
+        koi::config help-width 40
         source "$KOI_LIBRARY"
-        __koirun --help
+        koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == Application*'Usage: stable [-h]'* ]]
@@ -247,14 +247,14 @@ run_help() {
     run_help '
         branch() {
             local required
-            __adddescription Branch
-            __addarg required -o -s r -r -d Required
-            __addcommand leaf -f leaf -d Leaf
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description Branch
+            koi::add_arg required -o -s r -r -d Required
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             echo LEAF
         }
         branch
@@ -268,11 +268,11 @@ run_help() {
 @test "leaf business logic executes without a built-in help subcommand" {
     run_help '
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             echo LEAF
         }
-        __addcommand leaf -f leaf -d Leaf
-        __koirun leaf
+        koi::add_command leaf -f leaf -d Leaf
+        koi::run leaf
     '
     [ "$status" -eq 0 ]
     [ "$output" = LEAF ]
@@ -280,22 +280,22 @@ run_help() {
 
 @test "the same spelling belongs independently to each command context" {
     run_help '
-        __addarg root_env -o -s e -d Root
-        __addcommand branch -f branch -d Branch
+        koi::add_arg root_env -o -s e -d Root
+        koi::add_command branch -f branch -d Branch
         branch() {
             local branch_env
-            __addarg branch_env -o -s e -d Branch
-            __addcommand leaf -f leaf -d Leaf
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg branch_env -o -s e -d Branch
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         leaf() {
             local leaf_env
-            __addarg leaf_env -o -s e -d Leaf
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg leaf_env -o -s e -d Leaf
+            koi::parse "$@" || return "$koi_status"
             printf "%s/%s/%s\n" "$root_env" "$branch_env" "$leaf_env"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' -e root branch -e branch leaf -e leaf
     [ "$status" -eq 0 ]
     [ "$output" = root/branch/leaf ]
@@ -307,20 +307,20 @@ run_help() {
         # Intentionally split this fixed argument list into command tokens.
         # shellcheck disable=SC2086
         run_help '
-            __addarg token -o -s t -r -d Token
-            __addcommand branch -f branch -d Branch
+            koi::add_arg token -o -s t -r -d Token
+            koi::add_command branch -f branch -d Branch
             branch() {
-                __addcommand leaf -f leaf -d Leaf
-                __parseargs "$@" || return "$koi_status"
+                koi::add_command leaf -f leaf -d Leaf
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
             leaf() {
                 local required
-                __addarg required -o -s r -r -d Required
-                __parseargs "$@" || return "$koi_status"
+                koi::add_arg required -o -s r -r -d Required
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
-            __koirun "$@"
+            koi::run "$@"
         ' $args
         # Parent required arguments still apply when routing to descendants.
         if [[ $args == help ]]; then
@@ -337,19 +337,19 @@ run_help() {
     for args in 'branch help' 'branch leaf -h' 'branch leaf --help'; do
         # shellcheck disable=SC2086
         run_help '
-            __addcommand branch -f branch -d Branch
+            koi::add_command branch -f branch -d Branch
             branch() {
-                __addcommand leaf -f leaf -d Leaf
-                __parseargs "$@" || return "$koi_status"
+                koi::add_command leaf -f leaf -d Leaf
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
             leaf() {
                 local required
-                __addarg required -o -s r -r -d Required
-                __parseargs "$@" || return "$koi_status"
+                koi::add_arg required -o -s r -r -d Required
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
-            __koirun "$@"
+            koi::run "$@"
         ' $args
         [ "$status" -eq 0 ]
         [[ "$output" != *Application* && "$output" != *BAD* ]]
@@ -360,7 +360,7 @@ run_help() {
 @test "direct functions do not gain built-in help" {
     run_help '
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         leaf help
     '
@@ -370,16 +370,16 @@ run_help() {
 
 @test "custom help conflicts at consumption and works when disabled" {
     run_help '
-        __addcommand help -f custom -d Custom
+        koi::add_command help -f custom -d Custom
         custom() { echo CUSTOM; }
-        __koirun --help
+        koi::run --help
     '
     [ "$status" -eq 2 ]
     [[ "$stderr" == *"command 'help' conflicts"* ]]
     run_help '
-        __addcommand help -f custom -d Custom
+        koi::add_command help -f custom -d Custom
         custom() { echo CUSTOM; }
-        __koirun --koi-disable-help-subcommand help
+        koi::run --koi-disable-help-subcommand help
     '
     [ "$status" -eq 0 ]
     [ "$output" = CUSTOM ]
@@ -388,47 +388,47 @@ run_help() {
 
 @test "custom nested help follows the runner policy" {
     run_help '
-        __addcommand branch -f branch -d Branch
+        koi::add_command branch -f branch -d Branch
         branch() {
-            __addcommand help -f custom -d Custom
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command help -f custom -d Custom
+            koi::parse "$@" || return "$koi_status"
         }
         custom() { echo CUSTOM; }
-        __koirun --koi-disable-help-subcommand branch help
+        koi::run --koi-disable-help-subcommand branch help
     '
     [ "$status" -eq 0 ]
     [ "$output" = CUSTOM ]
     [ -z "$stderr" ]
     run_help '
-        __addcommand branch -f branch -d Branch
+        koi::add_command branch -f branch -d Branch
         branch() {
-            __addcommand help -f custom -d Custom
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command help -f custom -d Custom
+            koi::parse "$@" || return "$koi_status"
         }
         custom() { echo BAD; }
-        __koirun branch --help
+        koi::run branch --help
     '
     [ "$status" -eq 2 ]
     [[ "$stderr" == *'conflicts with built-in help'* ]]
 }
 
 @test "disabling help preserves automatic flags and omits empty commands sections" {
-    run_help '__koirun --koi-disable-help-subcommand --help'
+    run_help 'koi::run --koi-disable-help-subcommand --help'
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: app.sh [-h]'* ]]
     [[ "$output" != *Commands:* && "$output" != *COMMAND* ]]
-    run_help '__koirun --koi-disable-help-subcommand help'
+    run_help 'koi::run --koi-disable-help-subcommand help'
     [ "$status" -eq 2 ]
 }
 
 @test "help switches reject duplicates and incompatible settings" {
     local switch
     for switch in --koi-disable-help-subcommand --koi-enable-verbose-help --koi-enable-help-hints; do
-        run_help '__koirun "$@"' "$switch" "$switch"
+        run_help 'koi::run "$@"' "$switch" "$switch"
         [ "$status" -eq 2 ]
         [[ "$stderr" == *repeated* ]]
     done
-    run_help '__koirun --koi-enable-verbose-help --koi-disable-help-subcommand --help'
+    run_help 'koi::run --koi-enable-verbose-help --koi-disable-help-subcommand --help'
     [ "$status" -eq 2 ]
     [[ "$stderr" == *'requires the built-in help subcommand'* ]]
 }
@@ -437,54 +437,54 @@ run_help() {
     local args
     for args in 'help --verbose' 'help extra' 'help --help extra'; do
         # shellcheck disable=SC2086
-        run_help '__koirun "$@"' $args
+        run_help 'koi::run "$@"' $args
         [ "$status" -eq 2 ]
     done
     run_help '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun --koi-enable-verbose-help leaf help --verbose
+        koi::run --koi-enable-verbose-help leaf help --verbose
     '
     [ "$status" -eq 2 ]
-    [ "$stderr" = "koi: __parseargs: unsupported positional argument: 'help'" ]
+    [ "$stderr" = "koi: koi::parse: unsupported positional argument: 'help'" ]
 }
 
 @test "disabled verbose help reports the same argument error as other unknown help arguments" {
     local argument
     for argument in --verbose --unknown extra; do
-        run_help '__addcommand leaf -f leaf -d Leaf; leaf() { :; }; __koirun "$@"' help "$argument"
+        run_help 'koi::add_command leaf -f leaf -d Leaf; leaf() { :; }; koi::run "$@"' help "$argument"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: __parseargs: unsupported positional argument: '$argument'" ]
+        [ "$stderr" = "koi: koi::parse: unsupported positional argument: '$argument'" ]
     done
 }
 
 @test "hints reflect enabled features and only appear at the runner root" {
-    run_help '__koirun --koi-enable-help-hints --help'
+    run_help 'koi::run --koi-enable-help-hints --help'
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
-    run_help '__koirun --koi-enable-help-hints --koi-enable-verbose-help --help'
+    run_help 'koi::run --koi-enable-help-hints --koi-enable-verbose-help --help'
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
     [[ "$output" != *'app.sh COMMAND --help'* ]]
     run_help '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun --koi-enable-help-hints --help
+        koi::run --koi-enable-help-hints --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *Hints:*'app.sh COMMAND --help'* ]]
     [[ "$output" != *'app.sh help --verbose'* ]]
     run_help '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun --koi-enable-help-hints --koi-enable-verbose-help leaf --help
+        koi::run --koi-enable-help-hints --koi-enable-verbose-help leaf --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
@@ -492,21 +492,21 @@ run_help() {
 
 @test "direct helper dispatch inside a routed handler does not inherit built-in help" {
     run_help '
-        __addcommand outer -f outer -d Outer
+        koi::add_command outer -f outer -d Outer
         outer() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             helper leaf --help
         }
         helper() {
-            __addcommand leaf -f leaf -d Leaf
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
         }
         leaf() {
-            __addcommand help -f custom -d Custom
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command help -f custom -d Custom
+            koi::parse "$@" || return "$koi_status"
         }
         custom() { :; }
-        __koirun outer
+        koi::run outer
     '
     [ "$status" -eq 0 ]
     [[ "$output" == Leaf*Custom* ]]
@@ -515,17 +515,17 @@ run_help() {
 
 @test "routed leaves omit help commands regardless of their argument kinds" {
     local declarations
-    for declarations in '' '__addarg verbose -f -s v -d Verbose' \
-        '__addarg name -o -s n -D world -d Name' \
-        '__addarg value -p -r -d Value' '__addarg value -p -d Value'; do
+    for declarations in '' 'koi::add_arg verbose -f -s v -d Verbose' \
+        'koi::add_arg name -o -s n -D world -d Name' \
+        'koi::add_arg value -p -r -d Value' 'koi::add_arg value -p -d Value'; do
         run_help '
-            __addcommand leaf -f leaf -d Leaf
+            koi::add_command leaf -f leaf -d Leaf
             leaf() {
                 '"$declarations"'
-                __parseargs "$@" || return "$koi_status"
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
-            __koirun leaf --help
+            koi::run leaf --help
         '
         [ "$status" -eq 0 ]
         [[ "$output" == Leaf*'Usage: app.sh leaf [-h]'* ]]
@@ -536,34 +536,34 @@ run_help() {
 
 @test "argument-free and option-only leaves reject bare help without business logic" {
     local declarations
-    for declarations in '' '__addarg name -o -s n -D world -d Name'; do
+    for declarations in '' 'koi::add_arg name -o -s n -D world -d Name'; do
         run_help '
-            __addcommand leaf -f leaf -d Leaf
+            koi::add_command leaf -f leaf -d Leaf
             leaf() {
                 '"$declarations"'
-                __parseargs "$@" || return "$koi_status"
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
-            __koirun leaf help
+            koi::run leaf help
         '
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: __parseargs: unsupported positional argument: 'help'" ]
+        [ "$stderr" = "koi: koi::parse: unsupported positional argument: 'help'" ]
     done
 }
 
 @test "childless runner roots suppress help commands and verbose hints" {
     local declarations
-    for declarations in '' '__addarg name -o -s n -D world -d Name'; do
+    for declarations in '' 'koi::add_arg name -o -s n -D world -d Name'; do
         run_help "$declarations"'
-            __koirun --koi-enable-verbose-help --koi-enable-help-hints --help
+            koi::run --koi-enable-verbose-help --koi-enable-help-hints --help
         '
         [ "$status" -eq 0 ]
         [[ "$output" == Application*'Usage: app.sh [-h]'* ]]
         [[ "$output" != *COMMAND* && "$output" != *Commands:* && "$output" != *Hints:* ]]
         [ -z "$stderr" ]
         run_help "$declarations"'
-            __koirun --koi-enable-verbose-help help --verbose
+            koi::run --koi-enable-verbose-help help --verbose
         '
         [ "$status" -eq 2 ]
         [ -z "$output" ]

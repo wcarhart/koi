@@ -68,39 +68,44 @@
     "group": "Guides"
   },
   {
-    "file": "reference/addarg.md",
-    "slug": "reference/addarg",
+    "file": "reference/add_arg.md",
+    "slug": "reference/add_arg",
     "group": "Reference",
     "interactive": "addarg"
   },
   {
-    "file": "reference/addcommand.md",
-    "slug": "reference/addcommand",
+    "file": "reference/add_command.md",
+    "slug": "reference/add_command",
     "group": "Reference"
   },
   {
-    "file": "reference/adddescription.md",
-    "slug": "reference/adddescription",
+    "file": "reference/add_description.md",
+    "slug": "reference/add_description",
     "group": "Reference"
   },
   {
-    "file": "reference/parseargs.md",
-    "slug": "reference/parseargs",
+    "file": "reference/parse.md",
+    "slug": "reference/parse",
     "group": "Reference"
   },
   {
-    "file": "reference/koiconfig.md",
-    "slug": "reference/koiconfig",
+    "file": "reference/config.md",
+    "slug": "reference/config",
     "group": "Reference"
   },
   {
-    "file": "reference/koirun.md",
-    "slug": "reference/koirun",
+    "file": "reference/run.md",
+    "slug": "reference/run",
     "group": "Reference"
   },
   {
     "file": "reference/glossary.md",
     "slug": "reference/glossary",
+    "group": "Reference"
+  },
+  {
+    "file": "reference/conventions.md",
+    "slug": "reference/conventions",
     "group": "Reference"
   },
   {

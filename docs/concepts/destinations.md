@@ -4,7 +4,7 @@ description: "How koi assigns parsed arguments to Bash variables."
 layout: article
 ---
 
-Koi assigns parsed values to ordinary Bash variables. The first parameter of [__addarg](/docs/reference/addarg) names the _destination_, which is the Bash variable that holds the argument’s parsed value:
+Koi assigns parsed values to ordinary Bash variables. The first parameter of [koi::add_arg](/docs/reference/add_arg) names the _destination_, which is the Bash variable that holds the argument’s parsed value:
 
 ```bash
 #!/usr/bin/env bash
@@ -12,8 +12,8 @@ source koi
 
 deploy() {
     local environment
-    __addarg environment --option --short e --long environment --default production --description 'Where to deploy'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg environment --option --short e --long environment --default production --description 'Where to deploy'
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Deploying to %s\n' "$environment"
 }
@@ -28,10 +28,10 @@ Running `./app.sh -e staging` assigns `staging` to `environment` and prints `Dep
 The destination is independent of the [argument labels and display name](/docs/concepts/arguments#labels-destinations-and-display-names). For example:
 
 ```bash
-__addarg output_file --option --long output-file --display-name FILE --description 'Where to write output'
+koi::add_arg output_file --option --long output-file --display-name FILE --description 'Where to write output'
 ```
 
-Here, callers use `--output-file`, help shows `--output-file FILE`, and your code reads the value from `$output_file`. Destinations must be valid Bash identifiers, so use underscores rather than hyphens in variable names. Koi also reserves names such as `koi_status`, names starting with `__koi_`, and certain shell variables. See [__addarg](/docs/reference/addarg#arguments) for the naming rules.
+Here, callers use `--output-file`, help shows `--output-file FILE`, and your code reads the value from `$output_file`. Destinations must be valid Bash identifiers, so use underscores rather than hyphens in variable names. Koi also reserves names such as `koi_status`, names starting with `__koi_`, and certain shell variables. See [koi::add_arg](/docs/reference/add_arg#arguments) for the naming rules.
 
 [Registration](/docs/concepts/lifecycle) records the destination name without assigning a value. During successful parsing, koi replaces every destination in the current context with its parsed value or fallback. Omitted flags receive `0`, and omitted optional options and positionals receive their declared default or an empty string. Initializing a variable before parsing doesn't provide a default, so use `--default` for that. Existing values also don't satisfy [required](/docs/reference/glossary#requiredness) arguments. Help leaves destination values unchanged.
 
@@ -45,8 +45,8 @@ Without its own `local`, a function can assign to a variable in its caller. This
 
 ```bash
 select_environment() {
-    __addarg environment --option --long environment --description 'Where to deploy'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg environment --option --long environment --description 'Where to deploy'
+    koi::parse "$@" || return "$koi_status"
 }
 
 main() {
@@ -63,8 +63,8 @@ This prints `staging`. To keep the parsed value inside `select_environment`, giv
 ```bash
 select_environment() {
     local environment
-    __addarg environment --option --long environment --description 'Where to deploy'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg environment --option --long environment --description 'Where to deploy'
+    koi::parse "$@" || return "$koi_status"
 }
 ```
 

@@ -8,11 +8,11 @@ source ./koi
 #   -v, --verbose print progress
 main() {
     local source directory verbose
-    __adddescription 'Preview a copy operation'
-    __addarg source -p -r -d 'Source file'
-    __addarg directory -p -D . -d 'Destination directory'
-    __addarg verbose -f -s v -l verbose -d 'Print progress'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_description 'Preview a copy operation'
+    koi::add_arg source -p -r -d 'Source file'
+    koi::add_arg directory -p -D . -d 'Destination directory'
+    koi::add_arg verbose -f -s v -l verbose -d 'Print progress'
+    koi::parse "$@" || return "$koi_status"
 
     printf 'source=%s\ndirectory=%s\nverbose=%s\n' "$source" "$directory" "$verbose"
 }

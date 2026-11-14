@@ -8,8 +8,8 @@ layout: article
 
 ## Start with a guarded function
 
-- TODO: Walk through a complete function with local destinations, declarations, `__parseargs "$@" || return "$koi_status"`, and business logic; reuse existing example assets when writing the guide.
-- TODO: Choose between flags, scalar options, and scalar positionals using [arguments and values](/docs/concepts/arguments); link exact parameters to [__addarg](/docs/reference/addarg).
+- TODO: Walk through a complete function with local destinations, declarations, `koi::parse "$@" || return "$koi_status"`, and business logic; reuse existing example assets when writing the guide.
+- TODO: Choose between flags, scalar options, and scalar positionals using [arguments and values](/docs/concepts/arguments); link exact parameters to [koi::add_arg](/docs/reference/add_arg).
 - TODO: Choose short/long labels and help display names independently of Bash destinations.
 
 ## Requiredness, defaults, and repetition

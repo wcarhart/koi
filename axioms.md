@@ -10,8 +10,8 @@ packaging choices remain open to further design.
 The later [v2 configuration and help contract](docs/tmp/v2-help.md) supersedes the
 initial proposals below where they differ. In particular, branches with
 application children show help rather than executing local business logic when
-no child is selected. Root configuration uses `__koiconfig`; direct function
-descriptions use `__adddescription`. Inspection currently collects into internal
+no child is selected. Root configuration uses `koi::config`; direct function
+descriptions use `koi::add_description`. Inspection currently collects into internal
 Bash arrays only; external transport and CLI output formats remain deferred.
 
 ## Purpose and scope
@@ -27,7 +27,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
 
 ### 1. Commands require explicit registration
 
-- `__addcommand` exposes a function as an immediate child of the current command
+- `koi::add_command` exposes a function as an immediate child of the current command
   context. Exact parameters remain to be designed.
 - Do not discover commands from ambient shell functions using `declare -F`.
 - Only registered commands may be listed or dispatched through CLI routing.
@@ -40,7 +40,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
 
 ### 2. Argument specs live inside their owning functions
 
-- Keep `__addarg` declarations close to business logic inside the function that
+- Keep `koi::add_arg` declarations close to business logic inside the function that
   consumes the arguments.
 - Build the spec just in time by executing those declarations. Do not require
   a separately maintained global argument spec or separate spec function.
@@ -63,7 +63,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
 
 ### 4. Parsing requires an explicit caller-side guard
 
-- `__parseargs` parses the current function's spec and participates in child
+- `koi::parse` parses the current function's spec and participates in child
   dispatch. Its call must include the supported guard that returns from the
   owning function when execution must stop there.
 - Distinguish continuing into local business logic, completing help, returning
@@ -72,7 +72,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
   Selecting a child must not also run the parent's default business logic.
 - An ordinary helper function cannot return from its caller. Moving the guard
   into another function does not remove this requirement.
-- Use `__parseargs "$@" || return "$koi_status"`. The parser returns 0 to
+- Use `koi::parse "$@" || return "$koi_status"`. The parser returns 0 to
   continue, 1 after help or child dispatch, and 2 on error. Immediately before
   returning it sets `koi_status` to 0 for help/success, 2 for parsing errors, or
   the child's actual exit status after dispatch. Authors need not initialize it.
@@ -91,7 +91,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
 ### 5. Help is built in
 
 - Provide `-h` and `--help` automatically; authors must not need to remember a
-  special `__addarg` help declaration.
+  special `koi::add_arg` help declaration.
 - Command registration supplies enough metadata for ordinary parent help to
   list immediate command names and descriptions without invoking the children.
 - Detailed command help enters the selected function to build its local spec,
@@ -104,17 +104,17 @@ redesign and bug fixes, rather than only modernization of the existing code.
 
 ### 6. Functions can parse arguments without being CLI commands
 
-- `__addcommand` controls CLI exposure, not eligibility to use the parser.
+- `koi::add_command` controls CLI exposure, not eligibility to use the parser.
 - A function may call another koi-powered function directly with flags, options,
   and positional arguments. The callee registers and parses its own interface.
 - Direct function calls do not require command registration or runner wrappers.
-- A function owns one uninterrupted registration block: zero or more `__addarg`
-  and `__addcommand` calls followed by exactly one guarded `__parseargs`.
+- A function owns one uninterrupted registration block: zero or more `koi::add_arg`
+  and `koi::add_command` calls followed by exactly one guarded `koi::parse`.
   Preparation may execute before the block; business logic executes after it.
   Conditional declarations are supported. Registration helpers that contribute
   another function's interface are unsupported.
 - Once registration starts, do not return, omit parsing, or call another
-  function that builds/parses an interface before reaching `__parseargs`.
+  function that builds/parses an interface before reaching `koi::parse`.
   Abandoned or interleaved registration is unsupported and may malfunction;
   koi does not promise a dedicated diagnostic for this misuse.
 - Repeated calls, nested calls, and recursion are supported when each registration
@@ -134,11 +134,11 @@ redesign and bug fixes, rather than only modernization of the existing code.
 - Script-scope declarations, including files sourced at script scope, build the
   persistent root registration buffer. Function declarations use the separate
   pending function buffer, even when the library itself was loaded in a function.
-- Call `__koirun [supported admin flags] "$@"` once per library initialization.
+- Call `koi::run [supported admin flags] "$@"` once per library initialization.
   The first attempt consumes root registration even on help or error. A second
   call or later root declaration reports an error. Re-sourcing does not reset
   this state; no reset API is currently provided.
-- Only `__koirun` consumes root registration. `__parseargs` must be called inside
+- Only `koi::run` consumes root registration. `koi::parse` must be called inside
   an application function; top-level calls return 2 without consuming root
   registration. Scripts without a runner can invoke a parsing function directly
   as their entrypoint, using the standard function guard.
@@ -157,19 +157,19 @@ redesign and bug fixes, rather than only modernization of the existing code.
 ```bash
 source ./koi
 
-__addarg verbose -f -s v -d 'Print progress'
-__addcommand deploy -f deploy -d 'Deploy application'
+koi::add_arg verbose -f -s v -d 'Print progress'
+koi::add_command deploy -f deploy -d 'Deploy application'
 
 deploy() {
     local environment
-    __addarg environment -o -s e -d Environment -D production
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg environment -o -s e -d Environment -D production
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Deploying to %s (verbose=%s)\n' "$environment" "$verbose"
 }
 
 # Example invocation: ./app -v deploy -e staging
-__koirun "$@"
+koi::run "$@"
 ```
 
 ### 7. Authors control destination variable scope
@@ -206,7 +206,7 @@ remain a bootstrap step.
 ### Static checking
 
 - Accept a script path and analyze it without sourcing or executing the script.
-- Diagnose bare `__parseargs` calls and incorrect guards where statically
+- Diagnose bare `koi::parse` calls and incorrect guards where statically
   recognizable; add useful registration and API diagnostics over time.
 - Use Bash syntax-aware analysis. Do not present regex matching as a complete
   Bash analyzer. The parser/tool dependency choice is unresolved.
@@ -290,7 +290,7 @@ choices have less design consensus than the API axioms and may change.
 - Bats-core to replace the custom test harness, with Bash fixtures and specific
   status/output assertions. Additional generated/property tests may be useful.
 - Named declaration parameters instead of mandatory blank positional fields.
-  The exact `__addarg` and `__addcommand` signatures are not settled.
+  The exact `koi::add_arg` and `koi::add_command` signatures are not settled.
 - Explicit parser configuration for name, description, help formatting, and color
   rather than a collection of loosely related globals. Names and defaults remain
   open. Retain a koi-specific internal namespace.

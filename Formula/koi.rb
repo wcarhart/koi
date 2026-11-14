@@ -15,9 +15,9 @@ class Koi < Formula
   test do
     (testpath/"example.sh").write <<~BASH
       source "#{pkgshare}/koi"
-      __addcommand demo --function demo --description "Demo command"
+      koi::add_command demo --function demo --description "Demo command"
       demo() { echo "handler should not run"; }
-      __koirun "$@"
+      koi::run "$@"
     BASH
     expected = <<~OUTPUT
       Usage: example.sh COMMAND [args]

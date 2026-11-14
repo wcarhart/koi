@@ -13,9 +13,9 @@ setup() {
         source "$KOI_LIBRARY"
         configure() {
             local mode verbose
-            __addarg mode -o -s m -d Mode -D safe
-            __addarg verbose -f -s v -d Verbose
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode -D safe
+            koi::add_arg verbose -f -s v -d Verbose
+            koi::parse "$@" || return "$koi_status"
             printf "%s %s\n" "$mode" "$verbose"
         }
         configure -m fast -v || exit
@@ -39,22 +39,22 @@ setup() {
         source "$KOI_LIBRARY"
         inner() {
             local mode
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
             printf "inner:%s\n" "$mode"
         }
         outer() {
             local mode
             inner -m before || return
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
             inner -m after || return
             printf "outer:%s\n" "$mode"
         }
         recurse() {
             local mode
-            __addarg mode -o -s m -d Depth
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Depth
+            koi::parse "$@" || return "$koi_status"
             if (( mode > 0 )); then
                 recurse -m "$((mode-1))" || return
             fi
@@ -72,8 +72,8 @@ setup() {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
         assign() {
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
         }
         outer() {
             local mode=old
@@ -94,9 +94,9 @@ setup() {
         conditional() {
             local verbose
             if (( enabled )); then
-                __addarg verbose -f -s v -d Verbose
+                koi::add_arg verbose -f -s v -d Verbose
             fi
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         enabled=1
         conditional -v || exit
@@ -117,10 +117,10 @@ setup() {
         configure() {
             local mode=old
             if [[ $case == invalid ]]; then
-                __addarg 2>/dev/null
+                koi::add_arg 2>/dev/null
             fi
-            __addarg mode -o -s m -r -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -r -d Mode
+            koi::parse "$@" || return "$koi_status"
             [[ $mode == safe ]]
         }
         case=invalid
@@ -133,8 +133,8 @@ setup() {
         configure -m safe || exit
         readonly_case() {
             local -r mode=old
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
         }
         readonly_case -m safe 2>/dev/null
         [[ $? == 2 ]] || exit 9
@@ -148,17 +148,17 @@ setup() {
 @test "pending function registration cannot alter root registration or validity" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
-        __addcommand visible -f visible -d Visible
+        koi::config description Application
+        koi::add_command visible -f visible -d Visible
         visible() { return 0; }
         build() {
-            __addcommand leaked -f visible -d Hidden
-            __addarg 2>/dev/null
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command leaked -f visible -d Hidden
+            koi::add_arg 2>/dev/null
+            koi::parse "$@" || return "$koi_status"
         }
         build 2>/dev/null
         [[ $? == 2 ]] || exit 9
-        __koirun --help
+        koi::run --help
     ' app.sh
     [ "$status" -eq 0 ]
     [[ "$output" == *visible* ]]
@@ -169,23 +169,23 @@ setup() {
 @test "nested routing assigns parent arguments and suppresses parent business logic" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
-        __addcommand infra -f infra -d Infra
+        koi::config description Application
+        koi::add_command infra -f infra -d Infra
         infra() {
             local mode
-            __addarg mode -o -s m -d Mode -D safe
-            __addcommand deploy -f deploy -d Deploy
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode -D safe
+            koi::add_command deploy -f deploy -d Deploy
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
         deploy() {
             local mode
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
             printf "child:%s\n" "$mode"
             return 42
         }
-        __koirun infra -m parent deploy -m child
+        koi::run infra -m parent deploy -m child
     ' app.sh
     [ "$status" -eq 42 ]
     [ "$output" = child:child ]
@@ -197,8 +197,8 @@ setup() {
         source "$KOI_LIBRARY"
         child() { printf "child\n"; }
         parent() {
-            __addcommand child -f child -d Child
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command child -f child -d Child
+            koi::parse "$@" || return "$koi_status"
             printf "default\n"
         }
         parent || exit
@@ -216,12 +216,12 @@ setup() {
         run --separate-stderr bash -uc '
             source "$KOI_LIBRARY"
             child() {
-                __parseargs || return "$koi_status"
+                koi::parse || return "$koi_status"
                 return "$1"
             }
             parent() {
-                __addcommand child -f child -d Child
-                __parseargs "$@" || return "$koi_status"
+                koi::add_command child -f child -d Child
+                koi::parse "$@" || return "$koi_status"
                 printf "BAD\n"
             }
             if parent child "$1"; then
@@ -240,14 +240,14 @@ setup() {
 @test "nested help lists immediate children with a complete command path" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
-        __addcommand a -f node -d A
+        koi::config description Application
+        koi::add_command a -f node -d A
         node() {
-            __addcommand a -f node -d Next
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command a -f node -d Next
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' app.sh a a a a a a a a a a a a --help
     [ "$status" -eq 0 ]
     [[ "${lines[0]}" == Next && "${lines[1]}" == 'Usage: app.sh a a a a a a a a a a a a [-h] COMMAND' ]]
@@ -259,17 +259,17 @@ setup() {
 @test "preparation helpers and later direct calls do not inherit routed help paths" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
-        __addcommand alias -f handler -d Handler
+        koi::config description Application
+        koi::add_command alias -f handler -d Handler
         helper() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         handler() {
             helper --help || return
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             helper --help
         }
-        __koirun alias --help || exit
+        koi::run alias --help || exit
         printf "AFTER\n"
         handler --help
     ' app.sh
@@ -282,8 +282,8 @@ setup() {
 @test "recursive direct calls of a routed handler do not consume its route" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
-        __addcommand alias -f handler -d Handler
+        koi::config description Application
+        koi::add_command alias -f handler -d Handler
         handler() {
             local help_only=0
             if [[ ${1-} == nested ]]; then
@@ -293,9 +293,9 @@ setup() {
             if (( ! help_only )); then
                 handler nested --help || return
             fi
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun alias --help
+        koi::run alias --help
     ' app.sh
     [ "$status" -eq 0 ]
     [[ "$output" == 'Usage: app.sh [-h]'*'Usage: app.sh alias [-h]'* ]]
@@ -306,13 +306,13 @@ setup() {
     run --separate-stderr bash -euc '
         source "$KOI_LIBRARY"
         child() {
-            __addarg mode -o -s m -r -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -r -d Mode
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
         parent() {
-            __addcommand child -f child -d Child
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command child -f child -d Child
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
         if parent child; then
@@ -327,17 +327,17 @@ setup() {
 }
 
 @test "script-scope sourced declarations are root declarations" {
-    printf '%s\n' '__addarg verbose -f -s v -d Verbose' > "$BATS_TEST_TMPDIR/args.sh"
+    printf '%s\n' 'koi::add_arg verbose -f -s v -d Verbose' > "$BATS_TEST_TMPDIR/args.sh"
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
-        __koiconfig description Application
+        koi::config description Application
         source "$1"
         check() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             [[ $verbose == 1 ]]
         }
-        __addcommand check -f check -d Check
-        __koirun -v check
+        koi::add_command check -f check -d Check
+        koi::run -v check
     ' app.sh "$BATS_TEST_TMPDIR/args.sh"
     [ "$status" -eq 0 ]
     [ -z "$stderr" ]
@@ -348,8 +348,8 @@ setup() {
         source "$KOI_LIBRARY"
         main() {
             local mode
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
             printf "%s\n" "$mode"
         }
         main -m first || exit
@@ -362,13 +362,13 @@ setup() {
 }
 
 @test "sourcing declaration files inside functions uses their pending block" {
-    printf '%s\n' '__addarg mode -o -s m -d Mode' > "$BATS_TEST_TMPDIR/args.sh"
+    printf '%s\n' 'koi::add_arg mode -o -s m -d Mode' > "$BATS_TEST_TMPDIR/args.sh"
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
         configure() {
             local mode
             source "$1"
-            __parseargs -m safe || return "$koi_status"
+            koi::parse -m safe || return "$koi_status"
             printf "%s\n" "$mode"
         }
         configure "$1" || exit

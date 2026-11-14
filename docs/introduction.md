@@ -12,8 +12,8 @@ source koi
 
 bark() {
     local name
-    __addarg name --option --short n --long name --default Fido --description "Dog's name"
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg name --option --short n --long name --default Fido --description "Dog's name"
+    koi::parse "$@" || return "$koi_status"
 
     printf '%s says woof!\n' "$name"
 }

@@ -8,8 +8,8 @@ layout: article
 
 ## Register the root interface
 
-- TODO: Start from a complete script using existing command examples; register root options and commands at script scope, then call `__koirun "$@"` once.
-- TODO: Show command names, handler functions, descriptions, and aliases; link exact registration parameters to [__addcommand](/docs/reference/addcommand).
+- TODO: Start from a complete script using existing command examples; register root options and commands at script scope, then call `koi::run "$@"` once.
+- TODO: Show command names, handler functions, descriptions, and aliases; link exact registration parameters to [koi::add_command](/docs/reference/add_command).
 - TODO: Link the choice between a runner and a function entrypoint to [calls and command routing](/docs/concepts/routing).
 
 ## Add branches and leaves

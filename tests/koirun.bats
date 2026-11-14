@@ -15,12 +15,12 @@ setup() {
 run_app() {
     local body=$1
     shift
-    printf 'source "$KOI_LIBRARY"\n__koiconfig description "Application"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
+    printf 'source "$KOI_LIBRARY"\nkoi::config description "Application"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
     run --separate-stderr bash "$BATS_TEST_TMPDIR/app.sh" "$@"
 }
 
 @test "empty registry shows root help successfully" {
-    run_app '__koirun "$@"'
+    run_app 'koi::run "$@"'
     [ "$status" -eq 0 ]
     [ "$output" = 'Application
 
@@ -36,9 +36,9 @@ Options:
         handler() { printf "BAD\n"; }
         unrelated() { printf "BAD\n"; }
         export -f unrelated
-        __addcommand z -f handler -d $'"'"'First command\nContinuation'"'"'
-        __addcommand alpha -f handler -d "Second command"
-        __koirun "$@"
+        koi::add_command z -f handler -d $'"'"'First command\nContinuation'"'"'
+        koi::add_command alpha -f handler -d "Second command"
+        koi::run "$@"
     ' --help
     [ "$status" -eq 0 ]
     [ "$output" = 'Application
@@ -59,7 +59,7 @@ Options:
 @test "leading help ignores subsequent tokens and the zero-argument setting" {
     local flag
     for flag in -h --help; do
-        run_app '__koirun --koi-zero-argument-message "Need a command" "$@"' "$flag" ignored
+        run_app 'koi::run --koi-zero-argument-message "Need a command" "$@"' "$flag" ignored
         [ "$status" -eq 0 ]
         [[ "$output" == Application*Usage:* ]]
         [ -z "$stderr" ]
@@ -67,7 +67,7 @@ Options:
 }
 
 @test "zero-argument messages preserve literal text" {
-    run_app '__koirun --koi-zero-argument-message '"'"'Need %s $command'"'"' "$@"'
+    run_app 'koi::run --koi-zero-argument-message '"'"'Need %s $command'"'"' "$@"'
     [ "$status" -eq 2 ]
     [ -z "$output" ]
     [ "$stderr" = 'app.sh: Need %s $command' ]
@@ -78,7 +78,7 @@ Options:
     for setting in '--koi-zero-argument-message' '--koi-zero-argument-message ""' \
         '--koi-zero-argument-message One --koi-zero-argument-message Two' \
         '--koi-enable-help-on-unknown-commands --koi-enable-help-on-unknown-commands'; do
-        run_app "__koirun $setting"
+        run_app "koi::run $setting"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
         [[ "$stderr" == *invalid* || "$stderr" == *repeated* ]]
@@ -86,16 +86,16 @@ Options:
 }
 
 @test "runner settings accept either order" {
-    run_app '__koirun --koi-enable-help-on-unknown-commands --koi-zero-argument-message Required "$@"' unknown --help
+    run_app 'koi::run --koi-enable-help-on-unknown-commands --koi-zero-argument-message Required "$@"' unknown --help
     [ "$status" -eq 0 ]
-    run_app '__koirun --koi-zero-argument-message Required --koi-enable-help-on-unknown-commands "$@"' unknown --help
+    run_app 'koi::run --koi-zero-argument-message Required --koi-enable-help-on-unknown-commands "$@"' unknown --help
     [ "$status" -eq 0 ]
 }
 
 @test "unknown commands error by default even when help follows" {
     local command
     for command in unknown ''; do
-        run_app '__koirun "$@"' "$command" --help
+        run_app 'koi::run "$@"' "$command" --help
         [ "$status" -eq 2 ]
         [ -z "$output" ]
         [ "$stderr" = "app.sh: unknown command '$command'" ]
@@ -105,14 +105,14 @@ Options:
 @test "unknown-command override recognizes standalone help before the separator" {
     local flag
     for flag in -h --help; do
-        run_app '__koirun --koi-enable-help-on-unknown-commands "$@"' unknown extra "$flag"
+        run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown extra "$flag"
         [ "$status" -eq 0 ]
         [[ "$output" == Application*Usage:* ]]
-        run_app '__koirun --koi-enable-help-on-unknown-commands "$@"' unknown -- "$flag"
+        run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown -- "$flag"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
     done
-    run_app '__koirun --koi-enable-help-on-unknown-commands "$@"' unknown -vh
+    run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown -vh
     [ "$status" -eq 2 ]
 }
 
@@ -122,7 +122,7 @@ Options:
         run_app '
             unrelated() { printf "BAD\n"; }
             export -f unrelated
-            __koirun "$@"
+            koi::run "$@"
         ' "$command"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
@@ -131,12 +131,12 @@ Options:
 
 @test "registered handler receives exact remaining arguments" {
     run_app '
-        __addcommand deploy -f handler -d Deploy
+        koi::add_command deploy -f handler -d Deploy
         handler() {
             printf "count=%s\n" "$#"
             printf "<%s>\n" "$@"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' deploy '' 'two words' -x -- --koi-zero-argument-message
     [ "$status" -eq 0 ]
     [ "$output" = $'count=5\n<>\n<two words>\n<-x>\n<-->\n<--koi-zero-argument-message>' ]
@@ -147,9 +147,9 @@ Options:
     local code
     for code in 0 1 2 7 42; do
         run_app '
-            __addcommand deploy -f handler -d Deploy
+            koi::add_command deploy -f handler -d Deploy
             handler() { return "$1"; }
-            __koirun "$@"
+            koi::run "$@"
         ' deploy "$code"
         [ "$status" -eq "$code" ]
         [ -z "$output" ]
@@ -160,12 +160,12 @@ Options:
 @test "runner does not suppress normal errexit inside the handler" {
     run_app '
         set -e
-        __addcommand deploy -f handler -d Deploy
+        koi::add_command deploy -f handler -d Deploy
         handler() {
             false
             printf "BAD\n"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' deploy
     [ "$status" -eq 1 ]
     [ -z "$output" ]
@@ -176,10 +176,10 @@ Options:
     for arg in --help deploy alpha; do
         run_app '
             handler() { printf "BAD\n"; }
-            __addcommand deploy -f handler -d Deploy
-            __addcommand z -f absent_z -d First
-            __addcommand alpha -f absent_alpha -d Second
-            __koirun "$@"
+            koi::add_command deploy -f handler -d Deploy
+            koi::add_command z -f absent_z -d First
+            koi::add_command alpha -f absent_alpha -d Second
+            koi::run "$@"
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
@@ -189,8 +189,8 @@ Options:
 
 @test "invalid registration is consumed without repeating diagnostics" {
     run_app '
-        __addcommand 2>/dev/null
-        __koirun --help
+        koi::add_command 2>/dev/null
+        koi::run --help
     '
     [ "$status" -eq 2 ]
     [ -z "$output" ]
@@ -199,12 +199,12 @@ Options:
 
 @test "handler directory and environment changes survive dispatch" {
     run_app '
-        __addcommand deploy -f handler -d Deploy
+        koi::add_command deploy -f handler -d Deploy
         handler() {
             cd / || return
             export KOI_RUN_TEST=changed
         }
-        __koirun deploy || exit
+        koi::run deploy || exit
         [[ $PWD == / && $KOI_RUN_TEST == changed ]]
     '
     [ "$status" -eq 0 ]
@@ -213,13 +213,13 @@ Options:
 
 @test "selected command help uses its CLI alias and skips business logic" {
     run_app '
-        __addcommand deploy -f actual_handler -d Deploy
+        koi::add_command deploy -f actual_handler -d Deploy
         actual_handler() {
-            __addarg env -o -s e -n env -d Environment
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg env -o -s e -n env -d Environment
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' deploy --help
     [ "$status" -eq 0 ]
     [[ "${lines[0]}" == Deploy && "${lines[1]}" == 'Usage: app.sh deploy [-h] [-e ENV]' ]]
@@ -230,16 +230,16 @@ Options:
 @test "root arguments assign values before child dispatch" {
     run_app '
         set -u
-        __addarg verbose -f -s v -d Verbose
-        __addarg mode -o -s m -d Mode -D safe
-        __addcommand deploy -f handler -d Deploy
+        koi::add_arg verbose -f -s v -d Verbose
+        koi::add_arg mode -o -s m -d Mode -D safe
+        koi::add_command deploy -f handler -d Deploy
         handler() {
             local env
-            __addarg env -o -s e -d Environment
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg env -o -s e -d Environment
+            koi::parse "$@" || return "$koi_status"
             printf "%s %s %s\n" "$verbose" "$mode" "$env"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' -v -m fast deploy -e production
     [ "$status" -eq 0 ]
     [ "$output" = '1 fast production' ]
@@ -248,10 +248,10 @@ Options:
 
 @test "root help lists arguments and bypasses requiredness and assignments" {
     run_app '
-        __addarg token -o -l token -r -d Token
-        __addcommand deploy -f handler -d Deploy
+        koi::add_arg token -o -l token -r -d Token
+        koi::add_command deploy -f handler -d Deploy
         handler() { printf "BAD\n"; }
-        __koirun "$@" || exit
+        koi::run "$@" || exit
         [[ ! -v token ]]
     ' --help
     [ "$status" -eq 0 ]
@@ -261,13 +261,13 @@ Options:
 
 @test "root options are not recognized after child selection" {
     run_app '
-        __addarg verbose -f -s v -d Verbose
-        __addcommand deploy -f handler -d Deploy
+        koi::add_arg verbose -f -s v -d Verbose
+        koi::add_command deploy -f handler -d Deploy
         handler() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             printf "BAD\n"
         }
-        __koirun "$@"
+        koi::run "$@"
     ' deploy -v
     [ "$status" -eq 2 ]
     [ -z "$output" ]
@@ -275,10 +275,10 @@ Options:
 
 @test "root values consume command-like tokens and separator permits child selection" {
     run_app '
-        __addarg mode -o -s m -d Mode
-        __addcommand deploy -f handler -d Deploy
+        koi::add_arg mode -o -s m -d Mode
+        koi::add_command deploy -f handler -d Deploy
         handler() { printf "<%s> <%s>\n" "$mode" "$1"; }
-        __koirun "$@"
+        koi::run "$@"
     ' -m deploy -- deploy --help
     [ "$status" -eq 0 ]
     [ "$output" = '<deploy> <--help>' ]
@@ -288,28 +288,28 @@ Options:
     local arg
     for arg in deploy --help unknown; do
         run_app '
-            __addcommand deploy -f handler -d Deploy
+            koi::add_command deploy -f handler -d Deploy
             handler() { return 0; }
-            __koirun "$@" >/dev/null 2>/dev/null
+            koi::run "$@" >/dev/null 2>/dev/null
             source "$KOI_LIBRARY"
-            __koirun --help
+            koi::run --help
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *'__koirun: call only once per script; __koirun has already been called' ]]
+        [[ "$stderr" == *'koi::run: call only once per script; koi::run has already been called' ]]
     done
 }
 
 @test "late root declarations fail but later direct parsing remains usable" {
     run_app '
-        __koirun --help >/dev/null || exit
-        __addarg late -f -l late -d Late 2>/dev/null
+        koi::run --help >/dev/null || exit
+        koi::add_arg late -f -l late -d Late 2>/dev/null
         [[ $? == 2 ]] || exit 9
-        __addcommand late -f handler -d Late 2>/dev/null
+        koi::add_command late -f handler -d Late 2>/dev/null
         [[ $? == 2 ]] || exit 9
         handler() {
-            __addarg mode -o -s m -d Mode
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg mode -o -s m -d Mode
+            koi::parse "$@" || return "$koi_status"
             printf "%s\n" "$mode"
         }
         handler -m safe
@@ -320,28 +320,28 @@ Options:
 
 @test "top-level parsing rejects input without consuming root registration" {
     run_app '
-        __addarg mode -o -s m -d Mode
-        if __parseargs "$@"; then
+        koi::add_arg mode -o -s m -d Mode
+        if koi::parse "$@"; then
             exit 9
         else
             [[ $? == 2 ]] || exit 9
         fi
         [[ $koi_status == 2 && $__koi_root_used == 0 ]] || exit 9
         handler() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             printf "%s\n" "$mode"
         }
-        __addcommand run -f handler -d Run
-        __koirun "$@" run
+        koi::add_command run -f handler -d Run
+        koi::run "$@" run
     ' -m safe
     [ "$status" -eq 0 ]
     [ "$output" = safe ]
-    [ "$stderr" = 'koi: __parseargs: must be called inside a function; use __koirun at top level' ]
+    [ "$stderr" = 'koi: koi::parse: must be called inside a function; use koi::run at top level' ]
 }
 
 @test "root help and errors return without terminating the sourcing shell" {
     run_app '
-        __koirun "$@"
+        koi::run "$@"
         result=$?
         printf "survived\n"
         exit "$result"
@@ -349,4 +349,42 @@ Options:
     [ "$status" -eq 2 ]
     [ "$output" = survived ]
     [ "$stderr" = "app.sh: unknown command 'unknown'" ]
+}
+
+@test "namespaced handlers dispatch through guarded parents and preserve child status" {
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY"
+        koi::add_command parent -f app::parent -d Parent
+        app::parent() {
+            koi::add_command deploy --function app::internal::deploy -d Deploy
+            koi::parse "$@" || return "$koi_status"
+            echo BAD-parent
+        }
+        app::internal::deploy() {
+            koi::parse "$@" || return "$koi_status"
+            printf "deployed\n"
+            return 37
+        }
+        koi::run parent deploy
+    '
+    [ "$status" -eq 37 ]
+    [ "$output" = deployed ]
+    [ -z "$stderr" ]
+}
+
+@test "detailed help enters namespaced handlers and stops at their guard" {
+    run --separate-stderr bash -c '
+        source "$KOI_LIBRARY"
+        koi::add_command deploy -f app::deploy -d Deploy
+        app::deploy() {
+            koi::add_arg detail -o -l detail -d "Namespaced details"
+            koi::parse "$@" || return "$koi_status"
+            echo BAD
+        }
+        koi::run deploy --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Namespaced details"* ]]
+    [[ "$output" != *BAD* ]]
+    [ -z "$stderr" ]
 }

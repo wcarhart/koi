@@ -4,8 +4,8 @@ import AxeBuilder from '@axe-core/playwright';
 test('argument collection adds all kinds, validates drafts, and keeps highlighted outputs in sync', async ({
   page,
 }, testInfo) => {
-  await page.goto('/docs/reference/addarg#explore');
-  const section = page.locator('#doc-reference-addarg');
+  await page.goto('/docs/reference/add_arg#explore');
+  const section = page.locator('#doc-reference-add_arg');
   const explorer = section.locator('[data-argument-explorer]');
   const code = section.locator('.doc-example code').first();
   const help = section.locator('.doc-example code').nth(1);
@@ -61,7 +61,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
   await explorer.getByLabel('Short name').fill('v');
   await explorer.getByRole('button', { name: 'Save argument' }).click();
   await expect(explorer.locator('.argument-row')).toHaveCount(2);
-  await expect(code).toContainText('__addarg verbose -f -s v');
+  await expect(code).toContainText('koi::add_arg verbose -f -s v');
   await expect(help).toContainText('-v');
   await expect(help).toContainText('Print progress');
   await explorer
@@ -86,7 +86,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
   await explorer.getByLabel('Default value').fill("it's $HOME");
   await explorer.getByLabel('Display name').fill('file');
   await explorer.getByRole('button', { name: 'Save argument' }).click();
-  await expect(code).toContainText('__addarg output -o -l output');
+  await expect(code).toContainText('koi::add_arg output -o -l output');
   await expect(help).toContainText('--output FILE');
   await explorer
     .getByRole('button', { name: 'Register an argument', exact: true })
@@ -196,7 +196,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
   await expect(explorer.locator('.argument-row')).toHaveCount(1);
   await explorer.getByRole('button', { name: 'Delete name argument' }).click();
   await expect(explorer.locator('.argument-row')).toHaveCount(0);
-  await expect(code).not.toContainText('__addarg');
+  await expect(code).not.toContainText('koi::add_arg');
   await expect(code).not.toContainText('local ');
   await expect(help).toHaveText(
     'Usage: greet.sh [-h]\n\nOptions:\n  -h, --help  Show this help',
@@ -206,7 +206,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
   ).toBeFocused();
   await explorer.getByRole('button', { name: 'Reset arguments' }).click();
   await expect(explorer.locator('.argument-row')).toHaveCount(1);
-  await expect(code).not.toContainText('__addarg output');
+  await expect(code).not.toContainText('koi::add_arg output');
   await expect(help).not.toContainText('Positionals:');
   expect(
     await page.evaluate(
@@ -218,7 +218,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
 test('shared reference fragments stay within their owning route', async ({
   page,
 }) => {
-  for (const route of ['addarg', 'addcommand', 'koirun', 'koiconfig']) {
+  for (const route of ['add_arg', 'add_command', 'run', 'config']) {
     await page.goto(`/docs/reference/${route}#options`);
     const heading = page.locator(`#doc-reference-${route}-options`);
     await expect(heading).toBeInViewport();
@@ -234,7 +234,7 @@ test('shared reference fragments stay within their owning route', async ({
 test('editing either spelling clears their paired errors without clearing unrelated fields', async ({
   page,
 }) => {
-  await page.goto('/docs/reference/addarg#explore');
+  await page.goto('/docs/reference/add_arg#explore');
   const explorer = page.locator('[data-argument-explorer]');
   await explorer
     .getByRole('button', { name: 'Register an argument', exact: true })

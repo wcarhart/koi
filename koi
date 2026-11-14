@@ -11,22 +11,21 @@
 
 # ------------------ PUBLIC API ------------------
 
-# Configure script-wide help metadata before consuming root registration
-# Usage: __koiconfig KEY VALUE
+# Configure script-wide help metadata before consuming root registration. Call outside any function, after sourcing koi and before koi::run or the entrypoint function.
+# Usage: koi::config KEY VALUE
 #   KEY    name, description, or help-width (positive integer, at most nine digits, default 100)
 #   VALUE  nonempty setting value (name defaults to the script basename)
-# Call outside any function, after sourcing koi and before __koirun or the entrypoint function.
 # Returns 2 and invalidates registration on invalid or repeated settings
-__koiconfig() {
+koi::config() {
     local __koi_buffer
-    __koi_select_registration_buffer __koi_buffer || return 2
+    koi::internal::select_registration_buffer __koi_buffer || return 2
     if [[ $__koi_buffer != __koi_root ]]; then
-        __koi_spec_error "$__koi_buffer" '__koiconfig: call outside any function, after sourcing koi and before __koirun or the entrypoint function'
+        koi::internal::spec_error "$__koi_buffer" 'koi::config: call outside any function, after sourcing koi and before koi::run or the entrypoint function'
         return 2
     fi
 
     if (( $# != 2 )) || [[ -z $2 ]]; then
-        __koi_spec_error "$__koi_buffer" '__koiconfig: KEY and nonempty VALUE required'
+        koi::internal::spec_error "$__koi_buffer" 'koi::config: KEY and nonempty VALUE required'
         return 2
     fi
 
@@ -35,18 +34,18 @@ __koiconfig() {
             ;;
         help-width)
             if [[ ! $2 =~ ^[0-9]+$ || ${#2} -gt 9 ]] || (( 10#$2 == 0 )); then
-                __koi_spec_error "$__koi_buffer" '__koiconfig: help-width must be a positive integer'
+                koi::internal::spec_error "$__koi_buffer" 'koi::config: help-width must be a positive integer'
                 return 2
             fi
             ;;
         *)
-            __koi_spec_error "$__koi_buffer" "__koiconfig: unknown key: $1"
+            koi::internal::spec_error "$__koi_buffer" "koi::config: unknown key: $1"
             return 2
             ;;
     esac
 
     if [[ ${__koi_config[$1]+present} ]]; then
-        __koi_spec_error "$__koi_buffer" "__koiconfig: repeated key: $1"
+        koi::internal::spec_error "$__koi_buffer" "koi::config: repeated key: $1"
         return 2
     fi
 
@@ -54,26 +53,26 @@ __koiconfig() {
 }
 
 # Describe a directly invoked parsing function
-# Usage: __adddescription TEXT
+# Usage: koi::add_description TEXT
 #   TEXT  nonempty fallback description, routed command descriptions (i.e. from
-#         __addcommand -d) take precedence
+#         koi::add_command -d) take precedence
 # Returns 2 and invalidates registration on invalid scope, arguments, or duplicate descriptions
-__adddescription() {
+koi::add_description() {
     local __koi_buffer
-    __koi_select_registration_buffer __koi_buffer || return 2
+    koi::internal::select_registration_buffer __koi_buffer || return 2
     local -n __koi_description_meta="${__koi_buffer}_meta"
     if [[ $__koi_buffer == __koi_root ]]; then
-        __koi_spec_error "$__koi_buffer" '__adddescription: call inside a function; use __koiconfig description TEXT for the script description'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_description: call inside a function; use koi::config description TEXT for the script description'
         return 2
     fi
 
     if (( $# != 1 )) || [[ -z $1 ]]; then
-        __koi_spec_error "$__koi_buffer" '__adddescription: expected exactly one nonempty description'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_description: expected exactly one nonempty description'
         return 2
     fi
 
     if [[ ${__koi_description_meta[description]+present} ]]; then
-        __koi_spec_error "$__koi_buffer" '__adddescription: repeated description'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_description: repeated description'
         return 2
     fi
 
@@ -82,16 +81,16 @@ __adddescription() {
 
 # Register a command with koi. The command will be registered as an immediate
 # child in the current uninterrupted registration block. In functions, you
-# must close the registration block with __parseargs. In the root context,
-# you must close the registration with __koirun.
-# Usage: __addcommand NAME -f HANDLER -d DESCRIPTION
+# must close the registration block with koi::parse. In the root context,
+# you must close the registration with koi::run.
+# Usage: koi::add_command NAME -f HANDLER -d DESCRIPTION
 #   NAME               the name of the command
-#   -f, --function     the command's associated handler function
+#   -f, --function     the command's handler; ASCII letter/underscore first, then letters/digits/_/:
 #   -d, --description  the description of the command
 # Returns 2 on invalid declarations
-__addcommand() {
+koi::add_command() {
     local __koi_buffer
-    __koi_select_registration_buffer __koi_buffer || return $?
+    koi::internal::select_registration_buffer __koi_buffer || return $?
     local -n __koi_commands="${__koi_buffer}_commands"
     local -n __koi_handlers="${__koi_buffer}_handlers"
     local -n __koi_descriptions="${__koi_buffer}_descriptions"
@@ -100,13 +99,13 @@ __addcommand() {
     local __koi_seen_function=0 __koi_seen_description=0
 
     if (( $# == 0 )); then
-        __koi_spec_error "$__koi_buffer" '__addcommand: command name required'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_command: command name required'
         return 2
     fi
     shift
 
     if [[ ! $__koi_name =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
-        __koi_spec_error "$__koi_buffer" "__addcommand: invalid command name: '$__koi_name'"
+        koi::internal::spec_error "$__koi_buffer" "koi::add_command: invalid command name: '$__koi_name'"
         return 2
     fi
 
@@ -114,7 +113,7 @@ __addcommand() {
         case $1 in
             -f|--function)
                 if (( __koi_seen_function || $# < 2 )); then
-                    __koi_spec_error "$__koi_buffer" '__addcommand: invalid --function'
+                    koi::internal::spec_error "$__koi_buffer" 'koi::add_command: invalid --function'
                     return 2
                 fi
                 __koi_seen_function=1
@@ -122,32 +121,32 @@ __addcommand() {
                 ;;
             -d|--description)
                 if (( __koi_seen_description || $# < 2 )); then
-                    __koi_spec_error "$__koi_buffer" '__addcommand: invalid --description'
+                    koi::internal::spec_error "$__koi_buffer" 'koi::add_command: invalid --description'
                     return 2
                 fi
                 __koi_seen_description=1
                 __koi_description=$2
                 ;;
             *)
-                __koi_spec_error "$__koi_buffer" "__addcommand: unknown registration parameter: $1"
+                koi::internal::spec_error "$__koi_buffer" "koi::add_command: unknown registration parameter: $1"
                 return 2
                 ;;
         esac
         shift 2
     done
 
-    if [[ ! $__koi_handler =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-        __koi_spec_error "$__koi_buffer" '__addcommand: handler identifier required'
+    if [[ ! $__koi_handler =~ ^[a-zA-Z_][a-zA-Z0-9_:]*$ ]]; then
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_command: handler identifier required'
         return 2
     fi
 
     if [[ -z $__koi_description ]]; then
-        __koi_spec_error "$__koi_buffer" '__addcommand: nonempty description required'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_command: nonempty description required'
         return 2
     fi
 
     if [[ ${__koi_handlers[$__koi_name]+present} ]]; then
-        __koi_spec_error "$__koi_buffer" "duplicate command: $__koi_name"
+        koi::internal::spec_error "$__koi_buffer" "duplicate command: $__koi_name"
         return 2
     fi
 
@@ -158,9 +157,9 @@ __addcommand() {
 
 # Register a parsable argument with koi. The argument will be registered with the
 # current uninterrupted registration block. In functions, you must close the
-# registration block with __parseargs. In the root context, you must close the
-# registration with __koirun( __parseargs is only supported inside functions).
-# Usage: __addarg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
+# registration block with koi::parse. In the root context, you must close the
+# registration with koi::run( koi::parse is only supported inside functions).
+# Usage: koi::add_arg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT || -l LONG] [-r] [-D DEFAULT] [-n DISPLAY_NAME]
 # Flags/options require a short or long spelling; positionals reject both.
 #   DEST                     the Bash destination variable name
 #   -f, --flag               register a boolean flag (e.g. '-f')
@@ -173,9 +172,9 @@ __addcommand() {
 #   -D, --default DEFAULT    default for an optional option or positional (empty allowed)
 #   -n, --display-name NAME  option or positional value label
 # Returns 2 on invalid declarations
-__addarg() {
+koi::add_arg() {
     local __koi_buffer
-    __koi_select_registration_buffer __koi_buffer || return $?
+    koi::internal::select_registration_buffer __koi_buffer || return $?
     local -n __koi_args="${__koi_buffer}_args"
     local -n __koi_arg_shorts="${__koi_buffer}_arg_shorts"
     local -n __koi_arg_longs="${__koi_buffer}_arg_longs"
@@ -190,12 +189,12 @@ __addarg() {
     local -A __koi_seen=()
 
     if (( $# == 0 )); then
-        __koi_spec_error "$__koi_buffer" '__addarg: destination required'
+        koi::internal::spec_error "$__koi_buffer" 'koi::add_arg: destination required'
         return 2
     fi
     shift
 
-    __koi_validate_arg_destination "$__koi_buffer" "$__koi_dest" || return $?
+    koi::internal::validate_arg_destination "$__koi_buffer" "$__koi_dest" || return $?
 
     while (( $# )); do
         case $1 in
@@ -231,13 +230,13 @@ __addarg() {
                 __koi_parameter=display_name
                 ;;
             *)
-                __koi_spec_error "$__koi_buffer" "__addarg: unknown declaration parameter: $1"
+                koi::internal::spec_error "$__koi_buffer" "koi::add_arg: unknown declaration parameter: $1"
                 return 2
                 ;;
         esac
 
         if [[ ${__koi_seen[$__koi_parameter]+present} ]]; then
-            __koi_spec_error "$__koi_buffer" "__addarg: repeated or conflicting parameter: $__koi_parameter"
+            koi::internal::spec_error "$__koi_buffer" "koi::add_arg: repeated or conflicting parameter: $__koi_parameter"
             return 2
         fi
 
@@ -247,7 +246,7 @@ __addarg() {
                 ;;
             *)
                 if (( $# < 2 )); then
-                    __koi_spec_error "$__koi_buffer" "__addarg: missing value for $1"
+                    koi::internal::spec_error "$__koi_buffer" "koi::add_arg: missing value for $1"
                     return 2
                 fi
                 __koi_value=$2
@@ -259,7 +258,7 @@ __addarg() {
         __koi_values[$__koi_parameter]=$__koi_value
     done
 
-    __koi_validate_arg_spec "$__koi_buffer" "$__koi_dest" __koi_values __koi_seen || return $?
+    koi::internal::validate_arg_spec "$__koi_buffer" "$__koi_dest" __koi_values __koi_seen || return $?
 
     __koi_args+=("$__koi_dest")
     __koi_arg_shorts[$__koi_dest]=${__koi_values[short]}
@@ -280,22 +279,22 @@ __addarg() {
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
 # return status and is used for exit/return control flow. Only supported from
-# inside application functions, not top-level/root context (use __koirun
+# inside application functions, not top-level/root context (use koi::run
 # in that scenario).
-# Usage: __parseargs [--koi-error-on-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
-# Internal usage: __parseargs --koi-inspect spec || return "$koi_status"
+# Usage: koi::parse [--koi-error-on-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
+# Internal usage: koi::parse --koi-inspect spec || return "$koi_status"
 #   --koi-error-on-duplicates  reject repeated occurrences of a destination
 #   --koi-inspect MODE         run the registered command handler functions
 #                              in inspect mode (available modes: 'spec' -
 #                              internal-only spec collection)
 #   $@                         the script arguments to parse
 # Returns 0 to continue, 1 to stop after help/dispatch, or 2 on error
-__parseargs() {
+koi::parse() {
     local __koi_buffer __koi_path='' __koi_result __koi_collect_matches=0
     koi_status=2
-    __koi_select_registration_buffer __koi_buffer || return 2
+    koi::internal::select_registration_buffer __koi_buffer || return 2
     if [[ $__koi_buffer == __koi_root ]]; then
-        __koi_error '__parseargs: must be called inside a function, use __koirun at top level'
+        koi::internal::error 'koi::parse: must be called inside a function, use koi::run at top level'
         return 2
     fi
     local -a __koi_parsed_commands=()
@@ -313,9 +312,9 @@ __parseargs() {
     local -i __koi_parsed_spec_valid=1
 
     # move registration into parser-local storage before validation or nested dispatch
-    __koi_take_spec "$__koi_buffer" __koi_parsed
+    koi::internal::take_spec "$__koi_buffer" __koi_parsed
     # attach script settings and default help metadata to the function spec
-    __koi_prepare_spec __koi_parsed 0
+    koi::internal::prepare_spec __koi_parsed 0
     # match the requested invocation so helpers and recursion cannot capture its collector
     if [[ ${FUNCNAME[1]-} == "${__koi_inspection_handler-}" &&
           ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
@@ -336,7 +335,7 @@ __parseargs() {
     # parse the consumed spec and capture any selected child command
     local __koi_selected_handler='' __koi_selected_command=''
     local -a __koi_remaining=()
-    if __koi_parse_spec __koi_parsed 0 "$__koi_path" '' 0 \
+    if koi::internal::parse_spec __koi_parsed 0 "$__koi_path" '' 0 \
         __koi_selected_handler __koi_selected_command __koi_remaining "$@"; then
         __koi_result=0
     else
@@ -352,7 +351,7 @@ __parseargs() {
     local __koi_selected_verbose=${__koi_parsed_meta[verbose]}
 
     # release declaration metadata before invoking the selected child
-    __koi_clear_spec __koi_parsed
+    koi::internal::clear_spec __koi_parsed
     if (( __koi_result == 3 )); then
         local __koi_route_description=$__koi_selected_description
         local __koi_route_help=$__koi_selected_help __koi_route_verbose=$__koi_selected_verbose
@@ -380,7 +379,7 @@ __parseargs() {
 
 # Consume root registration and route once per library initialization.
 # Expected to be called once per script, repeated calls will error.
-# Usage: __koirun [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
+# Usage: koi::run [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
 #   --koi-zero-argument-message MESSAGE   error text override when no command is given
 #                                         (default is help menu)
 #   --koi-enable-help-on-unknown-commands allow unknown commands with standalone help
@@ -393,9 +392,9 @@ __parseargs() {
 #   $@                                    root options, positionals, or command and
 #                                         child arguments
 # Returns the handler's status, 0 for help/terminal parsing, or 2 on error
-__koirun() {
+koi::run() {
     if (( __koi_root_used )); then
-        __koi_run_error '__koirun: call only once per script, __koirun has already been called'
+        koi::internal::run_error 'koi::run: call only once per script, koi::run has already been called'
         return 2
     fi
     __koi_root_used=1
@@ -412,7 +411,7 @@ __koirun() {
     local -A __koi_parsed_arg_display_names=()
     local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
-    __koi_take_spec __koi_root __koi_parsed
+    koi::internal::take_spec __koi_root __koi_parsed
     if (( ! __koi_parsed_spec_valid )); then
         return 2
     fi
@@ -420,7 +419,7 @@ __koirun() {
     local __koi_run_help=1 __koi_run_verbose=0 __koi_run_hints=0 __koi_collect_matches=0
     local -A __koi_run_seen=()
     # accept a root collector only at the runner invocation it explicitly targets
-    if [[ ${__koi_inspection_handler-} == __koirun &&
+    if [[ ${__koi_inspection_handler-} == koi::run &&
           ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
         __koi_collect_matches=1
     fi
@@ -431,7 +430,7 @@ __koirun() {
         case $1 in
             --koi-disable-help-subcommand|--koi-enable-verbose-help|--koi-enable-help-hints)
                 if [[ ${__koi_run_seen[$1]+present} ]]; then
-                    __koi_run_error "repeated $1"
+                    koi::internal::run_error "repeated $1"
                     return 2
                 fi
                 __koi_run_seen[$1]=1
@@ -450,7 +449,7 @@ __koirun() {
                 ;;
             --koi-zero-argument-message)
                 if (( __koi_run_message_set || $# < 2 )) || [[ -z $2 ]]; then
-                    __koi_run_error 'invalid or repeated --koi-zero-argument-message'
+                    koi::internal::run_error 'invalid or repeated --koi-zero-argument-message'
                     return 2
                 fi
                 __koi_run_message=$2
@@ -459,7 +458,7 @@ __koirun() {
                 ;;
             --koi-enable-help-on-unknown-commands)
                 if (( __koi_run_unknown_help )); then
-                    __koi_run_error 'repeated --koi-enable-help-on-unknown-commands'
+                    koi::internal::run_error 'repeated --koi-enable-help-on-unknown-commands'
                     return 2
                 fi
                 __koi_run_unknown_help=1
@@ -472,17 +471,17 @@ __koirun() {
     done
 
     if (( __koi_run_verbose && ! __koi_run_help )); then
-        __koi_run_error '--koi-enable-verbose-help requires the built-in help subcommand'
+        koi::internal::run_error '--koi-enable-verbose-help requires the built-in help subcommand'
         return 2
     fi
-    __koi_prepare_spec __koi_parsed 1
+    koi::internal::prepare_spec __koi_parsed 1
     __koi_parsed_meta[builtin]=$__koi_run_help
     __koi_parsed_meta[verbose]=$__koi_run_verbose
     __koi_parsed_meta[hints]=$__koi_run_hints
     __koi_parsed_meta[runner]=1
 
     # parse root options and prepare command dispatch
-    if __koi_parse_spec __koi_parsed 1 '' "$__koi_run_message" "$__koi_run_unknown_help" \
+    if koi::internal::parse_spec __koi_parsed 1 '' "$__koi_run_message" "$__koi_run_unknown_help" \
         __koi_selected_handler __koi_selected_command __koi_remaining "$@"; then
         __koi_result=0
     else
@@ -496,7 +495,7 @@ __koirun() {
     fi
 
     # discard root metadata and translate help into a successful runner return
-    __koi_clear_spec __koi_parsed
+    koi::internal::clear_spec __koi_parsed
     if (( __koi_result != 3 )); then
         if (( __koi_result == 1 )); then
             return 0
@@ -516,12 +515,12 @@ __koirun() {
 # ------------------ INTERNAL ------------------
 
 # Complete consumed metadata with script settings and direct-call defaults
-# Usage: __koi_prepare_spec PREFIX ROOT
+# Usage: koi::internal::prepare_spec PREFIX ROOT
 #   PREFIX  consumed spec prefix
 #   ROOT    1 for script-scope registration, otherwise 0
 # ShellCheck cannot infer associative keys through this nameref
 # shellcheck disable=SC2154
-__koi_prepare_spec() {
+koi::internal::prepare_spec() {
     local -n __koi_prepare_meta="${1}_meta"
     __koi_prepare_meta[name]=${__koi_config[name]:-${0##*/}}
     __koi_prepare_meta[help-width]=${__koi_config[help-width]:-100}
@@ -538,11 +537,11 @@ __koi_prepare_spec() {
 
 # Wrap description text, preserving explicit line breaks and unbroken words. Uses
 # configured help-width, prints literal values without interpreting escapes.
-# Usage: __koi_wrap TEXT FIRST_PREFIX CONTINUATION_PREFIX
+# Usage: koi::internal::wrap TEXT FIRST_PREFIX CONTINUATION_PREFIX
 #   TEXT                 description to print, split on spaces and tabs for wrapping
 #   FIRST_PREFIX         prefix for the first output line
 #   CONTINUATION_PREFIX  indentation for subsequent lines
-__koi_wrap() {
+koi::internal::wrap() {
     local __koi_wrap_text=$1 __koi_wrap_prefix=$2 __koi_wrap_indent=$3
     local __koi_wrap_line __koi_wrap_word __koi_wrap_output
     local __koi_wrap_width=${__koi_config[help-width]:-100}
@@ -569,20 +568,20 @@ __koi_wrap() {
 }
 
 # Render a collected context, then inspect its application children in order
-# Usage: __koi_walk_spec PREFIX
+# Usage: koi::internal::walk_spec PREFIX
 #   PREFIX  consumed spec containing effective metadata and ordered children
 # Returns 2 if a descendant cannot be inspected
-__koi_walk_spec() {
+koi::internal::walk_spec() {
     local __koi_tree_prefix=$1
     local -n __koi_tree_commands="${__koi_tree_prefix}_commands"
     local -n __koi_tree_handlers="${__koi_tree_prefix}_handlers"
     local -n __koi_tree_descriptions="${__koi_tree_prefix}_descriptions"
     local -n __koi_tree_meta="${__koi_tree_prefix}_meta"
-    __koi_print_help "$__koi_tree_prefix" "${__koi_tree_meta[runner]}" "${__koi_tree_meta[path]}"
+    koi::internal::print_help "$__koi_tree_prefix" "${__koi_tree_meta[runner]}" "${__koi_tree_meta[path]}"
     local __koi_route_help=${__koi_tree_meta[builtin]} __koi_route_verbose=${__koi_tree_meta[verbose]}
     local __koi_tree_child
     for __koi_tree_child in "${__koi_tree_commands[@]}"; do
-        __koi_visit_command "${__koi_tree_handlers[$__koi_tree_child]}" \
+        koi::internal::visit_command "${__koi_tree_handlers[$__koi_tree_child]}" \
             "${__koi_tree_meta[path]:+${__koi_tree_meta[path]} }$__koi_tree_child" \
             "${__koi_tree_descriptions[$__koi_tree_child]}" || return 2
     done
@@ -590,17 +589,17 @@ __koi_walk_spec() {
 }
 
 # Inspect one routed handler into invocation-local arrays before descending
-# Usage: __koi_visit_command HANDLER PATH DESCRIPTION
+# Usage: koi::internal::visit_command HANDLER PATH DESCRIPTION
 #   HANDLER      registered function to invoke once with --koi-inspect spec
 #   PATH         complete CLI command path
 #   DESCRIPTION  selected alias description
 # Returns 2 on active-ancestry recursion, handler failure, or missing collection
-__koi_visit_command() {
+koi::internal::visit_command() {
     local __koi_visit_handler=$1 __koi_visit_path=$2 __koi_visit_description=$3
     local __koi_visit_ancestor
     for __koi_visit_ancestor in "${__koi_walk_ancestors[@]}"; do
         if [[ $__koi_visit_ancestor == "$__koi_visit_handler" ]]; then
-            __koi_run_error "recursive inspection at '$__koi_visit_path' (handler '$__koi_visit_handler')"
+            koi::internal::run_error "recursive inspection at '$__koi_visit_path' (handler '$__koi_visit_handler')"
             return 2
         fi
     done
@@ -626,24 +625,24 @@ __koi_visit_command() {
     local __koi_route_depth=$__koi_inspection_depth
     if "$__koi_visit_handler" --koi-inspect spec; then
         if (( ! __koi_inspection_received )); then
-            __koi_clear_spec __koi_pending
-            __koi_run_error "inspection at '$__koi_visit_path' did not reach __parseargs"
+            koi::internal::clear_spec __koi_pending
+            koi::internal::run_error "inspection at '$__koi_visit_path' did not reach koi::parse"
             return 2
         fi
     else
-        __koi_clear_spec __koi_pending
-        __koi_run_error "inspection failed at '$__koi_visit_path'"
+        koi::internal::clear_spec __koi_pending
+        koi::internal::run_error "inspection failed at '$__koi_visit_path'"
         return 2
     fi
     printf '\n'
-    __koi_walk_spec __koi_visit_spec
+    koi::internal::walk_spec __koi_visit_spec
 }
 
 # Select registration storage from the public API's application caller
-# Usage: __koi_select_registration_buffer OUTPUT_VAR
+# Usage: koi::internal::select_registration_buffer OUTPUT_VAR
 #   OUTPUT_VAR  receives the root or pending buffer prefix
 # Returns 2 if root registration has already been consumed
-__koi_select_registration_buffer() {
+koi::internal::select_registration_buffer() {
     local -n __koi_buffer_output=$1
     local __koi_frame
     __koi_buffer_output=__koi_root
@@ -666,16 +665,16 @@ __koi_select_registration_buffer() {
     done
 
     if [[ $__koi_buffer_output == __koi_root ]] && (( __koi_root_used )); then
-        __koi_error 'root registration already consumed'
+        koi::internal::error 'root registration already consumed'
         return 2
     fi
     return 0
 }
 
 # Empty a spec and restore its registration validity
-# Usage: __koi_clear_spec PREFIX
+# Usage: koi::internal::clear_spec PREFIX
 #   PREFIX  prefix of the spec's arrays and validity scalar
-__koi_clear_spec() {
+koi::internal::clear_spec() {
     local __koi_clear_field
     for __koi_clear_field in "${__koi_spec_fields[@]}"; do
         local -n __koi_clear_array="${1}_${__koi_clear_field}"
@@ -686,11 +685,11 @@ __koi_clear_spec() {
 }
 
 # Copy a spec into already-declared typed storage without interpreting values
-# Usage: __koi_copy_spec SOURCE_PREFIX TARGET_PREFIX
+# Usage: koi::internal::copy_spec SOURCE_PREFIX TARGET_PREFIX
 #   SOURCE_PREFIX  spec to read
 #   TARGET_PREFIX  destination arrays and validity scalar; previous contents are cleared
-__koi_copy_spec() {
-    __koi_clear_spec "$2"
+koi::internal::copy_spec() {
+    koi::internal::clear_spec "$2"
     local __koi_take_field __koi_take_key
 
     # copy fields by key to preserve array order and literal metadata values
@@ -707,16 +706,16 @@ __koi_copy_spec() {
 }
 
 # Move registration into already-declared parser-local storage
-# Usage: __koi_take_spec SOURCE_PREFIX TARGET_PREFIX
+# Usage: koi::internal::take_spec SOURCE_PREFIX TARGET_PREFIX
 #   SOURCE_PREFIX  registration buffer to consume
 #   TARGET_PREFIX  typed storage receiving all metadata
-__koi_take_spec() {
-    __koi_copy_spec "$1" "$2"
-    __koi_clear_spec "$1"
+koi::internal::take_spec() {
+    koi::internal::copy_spec "$1" "$2"
+    koi::internal::clear_spec "$1"
 }
 
 # Parse a consumed spec and prepare dispatch without invoking business logic
-# Usage: __koi_parse_spec PREFIX ROOT PATH MESSAGE UNKNOWN_HELP HANDLER_VAR COMMAND_VAR REMAINING_ARRAY "$@"
+# Usage: koi::internal::parse_spec PREFIX ROOT PATH MESSAGE UNKNOWN_HELP HANDLER_VAR COMMAND_VAR REMAINING_ARRAY "$@"
 #   PREFIX           parser-local spec prefix
 #   ROOT             1 for runner help/routing behavior, otherwise 0
 #   PATH             selected CLI path, or empty for direct calls
@@ -727,7 +726,7 @@ __koi_take_spec() {
 #   REMAINING_ARRAY  receives exact arguments following the child name
 #   $@               options and optional child command to parse
 # Returns 0 to continue, 1 for help, 2 on error, or 3 for prepared dispatch
-__koi_parse_spec() {
+koi::internal::parse_spec() {
     local __koi_engine_prefix=$1 __koi_engine_root=$2 __koi_engine_path=$3
     local __koi_engine_message=$4 __koi_engine_unknown_help=$5
     local -n __koi_engine_handler=$6 __koi_engine_command=$7 __koi_engine_remaining=$8
@@ -747,32 +746,32 @@ __koi_parse_spec() {
     fi
 
     # validate the completed layout and resolve help availability before parsing
-    __koi_finalize_spec "$__koi_engine_prefix" || return 2
+    koi::internal::finalize_spec "$__koi_engine_prefix" || return 2
     local __koi_engine_command_root=$((__koi_engine_root && ! ${__koi_engine_meta[positionals]}))
 
     if (( __koi_engine_meta[builtin] )) && [[ ${__koi_handlers[help]+present} ]]; then
-        __koi_run_error "command 'help' conflicts with built-in help, use --koi-disable-help-subcommand"
+        koi::internal::run_error "command 'help' conflicts with built-in help, use --koi-disable-help-subcommand"
         return 2
     fi
 
     # reject missing registered handlers before help or command selection
     for __koi_engine_child in "${__koi_commands[@]}"; do
         if ! declare -F -- "${__koi_handlers[$__koi_engine_child]}" >/dev/null; then
-            __koi_run_error "missing handler '${__koi_handlers[$__koi_engine_child]}' for command '$__koi_engine_child'"
+            koi::internal::run_error "missing handler '${__koi_handlers[$__koi_engine_child]}' for command '$__koi_engine_child'"
             return 2
         fi
     done
 
     if [[ ${1-} == --koi-inspect ]]; then
         if (( $# != 2 )) || [[ ${2-} != spec ]]; then
-            __koi_run_error 'invalid inspection request: expected --koi-inspect spec'
+            koi::internal::run_error 'invalid inspection request: expected --koi-inspect spec'
             return 2
         fi
         if (( ! ${__koi_collect_matches:-0} )) || [[ -z ${__koi_inspection_sink-} ]]; then
-            __koi_run_error 'standalone inspection is not supported, an internal collector is required'
+            koi::internal::run_error 'standalone inspection is not supported, an internal collector is required'
             return 2
         fi
-        __koi_copy_spec "$__koi_engine_prefix" "$__koi_inspection_sink"
+        koi::internal::copy_spec "$__koi_engine_prefix" "$__koi_inspection_sink"
         __koi_inspection_received=1
         return 1
     fi
@@ -783,7 +782,7 @@ __koi_parse_spec() {
     local -A __koi_parse_values=() __koi_parse_seen=()
 
     # pass variable names so the scanner can fill these through namerefs
-    if __koi_scan_args "$__koi_engine_prefix" __koi_parse_values __koi_parse_seen __koi_parse_error __koi_engine_tail "$__koi_engine_command_root" "$@"; then
+    if koi::internal::scan_args "$__koi_engine_prefix" __koi_parse_values __koi_parse_seen __koi_parse_error __koi_engine_tail "$__koi_engine_command_root" "$@"; then
         __koi_parse_result=0
     else
         __koi_parse_result=$?
@@ -791,13 +790,13 @@ __koi_parse_spec() {
 
     # trigger the caller's guard while returning success from its function
     if (( __koi_parse_result == 1 )); then
-        __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+        koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
         return 1
     fi
 
     # report input errors only after giving help a chance to take precedence
     if [[ -n $__koi_parse_error ]]; then
-        __koi_error "__parseargs: $__koi_parse_error"
+        koi::internal::error "koi::parse: $__koi_parse_error"
         return 2
     fi
 
@@ -808,30 +807,30 @@ __koi_parse_spec() {
         if [[ $__koi_engine_command == help ]] && (( __koi_engine_meta[builtin] )); then
             case ${#__koi_engine_remaining[@]} in
                 0)
-                    __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+                    koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
                     ;;
                 1)
                     case ${__koi_engine_remaining[0]} in
                         -h|--help)
-                            __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+                            koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
                             ;;
                         --verbose)
                             if (( ! __koi_engine_root || ! __koi_engine_meta[verbose] )); then
-                                __koi_error "__parseargs: unsupported positional argument: '${__koi_engine_remaining[0]}'"
+                                koi::internal::error "koi::parse: unsupported positional argument: '${__koi_engine_remaining[0]}'"
                                 return 2
                             fi
                             __koi_engine_meta[hints]=0
                             local -a __koi_walk_ancestors=()
-                            __koi_walk_spec "$__koi_engine_prefix" || return 2
+                            koi::internal::walk_spec "$__koi_engine_prefix" || return 2
                             ;;
                         *)
-                            __koi_error "__parseargs: unsupported positional argument: '${__koi_engine_remaining[0]}'"
+                            koi::internal::error "koi::parse: unsupported positional argument: '${__koi_engine_remaining[0]}'"
                             return 2
                             ;;
                     esac
                     ;;
                 *)
-                    __koi_run_error 'unsupported help arguments'
+                    koi::internal::run_error 'unsupported help arguments'
                     return 2
                     ;;
             esac
@@ -847,24 +846,24 @@ __koi_parse_spec() {
                             break
                             ;;
                         -h|--help)
-                            __koi_print_help "$__koi_engine_prefix" 1 "$__koi_engine_path"
+                            koi::internal::print_help "$__koi_engine_prefix" 1 "$__koi_engine_path"
                             return 1
                             ;;
                     esac
                 done
             fi
-            __koi_run_error "unknown command '$__koi_engine_command'"
+            koi::internal::run_error "unknown command '$__koi_engine_command'"
             return 2
         fi
         __koi_engine_handler=${__koi_handlers[$__koi_engine_command]}
     elif (( __koi_engine_command_root || ${#__koi_commands[@]} )); then
         # honor the configured error message when no root command was supplied
         if (( __koi_engine_root )) && [[ -n $__koi_engine_message ]]; then
-            __koi_run_error "$__koi_engine_message"
+            koi::internal::run_error "$__koi_engine_message"
             return 2
         fi
 
-        __koi_print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+        koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
         return 1
     fi
 
@@ -872,7 +871,7 @@ __koi_parse_spec() {
     for __koi_parse_dest in "${__koi_args[@]}"; do
         # check if required but was not included
         if [[ ${__koi_arg_requireds[$__koi_parse_dest]} == 1 && ! ${__koi_parse_seen[$__koi_parse_dest]+present} ]]; then
-            __koi_error "__parseargs: missing required argument: '$__koi_parse_dest'"
+            koi::internal::error "koi::parse: missing required argument: '$__koi_parse_dest'"
             return 2
         fi
 
@@ -890,7 +889,7 @@ __koi_parse_spec() {
             __koi_parse_attributes=${__koi_parse_declaration#declare -}
             __koi_parse_attributes=${__koi_parse_attributes%% *}
             if [[ $__koi_parse_attributes != - && $__koi_parse_attributes != x ]]; then
-                __koi_error "__parseargs: incompatible destination: '$__koi_parse_dest'"
+                koi::internal::error "koi::parse: incompatible destination: '$__koi_parse_dest'"
                 return 2
             fi
         fi
@@ -900,7 +899,7 @@ __koi_parse_spec() {
     for __koi_parse_dest in "${__koi_args[@]}"; do
         if ! printf -v "$__koi_parse_dest" '%s' "${__koi_parse_values[$__koi_parse_dest]}"; then
             # in the rare case that we couldn't assign the destination's value
-            __koi_error "__parseargs: cannot assign destination: '$__koi_parse_dest'"
+            koi::internal::error "koi::parse: cannot assign destination: '$__koi_parse_dest'"
             return 2
         fi
     done
@@ -913,32 +912,32 @@ __koi_parse_spec() {
 }
 
 # Print formatted error to stderr
-# Usage: __koi_error $*
+# Usage: koi::internal::error $*
 #   $*  the text to print
-__koi_error() {
+koi::internal::error() {
     printf 'koi: %s\n' "$*" >&2
     return 2
 }
 
 # Mark the current spec invalid and report a registration error immediately
-# Usage: __koi_spec_error PREFIX "$@"
+# Usage: koi::internal::spec_error PREFIX "$@"
 #   PREFIX  owning registration buffer prefix
 #   $@      diagnostic text
 # Returns 2
-__koi_spec_error() {
+koi::internal::spec_error() {
     local -n __koi_error_valid="${1}_spec_valid"
     shift
     __koi_error_valid=0
-    __koi_error "$@"
+    koi::internal::error "$@"
     return 2
 }
 
 # Validate an argument destination without modifying the registry
-# Usage: __koi_validate_arg_destination PREFIX DEST
+# Usage: koi::internal::validate_arg_destination PREFIX DEST
 #   PREFIX  registration buffer prefix
 #   DEST    the destination identifier to validate
 # Returns 2 and marks the spec invalid on failure
-__koi_validate_arg_destination() {
+koi::internal::validate_arg_destination() {
     local __koi_validation_prefix=$1
     local __koi_validation_dest=$2 __koi_reserved
     local -a __koi_reserved_names=(
@@ -950,13 +949,13 @@ __koi_validate_arg_destination() {
     )
 
     if [[ ! $__koi_validation_dest =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ || $__koi_validation_dest == __koi_* ]]; then
-        __koi_spec_error "$__koi_validation_prefix" "__addarg: invalid destination: '$__koi_validation_dest'"
+        koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid destination: '$__koi_validation_dest'"
         return 2
     fi
 
     for __koi_reserved in "${__koi_reserved_names[@]}"; do
         if [[ $__koi_validation_dest == "$__koi_reserved" ]]; then
-            __koi_spec_error "$__koi_validation_prefix" "__addarg: reserved destination: '$__koi_validation_dest'"
+            koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: reserved destination: '$__koi_validation_dest'"
             return 2
         fi
     done
@@ -964,13 +963,13 @@ __koi_validate_arg_destination() {
 }
 
 # Validate completed argument metadata and check for registration collisions
-# Usage: __koi_validate_arg_spec PREFIX DEST VALUES_ARRAY SEEN_ARRAY
+# Usage: koi::internal::validate_arg_spec PREFIX DEST VALUES_ARRAY SEEN_ARRAY
 #   PREFIX        registration buffer prefix
 #   DEST          the validated destination identifier
 #   VALUES_ARRAY  the name of the associative declaration-value array
 #   SEEN_ARRAY    the name of the associative parameter-presence array
 # Returns 2 and marks the spec invalid on failure, does not modify metadata
-__koi_validate_arg_spec() {
+koi::internal::validate_arg_spec() {
     local __koi_validation_prefix=$1
     local -n __koi_args="${__koi_validation_prefix}_args"
     local -n __koi_arg_shorts="${__koi_validation_prefix}_arg_shorts"
@@ -980,40 +979,40 @@ __koi_validate_arg_spec() {
     local -n __koi_validation_values=$3 __koi_validation_seen=$4
 
     if [[ -z ${__koi_validation_values[kind]} ]]; then
-        __koi_spec_error "$__koi_validation_prefix" '__addarg: exactly one of --flag, --option, or --positional is required'
+        koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: exactly one of --flag, --option, or --positional is required'
         return 2
     fi
 
     if [[ -z ${__koi_validation_values[description]} ]]; then
-        __koi_spec_error "$__koi_validation_prefix" '__addarg: nonempty description required'
+        koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: nonempty description required'
         return 2
     fi
 
     if [[ ${__koi_validation_values[kind]} == positional ]]; then
         if [[ ${__koi_validation_seen[short]+present} || ${__koi_validation_seen[long]+present} ]]; then
-            __koi_spec_error "$__koi_validation_prefix" '__addarg: positionals cannot have short or long spellings'
+            koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: positionals cannot have short or long spellings'
             return 2
         fi
     elif [[ ! ${__koi_validation_seen[short]+present} && ! ${__koi_validation_seen[long]+present} ]]; then
-        __koi_spec_error "$__koi_validation_prefix" '__addarg: short or long spelling required'
+        koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: short or long spelling required'
         return 2
     fi
 
     if [[ ${__koi_validation_seen[short]+present} ]]; then
         if [[ ! ${__koi_validation_values[short]} =~ ^[a-zA-Z]$ || ${__koi_validation_values[short]} == h ]]; then
-            __koi_spec_error "$__koi_validation_prefix" "__addarg: invalid or reserved short spelling: '${__koi_validation_values[short]}'"
+            koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid or reserved short spelling: '${__koi_validation_values[short]}'"
             return 2
         fi
     fi
 
     if [[ ${__koi_validation_seen[long]+present} ]]; then
         if [[ ! ${__koi_validation_values[long]} =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]]; then
-            __koi_spec_error "$__koi_validation_prefix" "__addarg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
+            koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
             return 2
         fi
         for __koi_validation_reserved in "${__koi_reserved_longs[@]}"; do
             if [[ ${__koi_validation_values[long]} == "$__koi_validation_reserved" ]]; then
-                __koi_spec_error "$__koi_validation_prefix" "__addarg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
+                koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: invalid or reserved long spelling: '${__koi_validation_values[long]}'"
                 return 2
             fi
         done
@@ -1021,30 +1020,30 @@ __koi_validate_arg_spec() {
 
     if [[ ${__koi_validation_seen[display_name]+present} ]]; then
         if [[ ${__koi_validation_values[kind]} == flag || -z ${__koi_validation_values[display_name]} ]]; then
-            __koi_spec_error "$__koi_validation_prefix" '__addarg: nonempty display name requires an option or positional'
+            koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: nonempty display name requires an option or positional'
             return 2
         fi
     fi
 
     if [[ ${__koi_validation_seen[default]+present} ]]; then
         if [[ ${__koi_validation_values[kind]} == flag || ${__koi_validation_values[required]} == 1 ]]; then
-            __koi_spec_error "$__koi_validation_prefix" '__addarg: defaults require an optional option or positional'
+            koi::internal::spec_error "$__koi_validation_prefix" 'koi::add_arg: defaults require an optional option or positional'
             return 2
         fi
     fi
 
     if [[ ${__koi_arg_kinds[$__koi_validation_dest]+present} ]]; then
-        __koi_spec_error "$__koi_validation_prefix" "__addarg: duplicate destination: '$__koi_validation_dest'"
+        koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: duplicate destination: '$__koi_validation_dest'"
         return 2
     fi
 
     for __koi_validation_existing in "${__koi_args[@]}"; do
         if [[ -n ${__koi_validation_values[short]} && ${__koi_validation_values[short]} == "${__koi_arg_shorts[$__koi_validation_existing]}" ]]; then
-            __koi_spec_error "$__koi_validation_prefix" "__addarg: duplicate short spelling: '${__koi_validation_values[short]}'"
+            koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: duplicate short spelling: '${__koi_validation_values[short]}'"
             return 2
         fi
         if [[ -n ${__koi_validation_values[long]} && ${__koi_validation_values[long]} == "${__koi_arg_longs[$__koi_validation_existing]}" ]]; then
-            __koi_spec_error "$__koi_validation_prefix" "__addarg: duplicate long spelling: '${__koi_validation_values[long]}'"
+            koi::internal::spec_error "$__koi_validation_prefix" "koi::add_arg: duplicate long spelling: '${__koi_validation_values[long]}'"
             return 2
         fi
     done
@@ -1052,10 +1051,10 @@ __koi_validate_arg_spec() {
 }
 
 # Validate positional layout and derive local help availability
-# Usage: __koi_finalize_spec PREFIX
+# Usage: koi::internal::finalize_spec PREFIX
 #   PREFIX  consumed spec prefix
 # Returns 2 for invalid layouts, including during help or inspection
-__koi_finalize_spec() {
+koi::internal::finalize_spec() {
     local __koi_layout_prefix=$1 __koi_layout_dest __koi_layout_optional=0
     local -n __koi_layout_args="${__koi_layout_prefix}_args"
     local -n __koi_layout_kinds="${__koi_layout_prefix}_arg_kinds"
@@ -1074,7 +1073,7 @@ __koi_finalize_spec() {
         __koi_layout_meta[positionals]=$((__koi_layout_meta[positionals] + 1))
         if [[ ${__koi_layout_requireds[$__koi_layout_dest]} == 1 ]]; then
             if (( __koi_layout_optional )); then
-                __koi_error '__parseargs: required positionals must precede optional positionals'
+                koi::internal::error 'koi::parse: required positionals must precede optional positionals'
                 return 2
             fi
         else
@@ -1085,7 +1084,7 @@ __koi_finalize_spec() {
     # reserve bare tokens for child selection in contexts with application commands
     if (( __koi_layout_meta[positionals] )); then
         if (( ${#__koi_layout_commands[@]} )); then
-            __koi_error '__parseargs: positionals cannot coexist with application child commands'
+            koi::internal::error 'koi::parse: positionals cannot coexist with application child commands'
             return 2
         fi
     fi
@@ -1100,7 +1099,7 @@ __koi_finalize_spec() {
 }
 
 # Scan script tokens into temporary values while allowing help to override errors
-# Usage: __koi_scan_args PREFIX VALUES_ARRAY SEEN_ARRAY ERROR_VAR TAIL_ARRAY ROOT "$@"
+# Usage: koi::internal::scan_args PREFIX VALUES_ARRAY SEEN_ARRAY ERROR_VAR TAIL_ARRAY ROOT "$@"
 #   PREFIX        parser-local spec prefix
 #   VALUES_ARRAY  associative output array of supplied values
 #   SEEN_ARRAY    associative output array tracking explicit presence
@@ -1111,7 +1110,7 @@ __koi_finalize_spec() {
 # Returns 1 for help or 0 after scanning without assigning user destinations
 # namerefs point to associative arrays whose keys require string expansion
 # shellcheck disable=SC2004
-__koi_scan_args() {
+koi::internal::scan_args() {
     local __koi_scan_prefix=$1
     local -n __koi_commands="${__koi_scan_prefix}_commands"
     local -n __koi_args="${__koi_scan_prefix}_args"
@@ -1270,17 +1269,17 @@ __koi_scan_args() {
 }
 
 # Print a runner diagnostic with the invoking script's name
-# Usage: __koi_run_error "$@"
+# Usage: koi::internal::run_error "$@"
 #   $@  the diagnostic text
-__koi_run_error() {
+koi::internal::run_error() {
     printf '%s: %s\n' "${__koi_config[name]:-${0##*/}}" "$*" >&2
     return 2
 }
 
 # Print immediate children commands without entering their handlers
-# Usage: __koi_print_commands PREFIX
+# Usage: koi::internal::print_commands PREFIX
 #   PREFIX  parser-local spec prefix
-__koi_print_commands() {
+koi::internal::print_commands() {
     local __koi_command_prefix=$1
     local -n __koi_commands="${__koi_command_prefix}_commands"
     local -n __koi_descriptions="${__koi_command_prefix}_descriptions"
@@ -1305,16 +1304,16 @@ __koi_print_commands() {
             __koi_root_description=${__koi_descriptions[$__koi_root_command]}
         fi
         printf -v __koi_root_first '  %-*s  ' "$__koi_root_width" "$__koi_root_command"
-        __koi_wrap "$__koi_root_description" "$__koi_root_first" "$__koi_root_indent"
+        koi::internal::wrap "$__koi_root_description" "$__koi_root_first" "$__koi_root_indent"
     done
 }
 
 # Print help for a consumed spec and its immediate children
-# Usage: __koi_print_help PREFIX ROOT PATH
+# Usage: koi::internal::print_help PREFIX ROOT PATH
 #   PREFIX  parser-local spec prefix
 #   ROOT    1 for root command usage, otherwise 0
 #   PATH    CLI command path, or empty for direct calls
-__koi_print_help() {
+koi::internal::print_help() {
     local __koi_help_prefix=$1 __koi_help_root=$2 __koi_help_path=$3
     local -n __koi_commands="${__koi_help_prefix}_commands"
     local -n __koi_help_meta="${__koi_help_prefix}_meta"
@@ -1348,7 +1347,7 @@ __koi_print_help() {
     done
 
     if [[ -n ${__koi_help_meta[description]-} ]]; then
-        __koi_wrap "${__koi_help_meta[description]}" '' ''
+        koi::internal::wrap "${__koi_help_meta[description]}" '' ''
         printf '\n'
     fi
     printf 'Usage: %s' "${__koi_help_meta[name]}"
@@ -1415,7 +1414,7 @@ __koi_print_help() {
 
     printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
     if (( ${#__koi_commands[@]} || __koi_help_meta[builtin] )); then
-        __koi_print_commands "$__koi_help_prefix"
+        koi::internal::print_commands "$__koi_help_prefix"
         printf '\nOptions:\n'
     else
         printf '\n\nOptions:\n'
@@ -1439,7 +1438,7 @@ __koi_print_help() {
 
         local __koi_help_first
         printf -v __koi_help_first '  %-*s  ' "$__koi_help_width" "${__koi_help_labels[$__koi_help_index]}"
-        __koi_wrap "$__koi_help_description" "$__koi_help_first" "$__koi_help_indent"
+        koi::internal::wrap "$__koi_help_description" "$__koi_help_first" "$__koi_help_indent"
         __koi_help_index=$((__koi_help_index + 1))
     done
 
@@ -1463,12 +1462,12 @@ __koi_bash_minor_version=2
 __koi_bash_version="${__koi_bash_major_version}.${__koi_bash_minor_version}"
 
 if [ -z "${BASH_VERSION-}" ]; then
-    __koi_error "requires Bash >= $__koi_bash_version"
+    koi::internal::error "requires Bash >= $__koi_bash_version"
     return 2
 fi
 if (( BASH_VERSINFO[0] < __koi_bash_major_version ||
       (BASH_VERSINFO[0] == __koi_bash_major_version && BASH_VERSINFO[1] < __koi_bash_minor_version) )); then
-    __koi_error "requires Bash >= $__koi_bash_version"
+    koi::internal::error "requires Bash >= $__koi_bash_version"
     return 2
 fi
 

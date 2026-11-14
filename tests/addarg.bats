@@ -18,7 +18,7 @@ attempt_argument() {
     before=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
         __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names \
         __koi_pending_commands __koi_pending_handlers __koi_pending_descriptions)
-    __addarg "$@"
+    koi::add_arg "$@"
     result=$?
     after=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
         __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names \
@@ -41,11 +41,11 @@ assert_invalid() {
     run --separate-stderr attempt_argument "$@"
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [[ "$stderr" == 'koi: __addarg:'* ]]
+    [[ "$stderr" == 'koi: koi::add_arg:'* ]]
 }
 
 @test "long aliases register an optional scalar option" {
-    __addarg output_file --option --short o --long output-file --description 'Output path'
+    koi::add_arg output_file --option --short o --long output-file --description 'Output path'
     [ "$__koi_pending_spec_valid" -eq 1 ]
     [ "${__koi_pending_args[0]}" = output_file ]
     [ "${__koi_pending_arg_kinds[output_file]}" = option ]
@@ -57,7 +57,7 @@ assert_invalid() {
 }
 
 @test "short aliases register a required flag" {
-    __addarg verbose -f -s v -l verbose -d 'Print progress' -r
+    koi::add_arg verbose -f -s v -l verbose -d 'Print progress' -r
     [ "${__koi_pending_arg_kinds[verbose]}" = flag ]
     [ "${__koi_pending_arg_requireds[verbose]}" = 1 ]
     [ "${__koi_pending_arg_shorts[verbose]}" = v ]
@@ -66,43 +66,43 @@ assert_invalid() {
 }
 
 @test "short option and long flag selectors work" {
-    __addarg mode -o -l mode -d Mode
-    __addarg verbose --flag -s v -d Verbose
+    koi::add_arg mode -o -l mode -d Mode
+    koi::add_arg verbose --flag -s v -d Verbose
     [ "${__koi_pending_arg_kinds[mode]}" = option ]
     [ "${__koi_pending_arg_kinds[verbose]}" = flag ]
     [ "${__koi_pending_arg_requireds[verbose]}" = 0 ]
 }
 
 @test "short-only and long-only declarations do not infer other spellings" {
-    __addarg mode -o -s m -d Mode
-    __addarg verbose -f -l verbose -d Verbose
+    koi::add_arg mode -o -s m -d Mode
+    koi::add_arg verbose -f -l verbose -d Verbose
     [ "${__koi_pending_arg_longs[mode]}" = '' ]
     [ "${__koi_pending_arg_shorts[verbose]}" = '' ]
 }
 
 @test "mixed aliases and arbitrary declaration order are accepted" {
-    __addarg mode --description Mode -D safe --long mode -s m --option
+    koi::add_arg mode --description Mode -D safe --long mode -s m --option
     [ "${__koi_pending_arg_defaults[mode]}" = safe ]
     [ "${__koi_pending_arg_longs[mode]}" = mode ]
     [ "${__koi_pending_arg_shorts[mode]}" = m ]
 }
 
 @test "required option metadata is recorded" {
-    __addarg token -o -l token --required -d Token
+    koi::add_arg token -o -l token --required -d Token
     [ "${__koi_pending_arg_requireds[token]}" = 1 ]
 }
 
 @test "registration succeeds silently" {
-    run --separate-stderr __addarg mode -o -l mode -d Mode
+    run --separate-stderr koi::add_arg mode -o -l mode -d Mode
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     [ -z "$stderr" ]
 }
 
 @test "argument order and command registrations remain independent" {
-    __addcommand mode -f handler -d Command
-    __addarg mode -o -l mode -d Mode
-    __addarg verbose -f -s v -d Verbose
+    koi::add_command mode -f handler -d Command
+    koi::add_arg mode -o -l mode -d Mode
+    koi::add_arg verbose -f -s v -d Verbose
     [ "${__koi_pending_args[*]}" = 'mode verbose' ]
     [ "${__koi_pending_commands[*]}" = mode ]
     [ "${__koi_pending_handlers[mode]}" = handler ]
@@ -110,7 +110,7 @@ assert_invalid() {
 }
 
 @test "repeated sourcing preserves all argument metadata" {
-    __addarg mode -o -s m -l mode -d Mode -D safe
+    koi::add_arg mode -o -s m -l mode -d Mode -D safe
     local before after
     before=$(declare -p __koi_pending_args __koi_pending_arg_shorts __koi_pending_arg_longs __koi_pending_arg_kinds \
         __koi_pending_arg_descriptions __koi_pending_arg_requireds __koi_pending_arg_defaults __koi_pending_arg_display_names)
@@ -122,21 +122,21 @@ assert_invalid() {
 }
 
 @test "valid identifiers and mixed-case hyphenated and underscored long names work" {
-    __addarg _file2 -o -s H -l Output-file_2 -d File
+    koi::add_arg _file2 -o -s H -l Output-file_2 -d File
     [ "${__koi_pending_arg_longs[_file2]}" = Output-file_2 ]
     [ "${__koi_pending_arg_shorts[_file2]}" = H ]
 }
 
 @test "short and long spellings occupy separate case-sensitive namespaces" {
-    __addarg first -o -s m -l Mode -d First
-    __addarg second -f -s M -l m -d Second
-    __addarg third -o -l mode -d Third
+    koi::add_arg first -o -s m -l Mode -d First
+    koi::add_arg second -f -s M -l m -d Second
+    koi::add_arg third -o -l mode -d Third
     [ "${#__koi_pending_args[@]}" -eq 3 ]
 }
 
 @test "absent and explicitly empty defaults are distinct" {
-    __addarg first -o -l first -d First
-    __addarg second -o -l second -d Second --default ''
+    koi::add_arg first -o -l first -d First
+    koi::add_arg second -o -l second -d Second --default ''
     [[ ! -v __koi_pending_arg_defaults[first] ]]
     [[ -v __koi_pending_arg_defaults[second] ]]
     [ "${__koi_pending_arg_defaults[second]}" = '' ]
@@ -144,30 +144,30 @@ assert_invalid() {
 
 @test "metadata is stored literally without evaluating shell-looking text" {
     local text=$'  a\n"quoted" $value $(false) `false` \\ %s  '
-    __addarg mode -o -l mode -d "$text" -D "$text"
+    koi::add_arg mode -o -l mode -d "$text" -D "$text"
     [ "${__koi_pending_arg_descriptions[mode]}" = "$text" ]
     [ "${__koi_pending_arg_defaults[mode]}" = "$text" ]
 }
 
 @test "registration does not initialize unset destinations" {
     unset koi_test_unset_option koi_test_unset_flag
-    __addarg koi_test_unset_option -o -l mode -d Mode -D safe
-    __addarg koi_test_unset_flag -f -s v -d Verbose
+    koi::add_arg koi_test_unset_option -o -l mode -d Mode -D safe
+    koi::add_arg koi_test_unset_flag -f -s v -d Verbose
     [[ ! -v koi_test_unset_option && ! -v koi_test_unset_flag ]]
 }
 
 @test "registration leaves local and global destination values unchanged" {
     declare -g koi_test_global=original
     local koi_test_local=local_value
-    __addarg koi_test_global -o -l global -d Global -D replacement
-    __addarg koi_test_local -f -l local -d Local
+    koi::add_arg koi_test_global -o -l global -d Global -D replacement
+    koi::add_arg koi_test_local -f -l local -d Local
     [ "$koi_test_global" = original ]
     [ "$koi_test_local" = local_value ]
 }
 
 @test "readonly ordinary destinations can be declared without assignment" {
     local -r koi_test_readonly=original
-    __addarg koi_test_readonly -o -l readonly -d Readonly -D replacement
+    koi::add_arg koi_test_readonly -o -l readonly -d Readonly -D replacement
     [ "$koi_test_readonly" = original ]
 }
 
@@ -175,8 +175,8 @@ assert_invalid() {
     # shellcheck disable=SC2016
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY" || exit
-        __addarg mode -o -l mode -d Mode || exit
-        __addarg verbose -f -s v -d Verbose
+        koi::add_arg mode -o -l mode -d Mode || exit
+        koi::add_arg verbose -f -s v -d Verbose
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -291,12 +291,12 @@ assert_invalid() {
 }
 
 @test "destination and spelling collisions preserve existing registrations" {
-    __addcommand original -f handler -d Command
-    __addarg original -o -s m -l mode -d Original -D safe
+    koi::add_command original -f handler -d Command
+    koi::add_arg original -o -s m -l mode -d Original -D safe
     assert_invalid original -f -s v -l verbose -d Replacement
     assert_invalid other -f -s m -d Other
     assert_invalid other -o -l mode -d Other
-    __addarg other -f -s v -d Other
+    koi::add_arg other -f -s v -d Other
     [ "${__koi_pending_args[*]}" = 'original other' ]
 }
 
@@ -304,15 +304,15 @@ assert_invalid() {
     # shellcheck disable=SC2016
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addarg
+        koi::add_arg
         result=$?
         [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
-        __addcommand deploy -f handler -d Deploy || exit
+        koi::add_command deploy -f handler -d Deploy || exit
         [[ $__koi_root_spec_valid == 0 && ${__koi_root_commands[0]} == deploy ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: __addarg: destination required' ]
+    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
 }
 
 @test "execution continues without errexit while each declaration failure reports immediately" {
@@ -320,19 +320,19 @@ assert_invalid() {
     run --separate-stderr bash -c '
         set +e
         source "$KOI_LIBRARY" || exit
-        __addarg
+        koi::add_arg
         result=$?
         [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
-        __addarg mode -o -l mode -d Mode || exit
+        koi::add_arg mode -o -l mode -d Mode || exit
         [[ $__koi_root_spec_valid == 0 ]] || exit 1
-        __addarg mode -f -s m -d Duplicate
+        koi::add_arg mode -f -s m -d Duplicate
         result=$?
         [[ $result == 2 && $__koi_root_spec_valid == 0 ]] || exit 1
         printf "continued\n"
     '
     [ "$status" -eq 0 ]
     [ "$output" = continued ]
-    [ "$stderr" = $'koi: __addarg: destination required\nkoi: __addarg: duplicate destination: \'mode\'' ]
+    [ "$stderr" = $'koi: koi::add_arg: destination required\nkoi: koi::add_arg: duplicate destination: \'mode\'' ]
 }
 
 @test "conditional function calls under errexit still record registration failures" {
@@ -341,7 +341,7 @@ assert_invalid() {
         set -e
         source "$KOI_LIBRARY"
         register_spec() {
-            __addarg
+            koi::add_arg
             printf "continued\n"
         }
         if register_spec; then
@@ -352,7 +352,7 @@ assert_invalid() {
     '
     [ "$status" -eq 0 ]
     [ "$output" = continued ]
-    [ "$stderr" = 'koi: __addarg: destination required' ]
+    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
 }
 
 @test "long spelling reservations use the shared list" {
@@ -361,8 +361,8 @@ assert_invalid() {
 }
 
 @test "option display name supports short and long aliases" {
-    __addarg env -o -l environment -n env -d Environment
-    __addarg file -o -s F --display-name path -d File
+    koi::add_arg env -o -l environment -n env -d Environment
+    koi::add_arg file -o -s F --display-name path -d File
     [ "${__koi_pending_arg_display_names[env]}" = env ]
     [ "${__koi_pending_arg_display_names[file]}" = path ]
 }
@@ -387,7 +387,7 @@ assert_invalid() {
     # shellcheck disable=SC2016
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY" || exit
-        __addarg env -o -l environment -d Environment -n env || exit
+        koi::add_arg env -o -l environment -d Environment -n env || exit
         source "$KOI_LIBRARY" || exit
         [[ ${__koi_root_arg_display_names[env]} == env ]]
     '

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 source koi
 
-__koiconfig name cli
-__koiconfig description 'Back up project files'
-__addcommand archive -f archive -d 'Create a compressed archive'
+koi::config name cli
+koi::config description 'Back up project files'
+koi::add_command archive -f archive -d 'Create a compressed archive'
 
 archive() {
     local directory output
-    __addarg directory -p -r -d 'Directory to archive'
-    __addarg output -o -s o -l output -D backup.tar.gz -d 'Archive path'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg directory -p -r -d 'Directory to archive'
+    koi::add_arg output -o -s o -l output -D backup.tar.gz -d 'Archive path'
+    koi::parse "$@" || return "$koi_status"
 
     tar -czf "$output" -C "$directory" .
 }
 
-__koirun "$@"
+koi::run "$@"

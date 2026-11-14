@@ -1,17 +1,17 @@
 ---
-title: "__koirun"
+title: "koi::run"
 description: "Consume root registration and route via the command tree."
 layout: article
 ---
 
-`__koirun` parses the root arguments and dispatches the selected command to its handler. Call it at the end of your script, after root declarations and handler definitions. It closes the root [registration block](/docs/concepts/lifecycle).
+`koi::run` parses the root arguments and dispatches the selected command to its handler. Call it at the end of your script, after root declarations and handler definitions. It closes the root [registration block](/docs/concepts/lifecycle).
 
-Scripts that call a parsing function directly can use that function as their entrypoint without `__koirun`. See [calls and command routing](/docs/concepts/routing). Within a function, use [__parseargs](/docs/reference/parseargs) instead to parse arguments.
+Scripts that call a parsing function directly can use that function as their entrypoint without `koi::run`. See [calls and command routing](/docs/concepts/routing). Within a function, use [koi::parse](/docs/reference/parse) instead to parse arguments.
 
 ## Usage
 
 ```text usage
-__koirun [SETTINGS] "$@"
+koi::run [SETTINGS] "$@"
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ __koirun [SETTINGS] "$@"
 | `--koi-enable-help-hints` | Append hints for command help and verbose help to ordinary root help when those features are available. Off by default. |
 | `"$@"` | The application arguments, including root flags and options, the selected command, and its arguments. Roots without child commands can also accept positionals. |
 
-Supply settings before `"$@"`, in any order. Each setting can appear only once, and `--koi-enable-verbose-help` cannot be combined with `--koi-disable-help-subcommand`. These settings don't need declarations via `__addarg`. Configure the script's name, description, and help width with [__koiconfig](/docs/reference/koiconfig).
+Supply settings before `"$@"`, in any order. Each setting can appear only once, and `--koi-enable-verbose-help` cannot be combined with `--koi-disable-help-subcommand`. These settings don't need declarations via `koi::add_arg`. Configure the script's name, description, and help width with [koi::config](/docs/reference/config).
 
 ## Return
 
@@ -35,7 +35,7 @@ Supply settings before `"$@"`, in any order. Each setting can appear only once, 
 | `2` | Invalid settings, registration, or input. |
 | Handler's status | After dispatch, the runner returns the selected handler's status, including nonzero statuses. |
 
-The runner returns to its caller without exiting the shell. Usually, `__koirun` should be the last statement in the script so its status becomes the script's exit status.
+The runner returns to its caller without exiting the shell. Usually, `koi::run` should be the last statement in the script so its status becomes the script's exit status.
 
 ## Example
 
@@ -45,22 +45,22 @@ source koi
 
 deploy() {
     local environment
-    __addarg environment --option --short e --long environment --default production --description 'Where to deploy'
-    __parseargs "$@" || return "$koi_status"
+    koi::add_arg environment --option --short e --long environment --default production --description 'Where to deploy'
+    koi::parse "$@" || return "$koi_status"
 
     printf 'Deploying to %s (verbose=%s)\n' "$environment" "$verbose"
 }
 
-__addarg verbose --flag --short v --long verbose --description 'Print progress'
-__addcommand deploy --function deploy --description 'Deploy the application'
-__koirun --koi-enable-verbose-help --koi-enable-help-hints "$@"
+koi::add_arg verbose --flag --short v --long verbose --description 'Print progress'
+koi::add_command deploy --function deploy --description 'Deploy the application'
+koi::run --koi-enable-verbose-help --koi-enable-help-hints "$@"
 ```
 
 Running `./app.sh -v deploy -e staging` assigns `1` to the root's `verbose` destination and forwards `-e staging` to `deploy`. The handler then parses its own arguments and prints `Deploying to staging (verbose=1)`.
 
 Root argument labels must come before the command name. Moving `-v` after `deploy` would fail because the `deploy` handler hasn't declared a `-v` flag. Root destination values remain visible through ordinary [Bash scope](/docs/concepts/destinations).
 
-Every handler must close its own registration block with `__parseargs "$@" || return "$koi_status"`, even if it declares no custom arguments. See [parsing and control flow](/docs/concepts/control-flow).
+Every handler must close its own registration block with `koi::parse "$@" || return "$koi_status"`, even if it declares no custom arguments. See [parsing and control flow](/docs/concepts/control-flow).
 
 ## Help and missing commands
 
@@ -83,7 +83,7 @@ Koi invokes handlers to collect their declarations, then stops at [guarded parsi
 
 ## Root lifecycle
 
-Call `__koirun` once per library initialization. The first attempt consumes root registration even if it displays help or fails. A second call or a later root declaration returns `2`, and sourcing `koi` again does not reset this state. Direct function parsing remains available afterward.
+Call `koi::run` once per library initialization. The first attempt consumes root registration even if it displays help or fails. A second call or a later root declaration returns `2`, and sourcing `koi` again does not reset this state. Direct function parsing remains available afterward.
 
 Roots without child commands can declare positionals, but positionals and child commands cannot share a [context](/docs/concepts/lifecycle). For a root with positionals, the missing-command and unknown-command settings have no effect.
 

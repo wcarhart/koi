@@ -144,7 +144,7 @@ test('index headings navigate to isolated docs pages and article links restore t
   }
   await page.locator('.index-list a').first().click();
   await expect(page).toHaveURL('/docs/examples/function-entrypoint');
-  await expect(page.locator('[data-doc-section]')).toHaveCount(23);
+  await expect(page.locator('[data-doc-section]')).toHaveCount(24);
   await expect(
     page.locator('#doc-examples-function-entrypoint h1'),
   ).toBeInViewport();
@@ -192,19 +192,19 @@ test('guide and API indexes list the published collection', async ({
   );
   await page.goto('/docs/reference');
   await expect(page.locator('.index-list strong')).toHaveText([
-    '__addarg',
-    '__addcommand',
-    '__adddescription',
-    '__parseargs',
-    '__koiconfig',
-    '__koirun',
+    'koi::add_arg',
+    'koi::add_command',
+    'koi::add_description',
+    'koi::parse',
+    'koi::config',
+    'koi::run',
   ]);
   await page.locator('.index-list a').nth(3).click();
-  await expect(page).toHaveURL('/docs/reference/parseargs');
-  await expect(page.locator('#doc-reference-parseargs h1')).toBeInViewport();
+  await expect(page).toHaveURL('/docs/reference/parse');
+  await expect(page.locator('#doc-reference-parse h1')).toBeInViewport();
 });
 
-test('Reference links to the glossary beside its title and lists it last in navigation', async ({
+test('Reference links to the glossary beside its title and places Conventions below it in navigation', async ({
   page,
   isMobile,
 }) => {
@@ -226,13 +226,29 @@ test('Reference links to the glossary beside its title and lists it last in navi
     .boundingBox())!;
   expect(
     Math.abs(
-      titleBox.y + titleBox.height / 2 - buttonBox.y - buttonBox.height / 2,
+      titleBox.y +
+        titleBox.height / 2 -
+        (await page.locator('.reference-supporting-links').boundingBox())!.y -
+        (await page.locator('.reference-supporting-links').boundingBox())!
+          .height /
+          2,
     ),
   ).toBeLessThan(2);
   expect(
     Math.abs(countBox.x + countBox.width - buttonBox.x - buttonBox.width),
   ).toBeLessThan(2);
   expect(buttonBox.y).toBeGreaterThan(countBox.y + countBox.height);
+  const conventions = page
+    .locator('.index-title-row')
+    .getByRole('link', { name: 'Conventions', exact: true });
+  await expect(conventions).toHaveAttribute(
+    'href',
+    '/docs/reference/conventions',
+  );
+  const conventionsBox = (await conventions.boundingBox())!;
+  expect(conventionsBox.y).toBeGreaterThan(buttonBox.y + buttonBox.height);
+  expect(conventionsBox.x).toBe(buttonBox.x);
+  await expect(page.locator('.api-index-list a')).toHaveCount(6);
   const shaft = glossary.locator('.cta-arrow-shaft');
   await expect(shaft).toHaveCSS('opacity', '0');
   for (const theme of ['light', 'dark']) {
@@ -276,12 +292,14 @@ test('Reference links to the glossary beside its title and lists it last in navi
     .locator('.nav-group')
     .filter({ has: page.locator('a.nav-group-link[href="/docs/reference"]') });
   await expect(reference.locator('a[data-doc-link]').last()).toHaveText(
-    'Glossary',
+    'Conventions',
   );
-  await expect(reference.locator('a[data-doc-link]').last()).toHaveAttribute(
-    'aria-current',
-    'location',
-  );
+  await expect(
+    reference.locator('a[data-doc-link]').filter({ hasText: /^Glossary$/ }),
+  ).toHaveText('Glossary');
+  await expect(
+    reference.locator('a[data-doc-link]').filter({ hasText: /^Glossary$/ }),
+  ).toHaveAttribute('aria-current', 'location');
 });
 
 test('jukebox selection supports click, keyboard navigation, copying, and article links', async ({
@@ -310,7 +328,7 @@ test('jukebox selection supports click, keyboard navigation, copying, and articl
   await expect(tabs.last()).toBeFocused();
   await expect(tabs.last()).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('tabpanel').locator('code')).toContainText(
-    '__addcommand',
+    'koi::add_command',
   );
   await tabs.last().press('Home');
   await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
@@ -322,7 +340,7 @@ test('jukebox selection supports click, keyboard navigation, copying, and articl
     .click();
   expect(
     await page.evaluate(() => (window as unknown as { copied: string }).copied),
-  ).toContain('__parseargs "$@" || return "$koi_status"');
+  ).toContain('koi::parse "$@" || return "$koi_status"');
   await expect(page.locator('.index-list a')).toHaveCount(3);
   await page
     .getByRole('tabpanel')
@@ -453,8 +471,26 @@ test('docs sidebar and search retain the requested compact presentation', async 
       `/brand/koi-filled${theme === 'dark' ? '-dark' : ''}.svg`,
     );
   }
-  await input.fill('__addarg');
-  await expect(dialog.getByRole('option').first()).toContainText('__addarg');
+  await input.fill('koi::add_arg');
+  await expect(dialog.getByRole('option').first()).toContainText(
+    'koi::add_arg',
+  );
   await input.press('ArrowDown');
   await expect(input).toHaveAttribute('aria-activedescendant', 'result-1');
+});
+
+test('Conventions publishes the TODO and Markdown export', async ({ page }) => {
+  await page.goto('/docs/reference');
+  await page
+    .locator('.index-title-row')
+    .getByRole('link', { name: 'Conventions' })
+    .click();
+  await expect(page).toHaveURL('/docs/reference/conventions');
+  await expect(page.locator('#doc-reference-conventions h1')).toBeInViewport();
+  await expect(page.locator('#doc-reference-conventions')).toContainText(
+    'TODO: Document that public API functions start with koi::',
+  );
+  const response = await page.request.get('/docs/reference/conventions.md');
+  expect(response.ok()).toBe(true);
+  expect(await response.text()).toContain('`__koi_`');
 });

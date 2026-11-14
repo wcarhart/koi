@@ -31,8 +31,8 @@ main'
 
 @test "positionals register without spellings and retain scalar metadata" {
     run_positional '
-        __addarg source --positional --required -n file -d Source
-        __addarg target -p -D "" -d Target
+        koi::add_arg source --positional --required -n file -d Source
+        koi::add_arg target -p -D "" -d Target
         [[ ${__koi_root_arg_kinds[source]} == positional ]]
         [[ ${__koi_root_arg_shorts[source]} == "" && ${__koi_root_arg_longs[source]} == "" ]]
         [[ ${__koi_root_arg_requireds[source]} == 1 ]]
@@ -45,7 +45,7 @@ main'
 @test "positional declarations reject spellings required defaults and empty labels" {
     local declaration
     for declaration in '-s p' '-l path' '-s ""' '-l ""' '-r -D value' '-n ""'; do
-        run_positional "__addarg path -p -d Path $declaration"
+        run_positional "koi::add_arg path -p -d Path $declaration"
         [ "$status" -eq 2 ]
     done
 }
@@ -54,12 +54,12 @@ main'
     run_positional '
         parse() {
             local source target format verbose name
-            __addarg source -p -r -d Source
-            __addarg verbose -f -s v -d Verbose
-            __addarg target -p -D . -d Target
-            __addarg name -o -s n -d Name
-            __addarg format -p -D text -d Format
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg source -p -r -d Source
+            koi::add_arg verbose -f -s v -d Verbose
+            koi::add_arg target -p -D . -d Target
+            koi::add_arg name -o -s n -d Name
+            koi::add_arg format -p -D text -d Format
+            koi::parse "$@" || return "$koi_status"
             [[ $source == first && $target == second && $format == third ]]
             [[ $verbose == 1 && $name == name ]]
         }
@@ -71,10 +71,10 @@ main'
 @test "optional positionals reset stale values and fill multiple slots left to right" {
     run_function_positional '
         first=stale second=stale third=stale
-        __addarg first -p -D default -d First
-        __addarg second -p -d Second
-        __addarg third -p -D end -d Third
-        __parseargs supplied || return "$koi_status"
+        koi::add_arg first -p -D default -d First
+        koi::add_arg second -p -d Second
+        koi::add_arg third -p -D end -d Third
+        koi::parse supplied || return "$koi_status"
         [[ $first == supplied && $second == "" && $third == end ]]
     '
     [ "$status" -eq 0 ]
@@ -84,10 +84,10 @@ main'
     run_positional '
         parse() {
             local first second third
-            __addarg first -p -r -d First
-            __addarg second -p -r -d Second
-            __addarg third -p -r -d Third
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg first -p -r -d First
+            koi::add_arg second -p -r -d Second
+            koi::add_arg third -p -r -d Third
+            koi::parse "$@" || return "$koi_status"
             [[ $first == "$1" && $second == "$2" && $third == "$3" ]]
         }
         parse "" first $'"'"'  line one\nline two "quoted" \\ $HOME $(false)  '"'"'
@@ -99,11 +99,11 @@ main'
     run_positional '
         parse() {
             local first second third fourth
-            __addarg first -p -r -d First
-            __addarg second -p -r -d Second
-            __addarg third -p -r -d Third
-            __addarg fourth -p -r -d Fourth
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg first -p -r -d First
+            koi::add_arg second -p -r -d Second
+            koi::add_arg third -p -r -d Third
+            koi::add_arg fourth -p -r -d Fourth
+            koi::parse "$@" || return "$koi_status"
             [[ $first == - && $second == -12 && $third == --help && $fourth == --koi-error-on-duplicates ]]
         }
         parse - -- -12 --help --koi-error-on-duplicates
@@ -116,22 +116,22 @@ main'
     for arguments in '' 'first second' '--unknown' '-12' '-xyz'; do
         run_function_positional '
             value=original flag=original
-            __addarg value -p -r -d Value
-            __addarg flag -f -s v -d Flag
-            if __parseargs -v '"$arguments"'; then
+            koi::add_arg value -p -r -d Value
+            koi::add_arg flag -f -s v -d Flag
+            if koi::parse -v '"$arguments"'; then
                 exit 9
             fi
             [[ $koi_status == 2 && $value == original && $flag == original ]]
         '
         [ "$status" -eq 0 ]
-        [[ "$stderr" == *'__parseargs:'* ]]
+        [[ "$stderr" == *'koi::parse:'* ]]
     done
     run_function_positional '
         value=original
         declare -a incompatible=()
-        __addarg value -p -r -d Value
-        __addarg incompatible -p -r -d Incompatible
-        if __parseargs one two; then
+        koi::add_arg value -p -r -d Value
+        koi::add_arg incompatible -p -r -d Incompatible
+        if koi::parse one two; then
             exit 9
         fi
         [[ $koi_status == 2 && $value == original ]]
@@ -143,8 +143,8 @@ main'
 @test "help bypasses positional presence and scanning errors without assignment" {
     run_function_positional '
         value=original
-        __addarg value -p -r -d Value
-        if __parseargs --unknown first extra --help; then
+        koi::add_arg value -p -r -d Value
+        if koi::parse --unknown first extra --help; then
             exit 9
         fi
         [[ $koi_status == 0 && $value == original ]]
@@ -158,10 +158,10 @@ main'
     local request
     for request in '' '--help' '--koi-inspect spec'; do
         run_function_positional '
-            __addarg optional -p -d Optional
-            __addarg flag -f -s v -d Flag
-            __addarg required -p -r -d Required
-            __parseargs '"$request"'
+            koi::add_arg optional -p -d Optional
+            koi::add_arg flag -f -s v -d Flag
+            koi::add_arg required -p -r -d Required
+            koi::parse '"$request"'
         '
         [ "$status" -eq 2 ]
         [[ "$stderr" == *'required positionals must precede optional positionals'* ]]
@@ -171,11 +171,11 @@ main'
 
 @test "application children and positionals conflict in either registration order" {
     local declarations parser request runner
-    for declarations in '__addarg value -p -d Value; __addcommand help -f child -d Child' \
-        '__addcommand child -f child -d Child; __addarg value -p -d Value'; do
-        for parser in __parseargs __koirun; do
+    for declarations in 'koi::add_arg value -p -d Value; koi::add_command help -f child -d Child' \
+        'koi::add_command child -f child -d Child; koi::add_arg value -p -d Value'; do
+        for parser in koi::parse koi::run; do
             runner=run_positional
-            if [[ $parser == __parseargs ]]; then
+            if [[ $parser == koi::parse ]]; then
                 runner=run_function_positional
             fi
             for request in '--help' '--koi-inspect spec'; do
@@ -190,16 +190,16 @@ main'
 
 @test "terminal root runner parses required positionals and suppresses verbose hints" {
     run_positional '
-        __koiconfig name tool
-        __addarg value -p -r -d Value
-        __koirun --koi-enable-verbose-help --koi-enable-help-hints help
+        koi::config name tool
+        koi::add_arg value -p -r -d Value
+        koi::run --koi-enable-verbose-help --koi-enable-help-hints help
         [[ $value == help ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     run_positional '
-        __addarg value -p -r -d Value
-        __koirun --koi-enable-verbose-help --koi-enable-help-hints --help
+        koi::add_arg value -p -r -d Value
+        koi::run --koi-enable-verbose-help --koi-enable-help-hints --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool [-h] VALUE'* ]]
@@ -209,18 +209,18 @@ main'
 @test "terminal runner no-input semantics ignore command-only settings" {
     run_positional '
         value=stale
-        __addarg value -p -D default -d Value
-        __koirun --koi-zero-argument-message "Need a command" --koi-enable-help-on-unknown-commands
+        koi::add_arg value -p -D default -d Value
+        koi::run --koi-zero-argument-message "Need a command" --koi-enable-help-on-unknown-commands
         [[ $value == default ]]
-        if __koirun; then
+        if koi::run; then
             exit 9
         fi
     '
     [ "$status" -eq 0 ]
     [[ "$stderr" == *'call only once'* ]]
     run_positional '
-        __addarg value -p -r -d Value
-        __koirun --koi-zero-argument-message "Need a command"
+        koi::add_arg value -p -r -d Value
+        koi::run --koi-zero-argument-message "Need a command"
     '
     [ "$status" -eq 2 ]
     [[ "$stderr" == *"missing required argument: 'value'"* ]]
@@ -228,22 +228,22 @@ main'
 
 @test "routed positional leaf treats help as data and preserves branch option ownership" {
     run_positional '
-        __addarg root_flag -f -s v -d Root
-        __addcommand create -f create -d Create
+        koi::add_arg root_flag -f -s v -d Root
+        koi::add_command create -f create -d Create
         create() {
-            __addarg branch_flag -f -s v -d Branch
-            __addcommand server -f server -d Server
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg branch_flag -f -s v -d Branch
+            koi::add_command server -f server -d Server
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         server() {
             local value name
-            __addarg value -p -r -d Value
-            __addarg name -o -s n -d Name
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::add_arg name -o -s n -d Name
+            koi::parse "$@" || return "$koi_status"
             [[ $root_flag == 1 && $branch_flag == 1 && $name == cool && $value == help ]]
         }
-        __koirun -v create -v -- server -n cool help
+        koi::run -v create -v -- server -n cool help
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -251,11 +251,11 @@ main'
 
 @test "positional help puts options first and displays labels defaults and requiredness" {
     run_positional '
-        __koiconfig help-width 50
-        __addarg source -p -r -d "Source file"
-        __addarg verbose -f -s v -d Verbose
-        __addarg target -p -n directory -D . -d "Destination directory with a description long enough to wrap"
-        __koirun --help
+        koi::config help-width 50
+        koi::add_arg source -p -r -d "Source file"
+        koi::add_arg verbose -f -s v -d Verbose
+        koi::add_arg target -p -n directory -D . -d "Destination directory with a description long enough to wrap"
+        koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool [-h] [-v] SOURCE [DIRECTORY]'* ]]
@@ -267,9 +267,9 @@ main'
     run_positional '
         leaf() {
             local value optional
-            __addarg value -p -r -d Value
-            __addarg optional -p -D default -d Optional
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::add_arg optional -p -D default -d Optional
+            koi::parse "$@" || return "$koi_status"
             if [[ $value == outer ]]; then
                 leaf inner custom
                 [[ $value == outer && $optional == default ]]
@@ -289,9 +289,9 @@ main'
 @test "positional assignments respect dynamic scope and optional empty defaults" {
     run_positional '
         assign() {
-            __addarg value -p -r -d Value
-            __addarg optional -p -D "" -d Optional
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::add_arg optional -p -D "" -d Optional
+            koi::parse "$@" || return "$koi_status"
         }
         outer() {
             local value=stale optional=stale
@@ -309,9 +309,9 @@ main'
         source "$KOI_INSPECTION_FIXTURE"
         leaf() {
             local value=original
-            __addarg value -p -r -n file -d Value
-            __addarg optional -p -D "" -d Optional
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -n file -d Value
+            koi::add_arg optional -p -D "" -d Optional
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         check() {
@@ -323,9 +323,9 @@ main'
             [[ ! -v optional && ! -v value ]]
         }
         capture_spec leaf check
-        __addarg value -p -r -n file -d Value
-        __addarg optional -p -D "" -d Optional
-        capture_spec __koirun check
+        koi::add_arg value -p -r -n file -d Value
+        koi::add_arg optional -p -D "" -d Optional
+        capture_spec koi::run check
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -334,13 +334,13 @@ main'
 
 @test "root verbose help documents positional leaves without their help subcommands" {
     run_positional '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __addarg value -p -r -d Value
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        __koirun --koi-enable-verbose-help help --verbose
+        koi::run --koi-enable-verbose-help help --verbose
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool leaf [-h] VALUE'*'Positionals:'* ]]
@@ -349,26 +349,26 @@ main'
 
 @test "optional routed positionals suppress help even when no values are supplied" {
     run_positional '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
             local value=stale
-            __addarg value -p -D default -d Value
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -D default -d Value
+            koi::parse "$@" || return "$koi_status"
             [[ $value == default ]]
             echo ran
         }
-        __koirun leaf
+        koi::run leaf
     '
     [ "$status" -eq 0 ]
     [ "$output" = ran ]
     run_positional '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __addarg value -p -d Value
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -d Value
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        __koirun leaf --help
+        koi::run leaf --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool leaf [-h] [VALUE]'* ]]
@@ -378,15 +378,15 @@ main'
 @test "layout failures and help do not poison later function registrations" {
     run_positional '
         invalid() {
-            __addarg optional -p -d Optional
-            __addarg required -p -r -d Required
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg optional -p -d Optional
+            koi::add_arg required -p -r -d Required
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         valid() {
             local value
-            __addarg value -p -r -d Value
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::parse "$@" || return "$koi_status"
             [[ $value == supplied ]]
         }
         if invalid --help; then
@@ -404,10 +404,10 @@ main'
     run_positional '
         parse() {
             local value name flag
-            __addarg value -p -r -d Value
-            __addarg name -o -s n -d Name
-            __addarg flag -f -s v -d Flag
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg value -p -r -d Value
+            koi::add_arg name -o -s n -d Name
+            koi::add_arg flag -f -s v -d Flag
+            koi::parse "$@" || return "$koi_status"
             [[ $value == supplied && $name == -- && $flag == 1 ]]
         }
         parse -n -- supplied -v --koi-error-on-duplicates

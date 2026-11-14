@@ -16,7 +16,7 @@ setup() {
 run_inspection() {
     local body=$1
     shift
-    printf 'source "$KOI_LIBRARY"\n__koiconfig description Application\nsource "$KOI_INSPECTION_FIXTURE"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
+    printf 'source "$KOI_LIBRARY"\nkoi::config description Application\nsource "$KOI_INSPECTION_FIXTURE"\n%s\n' "$body" > "$BATS_TEST_TMPDIR/app.sh"
     run --separate-stderr bash -eu "$BATS_TEST_TMPDIR/app.sh" "$@"
 }
 
@@ -25,13 +25,13 @@ run_inspection() {
         text=$'"'"'line one\nline two "quoted" \\ $HOME $(false)'"'"'
         leaf() {
             local untouched=original
-            __adddescription "$text"
-            __addarg untouched -o -s u -r -d "$text"
-            __addarg blank -o -l blank -D "" -n "Display name" -d Blank
-            __addarg absent -o -l absent -d Absent
-            __addcommand second -f child -d "$text"
-            __addcommand first -f child -d First
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description "$text"
+            koi::add_arg untouched -o -s u -r -d "$text"
+            koi::add_arg blank -o -l blank -D "" -n "Display name" -d Blank
+            koi::add_arg absent -o -l absent -d Absent
+            koi::add_command second -f child -d "$text"
+            koi::add_command first -f child -d First
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         child() { :; }
@@ -59,9 +59,9 @@ run_inspection() {
 
 @test "root inspection collects configured metadata without dispatch or rendering" {
     run_inspection '
-        __koiconfig name tool
-        __addarg required -o -s r -r -d Required
-        __addcommand leaf -f leaf -d Leaf
+        koi::config name tool
+        koi::add_arg required -o -s r -r -d Required
+        koi::add_command leaf -f leaf -d Leaf
         leaf() { echo BAD; }
         check() {
             [[ ${__koi_saved_commands[*]} == leaf ]]
@@ -71,8 +71,8 @@ run_inspection() {
             [[ ${__koi_saved_meta[runner]} == 1 ]]
             [[ $__koi_root_used == 1 && ! -v required ]]
         }
-        capture_spec __koirun check
-        if __koirun --help 2>/dev/null; then
+        capture_spec koi::run check
+        if koi::run --help 2>/dev/null; then
             exit 9
         fi
     '
@@ -88,7 +88,7 @@ run_inspection() {
         # shellcheck disable=SC2086
         run_inspection '
             leaf() {
-                __parseargs "$@" || return "$koi_status"
+                koi::parse "$@" || return "$koi_status"
                 echo BAD
             }
             leaf "$@"
@@ -97,7 +97,7 @@ run_inspection() {
         [ -z "$output" ]
         [[ "$stderr" == *inspection* ]]
         # shellcheck disable=SC2086
-        run_inspection '__koirun "$@"' $args
+        run_inspection 'koi::run "$@"' $args
         [ "$status" -eq 2 ]
         [ -z "$output" ]
         [[ "$stderr" == *inspection* ]]
@@ -107,16 +107,16 @@ run_inspection() {
 @test "preparation helpers cannot steal an inspection collector" {
     run_inspection '
         helper() {
-            __adddescription Helper
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description Helper
+            koi::parse "$@" || return "$koi_status"
         }
         leaf() {
             helper
             if helper --koi-inspect spec 2>/dev/null; then
                 return 9
             fi
-            __adddescription Leaf
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description Leaf
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         check() {
@@ -134,14 +134,14 @@ run_inspection() {
         leaf() {
             if [[ $1 == inner ]]; then
                 shift
-                __adddescription Inner
+                koi::add_description Inner
             else
                 if leaf inner --koi-inspect spec 2>/dev/null; then
                     return 9
                 fi
-                __adddescription Outer
+                koi::add_description Outer
             fi
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
         }
         check() {
             [[ ${__koi_saved_meta[description]} == Outer ]]
@@ -156,8 +156,8 @@ run_inspection() {
 @test "invalid declarations and missing handlers fail before collection" {
     run_inspection '
         leaf() {
-            __addarg 2>/dev/null || :
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg 2>/dev/null || :
+            koi::parse "$@" || return "$koi_status"
         }
         check() { echo BAD; }
         capture_spec leaf check
@@ -167,8 +167,8 @@ run_inspection() {
     [ -z "$stderr" ]
     run_inspection '
         leaf() {
-            __addcommand child -f missing -d Missing
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command child -f missing -d Missing
+            koi::parse "$@" || return "$koi_status"
         }
         check() { echo BAD; }
         capture_spec leaf check
@@ -182,27 +182,27 @@ run_inspection() {
     run_inspection '
         branch_count=0
         leaf_count=0
-        __koiconfig name tool
-        __addcommand branch -f branch -d Branch
-        __addcommand alias -f leaf -d Alias
+        koi::config name tool
+        koi::add_command branch -f branch -d Branch
+        koi::add_command alias -f leaf -d Alias
         branch() {
             branch_count=$((branch_count + 1))
             local required=unchanged
-            __addarg required -o -s r -r -d Required
-            __addcommand one -f leaf -d One
-            __addcommand two -f leaf -d Two
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg required -o -s r -r -d Required
+            koi::add_command one -f leaf -d One
+            koi::add_command two -f leaf -d Two
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
         leaf() {
             leaf_count=$((leaf_count + 1))
-            __adddescription Fallback
+            koi::add_description Fallback
             local required=unchanged
-            __addarg required -o -s r -r -d Required
-            __parseargs "$@" || return "$koi_status"
+            koi::add_arg required -o -s r -r -d Required
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        __koirun --koi-enable-verbose-help --koi-enable-help-hints help --verbose
+        koi::run --koi-enable-verbose-help --koi-enable-help-hints help --verbose
         [[ $branch_count == 1 && $leaf_count == 3 ]]
         [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
     '
@@ -215,18 +215,18 @@ run_inspection() {
 
 @test "verbose inspection isolates preparation helper paths and descriptions" {
     run_inspection '
-        __addcommand alias -f leaf -d Alias
+        koi::add_command alias -f leaf -d Alias
         helper() {
-            __adddescription Helper
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description Helper
+            koi::parse "$@" || return "$koi_status"
         }
         leaf() {
             helper --help
-            __adddescription Fallback
-            __parseargs "$@" || return "$koi_status"
+            koi::add_description Fallback
+            koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        __koirun --koi-enable-verbose-help help --verbose
+        koi::run --koi-enable-verbose-help help --verbose
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *Helper*'Usage: app.sh [-h]'*Alias*'Usage: app.sh alias [-h]'* ]]
@@ -236,23 +236,23 @@ run_inspection() {
 
 @test "verbose traversal detects ancestry recursion without restricting normal routing" {
     run_inspection '
-        __addcommand again -f node -d Recursive
+        koi::add_command again -f node -d Recursive
         node() {
-            __addcommand again -f node -d Recursive
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command again -f node -d Recursive
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun --koi-enable-verbose-help help --verbose
+        koi::run --koi-enable-verbose-help help --verbose
     '
     [ "$status" -eq 2 ]
     [[ "$output" == Application*'Usage: app.sh again [-h] COMMAND'* ]]
     [[ "$stderr" == *"recursive inspection at 'again again'"* ]]
     run_inspection '
-        __addcommand again -f node -d Recursive
+        koi::add_command again -f node -d Recursive
         node() {
-            __addcommand again -f node -d Recursive
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command again -f node -d Recursive
+            koi::parse "$@" || return "$koi_status"
         }
-        __koirun again again again --help
+        koi::run again again again --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == Recursive*'Usage: app.sh again again again [-h] COMMAND'* ]]
@@ -261,13 +261,13 @@ run_inspection() {
 
 @test "verbose traversal diagnoses handlers that fail or omit parsing" {
     local body
-    for body in 'return 0' 'return 42' '__adddescription Unconsumed'; do
+    for body in 'return 0' 'return 42' 'koi::add_description Unconsumed'; do
         run_inspection "
-            __addcommand leaf -f leaf -d Leaf
+            koi::add_command leaf -f leaf -d Leaf
             leaf() {
                 $body
             }
-            __koirun --koi-enable-verbose-help help --verbose
+            koi::run --koi-enable-verbose-help help --verbose
         "
         [ "$status" -eq 2 ]
         [[ "$output" == Application* ]]
@@ -277,13 +277,13 @@ run_inspection() {
 
 @test "verbose traversal validates nested help conflicts before rendering that spec" {
     run_inspection '
-        __addcommand leaf -f leaf -d Leaf
+        koi::add_command leaf -f leaf -d Leaf
         leaf() {
-            __addcommand help -f custom -d Custom
-            __parseargs "$@" || return "$koi_status"
+            koi::add_command help -f custom -d Custom
+            koi::parse "$@" || return "$koi_status"
         }
         custom() { echo BAD; }
-        __koirun --koi-enable-verbose-help help --verbose
+        koi::run --koi-enable-verbose-help help --verbose
     '
     [ "$status" -eq 2 ]
     [[ "$output" == Application* ]]
@@ -292,7 +292,7 @@ run_inspection() {
 }
 
 @test "root with no application children suppresses verbose help and renders flag help once" {
-    run_inspection '__koirun --koi-enable-verbose-help --help'
+    run_inspection 'koi::run --koi-enable-verbose-help --help'
     [ "$status" -eq 0 ]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 1 ]
     [ -z "$stderr" ]
@@ -300,18 +300,18 @@ run_inspection() {
 
 @test "failed traversal clears abandoned registration and leaves direct parsing usable" {
     run_inspection '
-        __addcommand broken -f broken -d Broken
+        koi::add_command broken -f broken -d Broken
         broken() {
-            __adddescription Abandoned
-            __addarg stale -f -s s -d Stale
+            koi::add_description Abandoned
+            koi::add_arg stale -f -s s -d Stale
         }
-        if __koirun --koi-enable-verbose-help help --verbose >/dev/null 2>/dev/null; then
+        if koi::run --koi-enable-verbose-help help --verbose >/dev/null 2>/dev/null; then
             exit 9
         fi
         [[ ${#__koi_pending_args[@]} == 0 && ${#__koi_pending_meta[@]} == 0 ]]
         [[ ! -v __koi_inspection_sink && ! -v __koi_inspection_handler ]]
         fresh() {
-            __parseargs "$@" || return "$koi_status"
+            koi::parse "$@" || return "$koi_status"
             echo FRESH
         }
         fresh
@@ -323,13 +323,31 @@ run_inspection() {
 
 @test "inspection of a childless runner root exposes disabled effective help" {
     run_inspection '
-        __addarg name -o -s n -d Name
+        koi::add_arg name -o -s n -d Name
         check() {
             [[ ${__koi_saved_meta[builtin]} == 0 ]]
             [[ ${__koi_saved_meta[verbose]} == 0 ]]
             [[ ${#__koi_saved_commands[@]} == 0 ]]
         }
-        capture_spec __koirun check
+        capture_spec koi::run check
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ -z "$stderr" ]
+}
+
+@test "inspection enters a namespaced handler and stops at the guard" {
+    run_inspection '
+        app::internal::deploy() {
+            koi::add_description "Namespaced details"
+            koi::parse "$@" || return "$koi_status"
+            echo BAD
+        }
+        check() {
+            [[ ${__koi_saved_meta[description]} == "Namespaced details" ]]
+            [[ $koi_status == 0 ]]
+        }
+        capture_spec app::internal::deploy check
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
