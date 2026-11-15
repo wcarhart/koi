@@ -13,7 +13,7 @@ import {
 } from '../src/lib/content';
 import { search } from '../src/lib/search';
 
-test('published content includes concept and guide outlines, excludes planned drafts, and expands executable examples', async () => {
+test('published content includes concepts and guide outlines, excludes planned drafts, and expands executable examples', async () => {
   const docs = await getDocs();
   const reference = docs.filter((d) => d.group === 'Reference');
   assert.equal(reference.length, 8);
@@ -50,14 +50,16 @@ test('published content includes concept and guide outlines, excludes planned dr
     /Array example|arrays\.sh|source=<|include=</,
   );
   const cardinality = docs.find((d) => d.slug === 'concepts/cardinality')!;
-  assert.ok(
-    cardinality.markdown
-      .split('\n')
-      .every(
-        (line) =>
-          !line.trim() || line.startsWith('#') || line.startsWith('- TODO:'),
-      ),
+  assert.match(
+    cardinality.markdown,
+    /koi::add_arg directories --option --array/,
   );
+  assert.match(
+    cardinality.markdown,
+    /koi::add_arg files --positional --array --required/,
+  );
+  assert.match(cardinality.markdown, /arr=\("my" "default" "values"\)/);
+  assert.ok(cardinality.markdown.includes('`-I DIR [-I DIR]...`'));
 });
 test('manifest rejects duplicate paths, DOM IDs, invalid sources, and unknown builders', () => {
   const entry = { file: 'a.md', slug: 'a', group: 'A' };

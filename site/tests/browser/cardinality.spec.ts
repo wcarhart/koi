@@ -95,7 +95,10 @@ test('cardinality is published in navigation, markdown, and search while array g
   );
   const markdown = await request.get('/docs/concepts/cardinality.md');
   expect(markdown.ok()).toBe(true);
-  expect(await markdown.text()).toContain('- TODO:');
+  const body = await markdown.text();
+  expect(body).toContain('koi::add_arg directories --option --array');
+  expect(body).toContain('koi::add_arg files --positional --array --required');
+  expect(body).toContain('`-I DIR [-I DIR]...`');
   const search = await request.get('/search.json');
   expect(await search.text()).toContain('/docs/concepts/cardinality');
   expect(await search.text()).not.toContain('/docs/guides/arrays');
