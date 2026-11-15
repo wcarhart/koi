@@ -292,3 +292,17 @@ test('multiple array loops share locals, reset indices, and preserve destination
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, 'i[0]: one\ni[1]: \nvalue[0]: two\n');
 });
+
+test('runtime and builder reserve the same administrative long names', () => {
+  const out = spawnSync(
+    'bash',
+    ['-c', 'source ./koi; printf "%s\\n" "${__koi_reserved_longs[@]}"'],
+    { cwd: root, encoding: 'utf8' },
+  );
+  assert.equal(out.status, 0, out.stderr);
+  const names = out.stdout.trim().split('\n');
+  assert.ok(names.includes('koi-ignore-unknown-positionals'));
+  for (const long of names) {
+    assert.ok(argumentErrors({ ...defaultArgument, long }).length, long);
+  }
+});

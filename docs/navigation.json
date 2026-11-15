@@ -47,6 +47,11 @@
     "group": "Core concepts"
   },
   {
+    "file": "concepts/errors.md",
+    "slug": "concepts/errors",
+    "group": "Core concepts"
+  },
+  {
     "file": "guides/arguments.md",
     "slug": "guides/arguments",
     "group": "Guides"

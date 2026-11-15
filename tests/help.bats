@@ -448,7 +448,7 @@ run_help() {
         koi::run --koi-enable-verbose-help leaf help --verbose
     '
     [ "$status" -eq 2 ]
-    [ "$stderr" = "koi: koi::parse: unsupported positional argument: 'help'" ]
+    [ "$stderr" = "koi: unsupported positional argument: 'help'" ]
 }
 
 @test "disabled verbose help reports the same argument error as other unknown help arguments" {
@@ -457,7 +457,7 @@ run_help() {
         run_help 'koi::add_command leaf -f leaf -d Leaf; leaf() { :; }; koi::run "$@"' help "$argument"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::parse: unsupported positional argument: '$argument'" ]
+        [ "$stderr" = "koi: unsupported positional argument: '$argument'" ]
     done
 }
 
@@ -548,7 +548,7 @@ run_help() {
         '
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::parse: unsupported positional argument: 'help'" ]
+        [ "$stderr" = "koi: unsupported positional argument: 'help'" ]
     done
 }
 
@@ -567,6 +567,6 @@ run_help() {
         '
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "app.sh: unknown command 'help'" ]
+        [ "$stderr" = "koi: unknown command 'help'" ]
     done
 }

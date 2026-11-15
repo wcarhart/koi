@@ -11,14 +11,14 @@ setup() {
 }
 
 @test "error helper writes a prefixed message to stderr and returns two" {
-    run --separate-stderr koi::internal::error 'Something failed'
+    run --separate-stderr koi::internal::user_error 'Something failed'
     [ "$status" -eq 2 ]
     [ -z "$output" ]
     [ "$stderr" = 'koi: Something failed' ]
 }
 
-@test "error helper joins text arguments without interpreting their contents" {
-    run --separate-stderr koi::internal::error 'literal %s' '$value' '\n'
+@test "error helper preserves literal text without interpreting their contents" {
+    run --separate-stderr koi::internal::user_error 'literal %s $value \n'
     [ "$status" -eq 2 ]
     [ -z "$output" ]
     [ "$stderr" = 'koi: literal %s $value \n' ]
@@ -29,7 +29,7 @@ setup() {
         run --separate-stderr bash -c '
             source "$KOI_LIBRARY" || exit
             __koi_pending_spec_valid=$1
-            koi::internal::error Example
+            koi::internal::user_error Example
             result=$?
             [[ $result == 2 && $__koi_pending_spec_valid == "$1" ]]
         ' bash "$validity"

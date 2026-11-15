@@ -57,6 +57,7 @@ const reservedDestinations = new Set(
 const reservedLongNames = new Set([
   'help',
   'koi-error-on-scalar-duplicates',
+  'koi-ignore-unknown-positionals',
   'koi-error-on-duplicate',
   'koi-inspect',
 ]);

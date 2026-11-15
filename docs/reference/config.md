@@ -16,7 +16,7 @@ koi::config KEY VALUE
 
 | Key | Value |
 | --- | --- |
-| `name` | The display name used in usage lines, help hints, and script-prefixed errors. Defaults to the script's filename without its directory path. |
+| `name` | The display name used in usage lines, help hints, and [user errors](/docs/reference/glossary#user-error). Help defaults to the script's filename without its directory path. User errors default to `koi`. |
 | `description` | The description printed above the root help menu's usage line. Omitted by default. |
 | `help-width` | The target line width for help descriptions, in characters, including indentation. Must be a positive integer. Defaults to `100`. |
 
@@ -29,6 +29,22 @@ koi::config help-width 80
 ```
 
 Configuration stays in effect throughout the script, including direct function calls and nested commands. `koi::config` statements must come before `koi::run` but do not necessarily need to be within the root-level [registration block](/docs/concepts/lifecycle). `koi::config` cannot be used in functions, it's only supported at the script-level.
+
+## Error prefixes
+
+[User errors](/docs/reference/glossary#user-error) use the configured `name` across root parsing, routed commands, and direct function calls, e.g. `koi::config name my-script-name`. This allows you to brand your script or CLI so you don't need to expose that it's koi-powered. Without a provided `name`, user errors use the prefix `koi` and help uses the script's basename. [Author errors](/docs/reference/glossary#author-error) cannot be customized in this fashion. See [errors](/docs/concepts/errors).
+
+For example, without a `koi::config name` statement:
+
+```text
+koi: missing required argument: 'environment'
+```
+
+And after `koi::config name my-script-name`:
+
+```text
+my-script-name: missing required argument: 'environment'
+```
 
 ## Return
 

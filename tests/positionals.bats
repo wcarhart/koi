@@ -124,7 +124,7 @@ main'
             [[ $koi_status == 2 && $value == original && $flag == original ]]
         '
         [ "$status" -eq 0 ]
-        [[ "$stderr" == *'koi::parse:'* ]]
+        [[ "$stderr" == 'koi: '* ]]
     done
     run_function_positional '
         value=original

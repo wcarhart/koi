@@ -16,6 +16,10 @@ layout: article
 
 In the context of koi, **a [destination](#destination) that holds multiple values rather than a single value.** [Scalars](#scalar) and arrays are [cardinalities](#cardinality), where scalars can only assign one value and arrays can hold multiple values. [Options](#option) and [positionals](#positional) can have cardinality (e.g. both can be arrays or scalars), while [flags](#flag) do not have cardinality. During parsing, repeated array [arguments](#argument) accumulate in an [indexed array](https://www.gnu.org/software/bash/manual/html_node/Arrays.html), rather than overwriting the previous value.
 
+## Author error
+
+**An error in the script's use of koi,** such as an invalid argument declaration, an incompatible [destination](#destination), or a missing [handler](#handler). Author errors cannot be suppressed or customized, unlike [user errors](#user-error). See [errors](/docs/concepts/errors).
+
 ## Branch
 
 **A [registration context](#registration-context) with one or more child [commands](#command).** For example, in `./app.sh deploy service`, `deploy` is a branch if it registers `service` as a child command. A branch either [dispatches](#dispatch) the selected child or displays its help menu when no child is selected. Its [guarded](#guard) parse does not continue into the branch's own business logic. Koi's built-in `help` command does not make a context a branch on its own. See [calls and command routing](/docs/concepts/routing).
@@ -143,6 +147,10 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 ## Token
 
 **One argument string supplied to a script or function after Bash expansion and tokenization.** A token can contain whitespace or be empty when quoted appropriately (see [argument](#argument)). An [option](#option) and its [value](#value) normally occupy two tokens. See [arguments and values](/docs/concepts/arguments).
+
+## User error
+
+**An error in the arguments supplied to a script or function,** such as an unknown [option](#option) or a missing [required](#requiredness) argument. The prefix used in user error messages can be customized via [koi::config name](/docs/reference/config). The default prefix is `koi`.
 
 ## Value
 

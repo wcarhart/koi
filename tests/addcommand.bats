@@ -149,7 +149,7 @@ reject_registration() {
     run --separate-stderr reject_registration deploy -f replacement -d Replacement
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: duplicate command: deploy' ]
+    [ "$stderr" = 'koi: koi::add_command: duplicate command: deploy' ]
 }
 
 @test "unknown options including reserved help flags are rejected" {

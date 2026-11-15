@@ -70,7 +70,7 @@ Options:
     run_app 'koi::run --koi-zero-argument-message '"'"'Need %s $command'"'"' "$@"'
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'app.sh: Need %s $command' ]
+    [ "$stderr" = 'koi: Need %s $command' ]
 }
 
 @test "runner settings reject missing empty and repeated values" {
@@ -98,7 +98,7 @@ Options:
         run_app 'koi::run "$@"' "$command" --help
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "app.sh: unknown command '$command'" ]
+        [ "$stderr" = "koi: unknown command '$command'" ]
     done
 }
 
@@ -183,7 +183,7 @@ Options:
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "app.sh: missing handler 'absent_z' for command 'z'" ]
+        [ "$stderr" = "koi: koi::run: missing handler 'absent_z' for command 'z'" ]
     done
 }
 
@@ -348,7 +348,7 @@ Options:
     ' unknown
     [ "$status" -eq 2 ]
     [ "$output" = survived ]
-    [ "$stderr" = "app.sh: unknown command 'unknown'" ]
+    [ "$stderr" = "koi: unknown command 'unknown'" ]
 }
 
 @test "namespaced handlers dispatch through guarded parents and preserve child status" {

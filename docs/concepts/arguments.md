@@ -61,7 +61,7 @@ Unquoted `$@` allows word splitting and filename expansion, while `"$*"` joins t
 
 ## Recognizing options
 
-Koi matches labels exactly. Supply option values as separate tokens, such as `--output-file report.txt` or `-o report.txt`. Similar argument parsing grammars such as equals forms like `--output-file=report.txt` and attached values like `-oreport.txt` are unsupported.
+Koi matches labels exactly. Supply option values as separate tokens, such as `--output-file report.txt` or `-o report.txt`. Koi does not support similar argument parsing grammars such as _equals forms_ like `--output-file=report.txt` and _attached values_ like `-oreport.txt`.
 
 Short flags can be clustered, so `-vf` is equivalent to `-v -f` when both are registered flags. Every letter must be a flag, including the built-in `-h` for help. An unknown letter or a value-taking option makes the whole cluster invalid. If `-f` in `-vf` was an option, the cluster would fail to parse. Koi does not support _long spellings_ prefixed with a single dash, it will attempt to parse such tokens as a flag cluster.
 
@@ -73,6 +73,6 @@ Outside an option's value, an unrecognized token beginning with `-` is an error.
 ./copy.sh -- -draft.txt --help
 ```
 
-Here, `-draft.txt` and `--help` fill positional slots. A lone `-` is ordinary data even without the separator. In a [branch with child commands](/docs/concepts/routing), `--` ends the parent's option recognition, and the next token still selects a command.
+Here, `-draft.txt` and `--help` fill positional slots. A lone `-` is ordinary data even without the separator. In a [branch with child commands](/docs/concepts/routing), `--` ends the parent's option recognition, and the next token still selects a command. Extra, unknown positional values are treated as errors by default. You can silently ignore them by using `--koi-ignore-unknown-positionals` with [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run).
 
 For a walkthrough of declaring and using these arguments, see [define flags, options, and positionals](/docs/guides/arguments).

@@ -18,7 +18,7 @@ test('published content includes concepts and guide outlines, excludes planned d
   const reference = docs.filter((d) => d.group === 'Reference');
   assert.equal(reference.length, 8);
   assert.equal(reference.at(-1)!.slug, 'reference/conventions');
-  assert.equal(docs.length, 25);
+  assert.equal(docs.length, 26);
   const concepts = docs.filter((d) => d.group === 'Core concepts');
   assert.deepEqual(
     concepts.map((d) => d.title),
@@ -29,6 +29,7 @@ test('published content includes concepts and guide outlines, excludes planned d
       'Calls and command routing',
       'Destination variables and scope',
       'Parsing and control flow',
+      'Errors',
     ],
   );
   const guides = docs.filter((d) => d.group === 'Guides');

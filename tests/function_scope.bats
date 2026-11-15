@@ -92,7 +92,7 @@ SCRIPT
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = "koi: koi::parse: unsupported positional argument: '-v'" ]
+    [ "$stderr" = "koi: unsupported positional argument: '-v'" ]
 }
 
 @test "a real script main and a sourced parser inside it use function scope" {

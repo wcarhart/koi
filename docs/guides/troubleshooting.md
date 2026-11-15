@@ -53,4 +53,5 @@ layout: article
 ## Misc
 
 - koi not found error - did you do `source ./koi` or `source koi` incorrectly based on how you installed koi?
-- Why do I see `koi: err: ...` and how do I change it - the prefix specifically
+- TODO: Explain user errors (`NAME: MESSAGE`, default name `koi`) and author errors (`koi: API: MESSAGE`). `koi::config name` changes only user-error branding and help naming.
+- TODO: Explain strict surplus positionals and invocation-local `--koi-ignore-unknown-positionals`, including required arguments and unknown command/option exclusions.

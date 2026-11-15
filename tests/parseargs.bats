@@ -31,7 +31,7 @@ assert_parse_error() {
     run --separate-stderr parse_without_mutation "$@"
     [ "$status" -eq 2 ]
     [ "$output" = 'return=2 status=2' ]
-    [[ "$stderr" == 'koi: koi::parse:'* ]]
+    [[ "$stderr" == 'koi: '* ]]
 }
 
 # Retain old values while checking error paths in the same shell as parsing.
@@ -390,7 +390,7 @@ parse_without_mutation() {
     [[ "$output" == business:Alice* ]]
     [[ "$output" != *'business:'*'business:'* ]]
     [[ "$output" == *survived ]]
-    [[ "$stderr" == 'koi: koi::parse:'* ]]
+    [[ "$stderr" == 'koi: '* ]]
 }
 
 @test "guard is reliable when errexit is enabled but suppressed by a conditional call" {
@@ -411,7 +411,7 @@ parse_without_mutation() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [[ "$stderr" == 'koi: koi::parse:'* ]]
+    [[ "$stderr" == 'koi: '* ]]
 }
 
 @test "parse outcomes overwrite stale status and preserve optional caller-local status" {
