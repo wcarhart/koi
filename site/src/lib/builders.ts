@@ -236,9 +236,6 @@ export function argumentHelp(args: ArgumentSettings[]): string {
     }
     const description =
       arg.description +
-      (arg.cardinality === 'array' && arg.kind === 'option'
-        ? ' (repeatable)'
-        : '') +
       (arg.required ? ' (required)' : '') +
       (arg.kind !== 'flag' && !arg.required && arg.useDefault
         ? ` (default: ${arg.defaultValue})`

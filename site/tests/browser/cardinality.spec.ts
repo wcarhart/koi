@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('array editor generates typed locals and repeatable help, resets flags, and rejects invalid layouts', async ({
+test('array editor generates typed locals and ellipsis help, resets flags, and rejects invalid layouts', async ({
   page,
 }) => {
   await page.goto('/docs/reference/add_arg');
@@ -33,7 +33,7 @@ test('array editor generates typed locals and repeatable help, resets flags, and
   await expect(section.locator('.doc-example code').nth(1)).toContainText(
     '[-n NAME]...',
   );
-  await expect(section.locator('.doc-example code').nth(1)).toContainText(
+  await expect(section.locator('.doc-example code').nth(1)).not.toContainText(
     '(repeatable)',
   );
   await expect(explorer.locator('.argument-cardinality')).toHaveText('ARRAY');

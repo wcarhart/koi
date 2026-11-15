@@ -73,8 +73,6 @@ Display names use the same uppercase and spelling preferences as scalars.
 | Optional array option | `[-I FILE]...` |
 | Required array option | `-I FILE [-I FILE]...` |
 
-Detailed help labels positional arrays `FILE...`. Array options keep labels such as `-I, --include FILE` and append `(repeatable)` to their descriptions, before `(required)` when applicable.
-
 ## Standalone `--`
 
 Koi supports the common Unix command-line convention of using `--` to end option recognition.

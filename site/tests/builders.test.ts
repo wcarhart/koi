@@ -229,6 +229,8 @@ test('array builders preserve elements, omit empty rows, and match runtime help'
       });
       assert.equal(help.status, 0, help.stderr);
       assert.equal(help.stdout, argumentHelp([arg]));
+      assert.doesNotMatch(help.stdout, /\(repeatable\)|\(repeated\)/);
+      assert.equal(help.stdout.includes('(required)'), required);
       const omitted = spawnSync('bash', ['-c', script, 'greet.sh'], {
         cwd: root,
         encoding: 'utf8',

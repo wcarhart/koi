@@ -1531,10 +1531,6 @@ koi::internal::print_help() {
         fi
 
         __koi_help_description=${__koi_arg_descriptions[$__koi_help_dest]}
-        if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
-            __koi_help_description+=' (repeatable)'
-        fi
-
         if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
             __koi_help_description+=' (required)'
         fi
