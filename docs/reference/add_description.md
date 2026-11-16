@@ -14,7 +14,7 @@ koi::add_description TEXT
 
 `TEXT` is required and must be a single, nonempty string. Quote descriptions containing spaces, such as `koi::add_description 'Show application status'`. There are no declaration options.
 
-You can declare one description per registration block, alongside any [koi::add_arg](/docs/reference/add_arg) or [koi::add_command](/docs/reference/add_command) calls. The description is optional and is built again each time the function runs, just like its argument declarations.
+You can declare one description per registration block, alongside any [koi::add_arg](/docs/reference/add_arg), [koi::add_validator](/docs/reference/add_validator), or [koi::add_command](/docs/reference/add_command) calls. The description is optional and is built again each time the function runs, just like its argument declarations.
 
 For the root help menu, use [koi::config](/docs/reference/config) at script scope:
 

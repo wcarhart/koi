@@ -126,3 +126,7 @@ Koi uses returns for routine help and errors, so it can be used in sourced scrip
 > Koi works with both `set -e` and `set +e`. When `errexit` applies, an invalid argument declaration can stop execution mid-registration rather than waiting for parsing to reject the block. Failures in business logic can also stop execution immediately. Conditional calls and children dispatched by `koi::parse` suppress `errexit`, so explicit failure handling is still needed.
 > 
 > With a bare, unguarded parse, `set -e` can exit on the parser's `1` for successful help. That turns a successful help request into a failed script, and conditional calls can let business logic run anyway. Always use the guard regardless of shell options.
+
+## Validation
+
+[Validators](/docs/reference/glossary#validator) are functions that validate argument values at parse time. They run as an intermediate step in [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run) and finish before assignment or child dispatch. Rejections return through the existing parser guard with status `2`. The validator functions receive one literal value and return `0` to accept, `1` to reject, or at least `2` for operational failure. Koi ships with a few builtin validators, but you can use [koi::add_validator](/docs/reference/add_validator) to use a custom function. Since validators run conditionally, they must handle failures explicitly instead of relying on `set -e`.

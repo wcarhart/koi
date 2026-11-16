@@ -89,3 +89,7 @@ Call `koi::run` once per library initialization. The first attempt consumes root
 Roots without child commands can declare positionals, but positionals and child commands cannot share a [context](/docs/concepts/lifecycle). For a root with positionals, the missing-command and unknown-command settings have no effect.
 
 The runner returns `0` after both help and successful parsing, so business logic placed after it would run in either case. If your script needs to parse arguments and then perform an operation without subcommands, use a [guarded function entrypoint](/docs/concepts/routing#direct-calls-and-entrypoints).
+
+## Validation
+
+When [koi::add_validator](/docs/reference/add_validator) is used to register [validators](/docs/reference/glossary#validator) for options or positionals (flags cannot be validated), the associated validator(s) will run for each argument after parsing and all destination-type checks but before any destination assignment or child dispatch. Koi ships with a few builtin validators but you can register your own custom function as a validator using [koi::add_validator --function](/docs/reference/add_validator). Validation rejections at parse are [user errors](/docs/reference/glossary#user-error). Validators do not run when help is requested.

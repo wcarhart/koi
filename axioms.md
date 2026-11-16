@@ -108,7 +108,8 @@ redesign and bug fixes, rather than only modernization of the existing code.
 - A function may call another koi-powered function directly with flags, options,
   and positional arguments. The callee registers and parses its own interface.
 - Direct function calls do not require command registration or runner wrappers.
-- A function owns one uninterrupted registration block: zero or more `koi::add_arg`
+- A function owns one uninterrupted registration block: zero or more `koi::add_arg`,
+  `koi::add_validator`, `koi::add_description`,
   and `koi::add_command` calls followed by exactly one guarded `koi::parse`.
   Preparation may execute before the block; business logic executes after it.
   Conditional declarations are supported. Registration helpers that contribute

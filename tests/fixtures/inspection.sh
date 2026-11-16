@@ -19,6 +19,10 @@ capture_spec() {
     local -A __koi_saved_arg_requireds=()
     local -A __koi_saved_arg_defaults=()
     local -A __koi_saved_arg_display_names=()
+    local -a __koi_saved_validator_dests=()
+    local -a __koi_saved_validator_selectors=()
+    local -a __koi_saved_validator_functions=()
+    local -a __koi_saved_validator_messages=()
     local -A __koi_saved_meta=()
     local -i __koi_saved_spec_valid=1
     local __koi_inspection_sink=__koi_saved __koi_inspection_received=0

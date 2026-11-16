@@ -218,13 +218,19 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
 test('shared reference fragments stay within their owning route', async ({
   page,
 }) => {
-  for (const route of ['add_arg', 'add_command', 'run', 'config']) {
-    await page.goto(`/docs/reference/${route}#options`);
-    const heading = page.locator(`#doc-reference-${route}-options`);
+  for (const route of [
+    'add_arg',
+    'add_validator',
+    'add_command',
+    'run',
+    'config',
+  ]) {
+    await page.goto(`/docs/reference/${route}#arguments`);
+    const heading = page.locator(`#doc-reference-${route}-arguments`);
     await expect(heading).toBeInViewport();
     await heading.getByRole('link').click();
     await expect(page).toHaveURL(
-      new RegExp(`/docs/reference/${route}#options$`),
+      new RegExp(`/docs/reference/${route}#arguments$`),
     );
     await page.reload();
     await expect(heading).toBeInViewport();

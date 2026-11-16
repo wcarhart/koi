@@ -6,6 +6,7 @@ import { Marked, type Token, type Tokens } from 'marked';
 import GithubSlugger from 'github-slugger';
 import { createHighlighter } from 'shiki';
 import { usageLanguage } from './usage-language';
+import { shellLanguage } from './shell-language';
 import { copyIcon, escapeHtml } from './html';
 import {
   installMethods,
@@ -90,7 +91,7 @@ export function validateManifest(entries: ManifestEntry[]): void {
 }
 const highlighter = createHighlighter({
   themes: ['github-light', 'github-dark'],
-  langs: ['bash', 'text', 'json', usageLanguage],
+  langs: ['bash', 'text', 'json', usageLanguage, shellLanguage],
 });
 export async function renderMarkdown(
   body: string,
@@ -170,19 +171,23 @@ export async function renderMarkdown(
       code({ text, lang }: Tokens.Code) {
         const [language, ...metadata] = (lang || 'text').trim().split(/\s+/);
         const usage = language === 'text' && metadata.includes('usage');
+        const shell =
+          ['bash', 'text'].includes(language) && metadata.includes('shell');
         const lineNumbers =
           metadata.some(
             (value) =>
               value === 'line-numbers' || value === 'line-numbers=true',
           ) && !metadata.includes('line-numbers=false');
         const html = high.codeToHtml(text, {
-          lang: usage
-            ? 'koi-usage'
-            : ['bash', 'sh', 'shell'].includes(language)
-              ? 'bash'
-              : language === 'json'
-                ? 'json'
-                : 'text',
+          lang: shell
+            ? 'koi-shell'
+            : usage
+              ? 'koi-usage'
+              : ['bash', 'sh', 'shell'].includes(language)
+                ? 'bash'
+                : language === 'json'
+                  ? 'json'
+                  : 'text',
           themes: { light: 'github-light', dark: 'github-dark' },
           transformers: lineNumbers
             ? [
@@ -198,7 +203,7 @@ export async function renderMarkdown(
           options.copy === false
             ? ''
             : `<button type="button" class="copy-button" data-copy-code aria-label="Copy code">${copyIcon}</button>`;
-        return `<div class="code-block"><div class="code-label"><span>${usage ? 'Usage' : escapeHtml(language)}</span>${copy}</div>${html}</div>`;
+        return `<div class="code-block"><div class="code-label"><span>${shell ? 'Shell' : usage ? 'Usage' : escapeHtml(language)}</span>${copy}</div>${html}</div>`;
       },
       link({ href, title, tokens }: Tokens.Link) {
         const [base, hash] = href.split('#');

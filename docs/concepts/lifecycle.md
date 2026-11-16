@@ -14,6 +14,28 @@ A **registration block** is the code that declares this interface and closes it 
 
 Inside functions, use [koi::add_arg](/docs/reference/add_arg) for arguments, [koi::add_command](/docs/reference/add_command) for child commands, and [koi::add_description](/docs/reference/add_description) for a description. At script scope, use `koi::add_arg` and `koi::add_command` for the root interface and [koi::config](/docs/reference/config) for script-wide settings such as the name and description.
 
+Within registration blocks at either scope, use [koi::add_validator](/docs/reference/add_validator) after an option or positional declaration to register [validators](/docs/reference/glossary#validator), which are predicates that run during parsing before destination assignment. Validator metadata belongs to that block and is consumed with its spec.
+
+The order of koi APIs within registration blocks does not matter as long as the block is closed with [koi::parse](/docs/reference/parse) and arguments are registered with [koi::add_arg](/docs/reference/add_arg) before their associated [validator](/docs/reference/glossary#validator) is registered with [koi::add_validator](/docs/reference/add_validator). For example this:
+
+```bash
+koi::add_description 'Name a person'
+koi::add_arg name --option -d 'A name'
+koi::add_validator name --nonempty
+koi::add_command person -f person -d 'Select a person'
+koi::parse "$@" || return "$koi_status"
+```
+
+Is equivalent in koi to this:
+
+```bash
+koi::add_command person -f person -d 'Select a person'
+koi::add_arg name --option -d 'A name'
+koi::add_description 'Name a person'
+koi::add_validator name --nonempty
+koi::parse "$@" || return "$koi_status"
+```
+
 ## Completing a function's registration block
 
 A parsing function has room for preparation before registration and business logic after parsing:

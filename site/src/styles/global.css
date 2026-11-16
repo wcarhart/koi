@@ -2674,3 +2674,59 @@ html:not(.js) [data-open-menu] {
     padding-bottom: var(--argument-demo-space, 0px);
   }
 }
+
+/* Value validation sits between preflight checks and destination assignment. */
+.prose .validation-lifecycle {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1.3fr;
+  gap: 36px;
+  list-style: none;
+  padding: 0;
+  margin: 28px 0;
+}
+.prose .validation-lifecycle-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 170px;
+  margin: 0;
+  padding: 20px 16px;
+  border: 2px solid var(--line);
+  border-radius: 30px;
+  corner-shape: squircle;
+  background: var(--surface);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.validation-lifecycle-stage + .validation-lifecycle-stage::before {
+  content: '';
+  position: absolute;
+  left: -29px;
+  top: 50%;
+  width: 18px;
+  height: 12px;
+  transform: translateY(-50%);
+  background: var(--muted);
+  clip-path: polygon(0 40%, 65% 40%, 65% 0, 100% 50%, 65% 100%, 65% 60%, 0 60%);
+}
+.prose .validation-lifecycle-check {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .prose .validation-lifecycle {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .prose .validation-lifecycle-stage {
+    min-height: 110px;
+  }
+  .validation-lifecycle-stage + .validation-lifecycle-stage::before {
+    left: 50%;
+    top: -19px;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+}

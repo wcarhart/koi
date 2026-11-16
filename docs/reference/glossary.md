@@ -108,7 +108,7 @@ koi::add_description "My function's description"
 koi::add_arg force --flag --short f --long force -d 'Force the operation'
 koi::parse "$@" || return "$koi_status"
 ```
-In a function: zero or more function declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) followed by exactly one [guarded](#guard) [koi::parse](/docs/reference/parse) statement. At the [root](#root-context) level: zero or more root declarations ([koi::add_arg](/docs/reference/add_arg) or [koi::add_command](/docs/reference/add_command)) followed by exactly one [koi::run](/docs/reference/run) statement.
+In a function: zero or more function declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_validator](/docs/reference/add_validator), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) followed by exactly one [guarded](#guard) [koi::parse](/docs/reference/parse) statement. At the [root](#root-context) level: zero or more root declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_validator](/docs/reference/add_validator), or [koi::add_command](/docs/reference/add_command)) followed by exactly one [koi::run](/docs/reference/run) statement.
 
 Registration blocks must be closed properly (via [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run)) or koi will not function properly. Conditional argument registration is supported (e.g. custom logic inside of a registration block) but comes with additional risk.
 
@@ -126,7 +126,7 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 
 ## Registration spec
 
-**The accumulated description/specification of a [context’s](#registration-context) arguments, immediate child commands, descriptions, and related metadata.** Executing declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) begins argument registration accumulation in the spec and parsing arguments ([koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run)) consumes the spec. The registration spec is not persistent and is built on the fly during function execution. See [registration contexts and blocks](/docs/concepts/lifecycle).
+**The accumulated description/specification of a [context’s](#registration-context) arguments, immediate child commands, descriptions, and related metadata.** Executing declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_validator](/docs/reference/add_validator), [koi::add_command](/docs/reference/add_command), or [koi::add_description](/docs/reference/add_description)) begins argument registration accumulation in the spec and parsing arguments ([koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run)) consumes the spec. The registration spec is not persistent and is built on the fly during function execution. See [registration contexts and blocks](/docs/concepts/lifecycle).
 
 ## Requiredness
 
@@ -134,7 +134,7 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 
 ## Root context
 
-**The [context](#registration-context) built by script-scope declarations,** including declarations ([koi::add_arg](/docs/reference/add_arg) or [koi::add_command](/docs/reference/add_command)) sourced at script scope. In contrast to [function context](#registration-context), only [koi::run](/docs/reference/run) can consumes root-level [registration specs](#registration-spec), once per library initialization/script invocation. Parsing arguments in [function context](#registration-context) uses a separate [registration buffer](#registration-buffer). See [registration contexts and blocks](/docs/concepts/lifecycle).
+**The [context](#registration-context) built by script-scope declarations,** including declarations ([koi::add_arg](/docs/reference/add_arg), [koi::add_validator](/docs/reference/add_validator), or [koi::add_command](/docs/reference/add_command)) sourced at script scope. In contrast to [function context](#registration-context), only [koi::run](/docs/reference/run) can consumes root-level [registration specs](#registration-spec), once per library initialization/script invocation. Parsing arguments in [function context](#registration-context) uses a separate [registration buffer](#registration-buffer). See [registration contexts and blocks](/docs/concepts/lifecycle).
 
 ## Scalar
 
@@ -155,3 +155,7 @@ Non-[root](#root-context) context can also be referred to as _function context_.
 ## Value
 
 **The data consumed for an [option](#option) or [positional](#positional),** or assigned to a [destination](#destination) after parsing. A value can be an empty string.
+
+## Validator
+
+**A predicate registered with [koi::add_validator](/docs/reference/add_validator) that checks one effective option or positional value before assignment.** Array elements are each checked independently. A rejection stops parsing without assigning destinations.

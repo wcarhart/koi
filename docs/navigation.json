@@ -89,6 +89,11 @@
     "group": "Reference"
   },
   {
+    "file": "reference/add_validator.md",
+    "slug": "reference/add_validator",
+    "group": "Reference"
+  },
+  {
     "file": "reference/add_description.md",
     "slug": "reference/add_description",
     "group": "Reference"

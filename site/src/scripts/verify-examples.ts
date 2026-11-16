@@ -20,6 +20,11 @@ import {
 // Only these reviewed scripts and argument vectors may be executed by this check.
 const fixtures = [
   {
+    script: 'validators',
+    args: ['--count', '3', '--environment', 'staging'],
+    output: 'validators',
+  },
+  {
     script: 'arrays',
     args: ['src', 'dst', '-I', 'one', 'a', '--include', 'two words', 'b'],
     output: 'arrays',
@@ -67,8 +72,8 @@ const fixtures = [
   { script: 'copy', args: ['source.txt', '-v', 'out'], output: 'copy' },
   {
     script: 'commands',
-    args: ['deploy', 'app', '-e', 'production'],
-    output: 'commands',
+    args: ['deploy', 'service', 'api', '-f', 'compose.prod.yaml'],
+    output: 'home-cli-service',
   },
 ];
 const version = spawnSync('bash', [
@@ -109,7 +114,7 @@ for (const fixture of fixtures) {
       'bash',
       ['hero', 'quickstart-greet'].includes(fixture.script)
         ? ['-c', readFileSync(filename, 'utf8'), 'greet.sh', ...fixture.args]
-        : fixture.script === 'home-cli'
+        : ['home-cli', 'commands'].includes(fixture.script)
           ? [
               '-c',
               'docker() { printf "docker"; printf " <%s>" "$@"; printf "\\n"; }; terraform() { printf "terraform"; printf " <%s>" "$@"; printf "\\n"; }; source "$@"',

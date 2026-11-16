@@ -102,6 +102,10 @@ Successful parsing replaces previous destination values within the context. Omit
 
 Scalar destinations must be absent, ordinary scalars or exported scalars. Array destinations must be absent or plain indexed arrays, optionally exported. Existing scalars (including untyped `local files`), associative arrays, readonly variables, namerefs, integers, and case-transforming attributes are rejected for arrays. Declare array locals with `local -a files` or `declare -a files` if you don't want koi to declare the array destinations for you. Successful parsing replaces the entire array, including stale values and sparse indices. All destinations are checked before any assignment. Declare destinations with `local` inside functions when you want to keep their values separate from callers. Intentional globals are also supported, and assignments follow Bash's dynamic scope (see [destination variables and scope](/docs/concepts/destinations)).
 
+## Validation
+
+Use [koi::add_validator](/docs/reference/add_validator) after declaring an option or positional to check its effective values when parsing. Checks run after parsing and all destination-type checks, before any destination assignment or child dispatch. Supplied rejections are [user errors](/docs/reference/glossary#user-error). Flag values cannot be validated.
+
 ## Explore
 
 Use the controls below to update the `koi::add_arg` calls in the sample koi script.

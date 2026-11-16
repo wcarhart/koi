@@ -76,3 +76,9 @@ Outside an option's value, an unrecognized token beginning with `-` is an error.
 Here, `-draft.txt` and `--help` fill positional slots. A lone `-` is ordinary data even without the separator. In a [branch with child commands](/docs/concepts/routing), `--` ends the parent's option recognition, and the next token still selects a command. Extra, unknown positional values are treated as errors by default. You can silently ignore them by using `--koi-ignore-unknown-positionals` with [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run).
 
 For a walkthrough of declaring and using these arguments, see [define flags, options, and positionals](/docs/guides/arguments).
+
+## Validation
+
+Koi can also validate arguments when parsing. For example, if you wrote a CLI that copied a file to a destination directory, like `./cp.sh source.txt destination/`, koi can validate that `source.txt` is an existing file and `destination/` is an existing directory.
+
+Register constraints on options and positionals with [koi::add_validator](/docs/reference/add_validator). The [validator](/docs/reference/glossary#validator) will run for each associated, provided value that it's registered for. For scalar options, the validator will run once on the final provided option value. For arrays (options _and_ positionals, see [cardinality](/docs/concepts/cardinality)), the validator will run once for every element in the array.

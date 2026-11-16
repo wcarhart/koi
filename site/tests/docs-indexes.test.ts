@@ -29,7 +29,7 @@ test('standalone indexes resolve links and discovery without joining continuous 
     ],
   );
   const reference = indexDocs('reference', docs);
-  assert.equal(reference.length, 8);
+  assert.equal(reference.length, 9);
   assert.equal(reference.at(-1)!.slug, 'reference/conventions');
   assert.equal(indexDocs('examples', docs).length, 3);
   const entries = await (await searchIndex()).json();

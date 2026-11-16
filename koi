@@ -33,7 +33,7 @@ fi
 
 # Re-sourcing preserves both unfinished registration and the root lifecycle
 if [[ ${__koi_initialized-} != 1 ]]; then
-    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_cardinalities arg_descriptions arg_requireds arg_defaults arg_display_names meta)
+    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_cardinalities arg_descriptions arg_requireds arg_defaults arg_display_names validator_dests validator_selectors validator_functions validator_messages meta)
     declare -ga __koi_root_commands=()
     declare -gA __koi_root_handlers=()
     declare -gA __koi_root_descriptions=()
@@ -46,6 +46,10 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_root_arg_requireds=()
     declare -gA __koi_root_arg_defaults=()
     declare -gA __koi_root_arg_display_names=()
+    declare -ga __koi_root_validator_dests=()
+    declare -ga __koi_root_validator_selectors=()
+    declare -ga __koi_root_validator_functions=()
+    declare -ga __koi_root_validator_messages=()
     declare -gA __koi_config=()
     declare -gA __koi_root_meta=()
     declare -gi __koi_root_spec_valid=1
@@ -61,6 +65,10 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_pending_arg_requireds=()
     declare -gA __koi_pending_arg_defaults=()
     declare -gA __koi_pending_arg_display_names=()
+    declare -ga __koi_pending_validator_dests=()
+    declare -ga __koi_pending_validator_selectors=()
+    declare -ga __koi_pending_validator_functions=()
+    declare -ga __koi_pending_validator_messages=()
     declare -gA __koi_pending_meta=()
     declare -gi __koi_pending_spec_valid=1
     declare -gi __koi_root_used=0
@@ -350,6 +358,94 @@ koi::add_arg() {
     return 0
 }
 
+# Register a value predicate (aka a "validator") for an already-declared
+# option or positional (flags cannot be validated)
+# Usage: koi::add_validator DEST (--nonempty|--integer|--file|--directory)
+# Usage: koi::add_validator DEST -f FUNCTION [-m MESSAGE]
+#   DEST             destination in the current registration block; flags are rejected
+#   --nonempty       require at least one character, including whitespace
+#   --integer        require signed or unsigned ASCII decimal digits
+#   --file           require an existing regular file (Bash -f)
+#   --directory      require an existing directory (Bash -d)
+#   -f, --function   Bash predicate called with exactly one literal value
+#   -m, --message    nonempty rejection reason for a custom predicate
+# Returns 0 silently or 2 on author error
+koi::add_validator() {
+    local __koi_buffer
+    koi::internal::select_registration_buffer __koi_buffer koi::add_validator || return 2
+    local __koi_validator_dest=${1-} __koi_validator_selector='' __koi_validator_function='' __koi_validator_message=''
+    local __koi_validator_seen_message=0 __koi_validator_error=''
+    local -n __koi_validator_kinds="${__koi_buffer}_arg_kinds"
+    local -n __koi_validator_dests="${__koi_buffer}_validator_dests"
+    local -n __koi_validator_selectors="${__koi_buffer}_validator_selectors"
+    local -n __koi_validator_functions="${__koi_buffer}_validator_functions"
+    local -n __koi_validator_messages="${__koi_buffer}_validator_messages"
+
+    if [[ ! $__koi_validator_dest =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        __koi_validator_error='registered option or positional destination required'
+    elif [[ ${__koi_validator_kinds[$__koi_validator_dest]-} != option && ${__koi_validator_kinds[$__koi_validator_dest]-} != positional ]]; then
+        __koi_validator_error="not an option or positional in this context: '$__koi_validator_dest'"
+    fi
+
+    if (( $# )); then
+        shift
+    fi
+
+    while (( $# )) && [[ -z $__koi_validator_error ]]; do
+        case $1 in
+            --nonempty|--integer|--file|--directory|-f|--function)
+                if [[ -n $__koi_validator_selector ]]; then
+                    __koi_validator_error='exactly one validator selector required'
+                    break
+                fi
+
+                __koi_validator_selector=${1#--}
+                if [[ $1 == -f || $1 == --function ]]; then
+                    if (( $# < 2 )) || [[ ! $2 =~ ^[a-zA-Z_][a-zA-Z0-9_:]*$ ]]; then
+                        __koi_validator_error='valid function identifier required'
+                        break
+                    fi
+
+                    __koi_validator_selector=custom
+                    __koi_validator_function=$2
+                    shift
+                fi
+                ;;
+            -m|--message)
+                if (( __koi_validator_seen_message || $# < 2 )) || [[ -z $2 ]]; then
+                    __koi_validator_error='one nonempty message required'
+                    break
+                fi
+
+                __koi_validator_seen_message=1
+                __koi_validator_message=$2
+                shift
+                ;;
+            *)
+                __koi_validator_error="unknown declaration parameter: $1"
+                ;;
+        esac
+        shift
+    done
+
+    if [[ -z $__koi_validator_selector ]]; then
+        __koi_validator_error='exactly one validator selector required'
+    elif (( __koi_validator_seen_message )) && [[ $__koi_validator_selector != custom ]]; then
+        __koi_validator_error='messages require a custom function'
+    fi
+
+    if [[ -n $__koi_validator_error ]]; then
+        koi::internal::spec_error "$__koi_buffer" koi::add_validator "$__koi_validator_error"
+        return 2
+    fi
+
+    __koi_validator_dests+=("$__koi_validator_dest")
+    __koi_validator_selectors+=("$__koi_validator_selector")
+    __koi_validator_functions+=("$__koi_validator_function")
+    __koi_validator_messages+=("$__koi_validator_message")
+    return 0
+}
+
 # Consume argument registration and parse arguments, assign literal scalar/array
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
@@ -385,6 +481,10 @@ koi::parse() {
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
     local -A __koi_parsed_arg_display_names=()
+    local -a __koi_parsed_validator_dests=()
+    local -a __koi_parsed_validator_selectors=()
+    local -a __koi_parsed_validator_functions=()
+    local -a __koi_parsed_validator_messages=()
     local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
 
@@ -489,6 +589,10 @@ koi::run() {
     local -A __koi_parsed_arg_requireds=()
     local -A __koi_parsed_arg_defaults=()
     local -A __koi_parsed_arg_display_names=()
+    local -a __koi_parsed_validator_dests=()
+    local -a __koi_parsed_validator_selectors=()
+    local -a __koi_parsed_validator_functions=()
+    local -a __koi_parsed_validator_messages=()
     local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
     koi::internal::take_spec __koi_root __koi_parsed
@@ -702,6 +806,10 @@ koi::internal::visit_command() {
     local -A __koi_visit_spec_arg_requireds=()
     local -A __koi_visit_spec_arg_defaults=()
     local -A __koi_visit_spec_arg_display_names=()
+    local -a __koi_visit_spec_validator_dests=()
+    local -a __koi_visit_spec_validator_selectors=()
+    local -a __koi_visit_spec_validator_functions=()
+    local -a __koi_visit_spec_validator_messages=()
     local -A __koi_visit_spec_meta=()
     local -i __koi_visit_spec_spec_valid=1
     local __koi_inspection_sink=__koi_visit_spec __koi_inspection_received=0
@@ -1001,6 +1109,19 @@ koi::internal::parse_spec() {
 
     local __koi_parse_index
     local -a __koi_parse_array=()
+    # validate effective values only after the complete invocation is well formed
+    for __koi_parse_dest in "${__koi_args[@]}"; do
+        if [[ ${__koi_arg_cardinalities[$__koi_parse_dest]} == array ]]; then
+            for ((__koi_parse_index=0; __koi_parse_index<${__koi_parse_counts[$__koi_parse_dest]:-0}; __koi_parse_index++)); do
+                koi::internal::validate_value "$__koi_engine_prefix" "$__koi_engine_api" "$__koi_parse_dest" "${__koi_parse_elements[$__koi_parse_dest,$__koi_parse_index]}" 0 || return 2
+            done
+        elif [[ ${__koi_parse_seen[$__koi_parse_dest]+present} ]]; then
+            koi::internal::validate_value "$__koi_engine_prefix" "$__koi_engine_api" "$__koi_parse_dest" "${__koi_parse_values[$__koi_parse_dest]}" 0 || return 2
+        elif [[ ${__koi_arg_defaults[$__koi_parse_dest]+present} ]]; then
+            koi::internal::validate_value "$__koi_engine_prefix" "$__koi_engine_api" "$__koi_parse_dest" "${__koi_parse_values[$__koi_parse_dest]}" 1 || return 2
+        fi
+    done
+
     # assign only after every value and destination has been checked
     for __koi_parse_dest in "${__koi_args[@]}"; do
         # replace the complete array through the nearest visible destination
@@ -1208,6 +1329,17 @@ koi::internal::finalize_spec() {
     local -n __koi_layout_cardinalities="${__koi_layout_prefix}_arg_cardinalities"
     local __koi_layout_array=0
     __koi_layout_meta[positionals]=0
+
+    local -n __koi_layout_validator_dests="${1}_validator_dests"
+    local -n __koi_layout_validator_functions="${1}_validator_functions"
+    local __koi_layout_validator_index __koi_layout_callback
+    for __koi_layout_validator_index in "${!__koi_layout_validator_dests[@]}"; do
+        __koi_layout_callback=${__koi_layout_validator_functions[$__koi_layout_validator_index]}
+        if [[ -n $__koi_layout_callback ]] && ! declare -F -- "$__koi_layout_callback" >/dev/null; then
+            koi::internal::author_error koi::add_validator "argument '${__koi_layout_validator_dests[$__koi_layout_validator_index]}': callback '$__koi_layout_callback' is not a Bash function"
+            return 2
+        fi
+    done
 
     # inspect positionals in declaration order, ignoring named arguments
     for __koi_layout_dest in "${__koi_layout_args[@]}"; do
@@ -1664,4 +1796,92 @@ koi::internal::print_help() {
             printf '  %s COMMAND --help    Show individual command documentation\n' "${__koi_help_meta[name]}"
         fi
     fi
+}
+
+# Accept a string containing at least one character
+# Usage: koi::internal::validator::nonempty VALUE
+#   VALUE  literal string; whitespace counts (returns 0 accepted, 1 rejected)
+koi::internal::validator::nonempty() {
+    [[ -n $1 ]]
+}
+
+# Accept lexical ASCII decimal integers without arithmetic evaluation
+# Usage: koi::internal::validator::integer VALUE
+#   VALUE  optional sign followed by digits (returns 0 accepted, 1 rejected)
+koi::internal::validator::integer() {
+    [[ $1 =~ ^[+-]?[0123456789]+$ ]]
+}
+
+# Accept an existing regular file, following symlinks
+# Usage: koi::internal::validator::file VALUE
+#   VALUE  path checked using Bash -f (returns 0 accepted, 1 rejected)
+koi::internal::validator::file() {
+    [[ -f $1 ]]
+}
+
+# Accept an existing directory, following symlinks
+# Usage: koi::internal::validator::directory VALUE
+#   VALUE  path checked using Bash -d (returns 0 accepted, 1 rejected)
+koi::internal::validator::directory() {
+    [[ -d $1 ]]
+}
+
+# Run a destination's ordered predicates before assignment
+# Usage: koi::internal::validate_value PREFIX API DEST VALUE DEFAULT
+#   PREFIX   consumed spec holding validator arrays
+#   API      active parser API for author errors
+#   DEST     destination name
+#   VALUE    one literal effective value
+#   DEFAULT  1 for an omitted argument's explicit default, otherwise 0
+# Returns 2 at the first rejection or operational failure, otherwise 0
+koi::internal::validate_value() {
+    local -n __koi_check_dests="${1}_validator_dests" __koi_check_selectors="${1}_validator_selectors"
+    local -n __koi_check_functions="${1}_validator_functions" __koi_check_messages="${1}_validator_messages"
+    local __koi_check_index __koi_check_function __koi_check_reason __koi_check_status
+    for __koi_check_index in "${!__koi_check_dests[@]}"; do
+        if [[ ${__koi_check_dests[$__koi_check_index]} != "$3" ]]; then
+            continue
+        fi
+
+        __koi_check_function=${__koi_check_functions[$__koi_check_index]}
+        case ${__koi_check_selectors[$__koi_check_index]} in
+            nonempty)
+                __koi_check_function=koi::internal::validator::nonempty
+                __koi_check_reason='must not be empty'
+                ;;
+            integer)
+                __koi_check_function=koi::internal::validator::integer
+                __koi_check_reason='must be an integer'
+                ;;
+            file)
+                __koi_check_function=koi::internal::validator::file
+                __koi_check_reason='must be an existing file'
+                ;;
+            directory)
+                __koi_check_function=koi::internal::validator::directory
+                __koi_check_reason='must be an existing directory'
+                ;;
+            custom)
+                __koi_check_reason=${__koi_check_messages[$__koi_check_index]:-validation failed}
+                ;;
+        esac
+
+        if "$__koi_check_function" "$4"; then
+            continue
+        else
+            __koi_check_status=$?
+        fi
+
+        if (( __koi_check_status > 1 )); then
+            koi::internal::author_error "$2" "argument '$3': callback '$__koi_check_function' failed with status $__koi_check_status"
+        elif [[ $5 == 1 ]]; then
+            koi::internal::author_error "$2" "invalid default for argument '$3': $__koi_check_reason"
+        else
+            koi::internal::user_error "invalid argument '$3': $__koi_check_reason"
+        fi
+
+        return 2
+    done
+
+    return 0
 }

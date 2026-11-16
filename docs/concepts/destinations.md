@@ -81,3 +81,7 @@ A child command can read its parent's parsed destinations through ordinary Bash 
 This visibility doesn't make the parent's argument labels available in the child. In `./app.sh -v deploy`, the root recognizes `-v` and `deploy` can read its value. Moving `-v` after `deploy` requires the child to declare that label itself. See [argument ownership along a route](/docs/concepts/routing#argument-ownership-along-a-route).
 
 These scope rules also apply when you source a script into your shell. Global assignments can persist in that shell, while running a function in a subshell or command substitution keeps its assignments inside that subshell. See [reusing parsing functions](/docs/guides/functions) for practical patterns.
+
+## Validation
+
+When [validators](/docs/reference/glossary#validator) are registered in a context, all validators must pass before any destinations are assigned. This ensures that contexts are parsed _atomically_, and you will never end up in a state with partial update to context destinations upon validator failure.

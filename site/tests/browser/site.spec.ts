@@ -133,8 +133,10 @@ test('deep links, refresh, scroll URLs, explicit navigation, and browser history
     document.getElementById('doc-reference-config')!.scrollIntoView(),
   );
   await expect(page).toHaveURL(/\/docs\/reference\/config$/);
-  await page.goto('/docs/reference/add_arg#options');
-  await expect(page.locator('#doc-reference-add_arg-options')).toBeInViewport();
+  await page.goto('/docs/reference/add_arg#arguments');
+  await expect(
+    page.locator('#doc-reference-add_arg-arguments'),
+  ).toBeInViewport();
 });
 
 test('keyboard search navigates, closes, and ignores editable inputs', async ({

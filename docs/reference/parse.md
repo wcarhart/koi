@@ -61,6 +61,10 @@ The parser's return code decides whether the guard runs, while `$koi_status` sup
 
 A function with child commands dispatches or shows help when no child is selected, so code after its guard never runs. The parent must parse successfully before dispatching, even if the child requests help. See [calls and command routing](/docs/concepts/routing).
 
+## Validation
+
+When [koi::add_validator](/docs/reference/add_validator) is used to register [validators](/docs/reference/glossary#validator) for options or positionals (flags cannot be validated), the associated validator(s) will run for each argument after parsing and all destination-type checks but before any destination assignment or child dispatch. Koi ships with a few builtin validators but you can register your own custom function as a validator using [koi::add_validator --function](/docs/reference/add_validator). Validation rejections at parse are [user errors](/docs/reference/glossary#user-error). Validators do not run when help is requested.
+
 ## Assignment and help
 
 Successful parsing replaces every [destination](/docs/concepts/destinations) in the current context. Omitted flags receive `0`, while omitted optional scalar options and positionals receive their default or an empty string. Required arguments need explicit input on each call (explicitly supplied empty string counts as present).
