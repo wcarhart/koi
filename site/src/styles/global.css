@@ -736,8 +736,22 @@ kbd {
   min-height: 30px;
 }
 .section-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font: 10px var(--mono);
   color: var(--muted);
+}
+.section-number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .section-number-prefix {
   color: var(--ink);

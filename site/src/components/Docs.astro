@@ -23,10 +23,13 @@ const selected = docs.find((d) => d.slug === slug)!;
     >
       <div class="section-toolbar">
         <span class="section-number">
-          <span class="section-number-prefix">
-            {String(index + 1).padStart(2, '0')} / {doc.group} /
-          </span>{' '}
-          {doc.navTitle ?? doc.title}
+          <span class="section-number-badge">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <span>
+            <span class="section-number-prefix">{doc.group} /</span>{' '}
+            {doc.navTitle ?? doc.title}
+          </span>
         </span>
         <div>
           <button
