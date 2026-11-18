@@ -88,7 +88,7 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -gA __koi_pending_meta=()
     declare -gi __koi_pending_spec_valid=1
     declare -gi __koi_root_used=0
-    declare -ga __koi_reserved_longs=(help koi-ignore-unknown-positionals koi-use-single-pipe-for-or-groups koi-error-on-scalar-duplicates koi-error-on-duplicate koi-inspect)
+    declare -ga __koi_reserved_longs=(help)
     # shellcheck disable=SC2034
     declare -g koi_status=0
     __koi_initialized=1
@@ -96,28 +96,25 @@ fi
 
 # ------------------ PUBLIC API ------------------
 
-# Configure script-wide metadata before consuming root registration. Call
-# outside any function, after sourcing koi and before koi::run or the
-# entrypoint function.
+# Configure script-wide or function level policies. Function-level settings are
+# consumed with the spec, repeated keys invalidate the block.
 # Usage: koi::config KEY VALUE
-#   KEY    name, description, or help-width (positive integer, at most nine digits, default 100)
-#   VALUE  nonempty setting value (name defaults to the script basename)
-# Returns 2 and invalidates registration on invalid or repeated settings
+#   KEY    name, description, help-width, help-subcommand, verbose-help, help-hints,
+#          missing-command-message, help-on-unknown-commands (script only), or
+#          use-single-pipe-for-or-groups, ignore-unknown-positionals,
+#          error-on-scalar-duplicates (script or function)
+#   VALUE  nonempty text, positive help-width (at most nine digits), or true/false
+# Returns 2 on invalid arguments, scope, values, or repeated explicit settings
 koi::config() {
-    local __koi_buffer
+    local __koi_buffer __koi_config_script_only=1 __koi_config_boolean=0
     koi::internal::select_registration_buffer __koi_buffer koi::config || return 2
-    if [[ $__koi_buffer != __koi_root ]]; then
-        koi::internal::spec_error "$__koi_buffer" koi::config 'call outside any function, after sourcing koi and before koi::run or the entrypoint function'
-        return 2
-    fi
-
     if (( $# != 2 )) || [[ -z $2 ]]; then
         koi::internal::spec_error "$__koi_buffer" koi::config 'KEY and nonempty VALUE required'
         return 2
     fi
 
     case $1 in
-        name|description)
+        name|description|missing-command-message)
             ;;
         help-width)
             if [[ ! $2 =~ ^[0-9]+$ || ${#2} -gt 9 ]] || (( 10#$2 == 0 )); then
@@ -125,18 +122,42 @@ koi::config() {
                 return 2
             fi
             ;;
+        help-subcommand|verbose-help|help-hints|help-on-unknown-commands)
+            __koi_config_boolean=1
+            ;;
+        use-single-pipe-for-or-groups|ignore-unknown-positionals|error-on-scalar-duplicates)
+            __koi_config_script_only=0
+            __koi_config_boolean=1
+            ;;
         *)
             koi::internal::spec_error "$__koi_buffer" koi::config "unknown key: $1"
             return 2
             ;;
     esac
 
-    if [[ ${__koi_config[$1]+present} ]]; then
-        koi::internal::spec_error "$__koi_buffer" koi::config "repeated key: $1"
+    if (( __koi_config_script_only )) && [[ $__koi_buffer != __koi_root ]]; then
+        koi::internal::spec_error "$__koi_buffer" koi::config "script-only config key: $1"
         return 2
     fi
 
-    __koi_config[$1]=$2
+    if (( __koi_config_boolean )) && [[ $2 != true && $2 != false ]]; then
+        koi::internal::spec_error "$__koi_buffer" koi::config "$1 must be true or false"
+        return 2
+    fi
+
+    local __koi_config_storage="${__koi_buffer}_meta"
+    case $1 in
+        name|description|help-width)
+            __koi_config_storage=__koi_config
+            ;;
+    esac
+
+    local -n __koi_config_values=$__koi_config_storage
+    if [[ ${__koi_config_values[$1]+present} ]]; then
+        koi::internal::spec_error "$__koi_buffer" koi::config "repeated config key: $1"
+        return 2
+    fi
+    __koi_config_values[$1]=$2
 }
 
 # Describe a directly invoked parsing function
@@ -610,15 +631,8 @@ koi::add_dependency() {
 # return status and is used for exit/return control flow. Only supported from
 # inside application functions, not top-level/root context (use koi::run
 # in that scenario).
-# Usage: koi::parse [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
-# Internal usage: koi::parse --koi-inspect spec || return "$koi_status"
-#   --koi-error-on-scalar-duplicates     reject repeated scalar options and flags
-#   --koi-inspect MODE                   run the registered command handler functions
-#                                        in inspect mode (available modes: 'spec' -
-#                                        internal-only spec collection)
-#   --koi-use-single-pipe-for-or-groups  use | for inclusive OR in this routed subtree
-#   --koi-ignore-unknown-positionals     discard surplus positional values in this call
-#   $@                                   the script arguments to parse
+# Usage: koi::parse "$@" || return "$koi_status"
+#   $@  application arguments to parse
 # Returns 0 to continue, 1 to stop after help/dispatch, or 2 on error
 koi::parse() {
     local __koi_buffer __koi_path='' __koi_result __koi_collect_matches=0
@@ -672,7 +686,9 @@ koi::parse() {
         __koi_parsed_meta[description]=${__koi_route_description-}
         __koi_parsed_meta[builtin]=${__koi_route_help:-0}
         __koi_parsed_meta[verbose]=${__koi_route_verbose:-0}
-        __koi_parsed_meta[single-pipe]=${__koi_route_single_pipe:-0}
+        if [[ ! ${__koi_parsed_meta[use-single-pipe-for-or-groups]+present} ]]; then
+            __koi_parsed_meta[single-pipe]=${__koi_route_single_pipe:-0}
+        fi
     fi
 
     __koi_parsed_meta[path]=$__koi_path
@@ -727,20 +743,8 @@ koi::parse() {
 
 # Consume root registration and route once per library initialization.
 # Expected to be called once per script, repeated calls will error.
-# Usage: koi::run [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
-#   --koi-zero-argument-message MESSAGE    error text override when no command is given
-#                                          (default is help menu)
-#   --koi-enable-help-on-unknown-commands  allow unknown commands with standalone help
-#   --koi-disable-help-subcommand          allow custom help instead of built-in help
-#   --koi-enable-verbose-help              enable root help --verbose
-#   --koi-enable-help-hints                append available hints to ordinary root help
-#   --koi-inspect MODE                     run the registered command handler functions
-#                                          in inspect mode (available modes: 'spec' -
-#                                          internal-only spec collection)
-#   --koi-use-single-pipe-for-or-groups    use | for inclusive OR in this routed subtree
-#   --koi-ignore-unknown-positionals       discard surplus positional values in this call
-#   $@                                     root options, positionals, or command and
-#                                          child arguments
+# Usage: koi::run "$@"
+#   $@  root application options, positionals, or command and child arguments
 # Returns the handler's status, 0 for help/terminal parsing, or 2 on error
 koi::run() {
     if (( __koi_root_used )); then
@@ -778,79 +782,26 @@ koi::run() {
     if (( ! __koi_parsed_spec_valid )); then
         return 2
     fi
-    local __koi_run_message='' __koi_run_message_set=0 __koi_run_unknown_help=0
-    local __koi_run_help=1 __koi_run_verbose=0 __koi_run_hints=0 __koi_collect_matches=0
-    local -a __koi_run_scan_settings=()
-    local -A __koi_run_seen=()
+    local __koi_collect_matches=0
     # accept a root collector only at the runner invocation it explicitly targets
     if [[ ${__koi_inspection_handler-} == koi::run &&
           ${#FUNCNAME[@]} == "${__koi_inspection_depth-}" ]]; then
         __koi_collect_matches=1
     fi
-    # handle admin flags first
+    koi::internal::prepare_spec __koi_parsed 1
+    local __koi_run_message=${__koi_parsed_meta[missing-command-message]-}
+    local __koi_run_unknown_help=0
+    if [[ ${__koi_parsed_meta[help-on-unknown-commands]-false} == true ]]; then
+        __koi_run_unknown_help=1
+    fi
+    local __koi_run_help=${__koi_parsed_meta[builtin]}
+    local __koi_run_verbose=${__koi_parsed_meta[verbose]}
     local __koi_result __koi_selected_handler='' __koi_selected_command=''
     local -a __koi_remaining=()
-    while (( $# )); do
-        case $1 in
-            --koi-use-single-pipe-for-or-groups|--koi-ignore-unknown-positionals|--koi-error-on-scalar-duplicates)
-                __koi_run_scan_settings+=("$1")
-                shift
-                ;;
-            --koi-disable-help-subcommand|--koi-enable-verbose-help|--koi-enable-help-hints)
-                if [[ ${__koi_run_seen[$1]+present} ]]; then
-                    koi::internal::author_error koi::run "repeated $1"
-                    return 2
-                fi
-                __koi_run_seen[$1]=1
-                case $1 in
-                    --koi-disable-help-subcommand)
-                        __koi_run_help=0
-                        ;;
-                    --koi-enable-verbose-help)
-                        __koi_run_verbose=1
-                        ;;
-                    --koi-enable-help-hints)
-                        __koi_run_hints=1
-                        ;;
-                esac
-                shift
-                ;;
-            --koi-zero-argument-message)
-                if (( __koi_run_message_set || $# < 2 )) || [[ -z $2 ]]; then
-                    koi::internal::author_error koi::run 'invalid or repeated --koi-zero-argument-message'
-                    return 2
-                fi
-                __koi_run_message=$2
-                __koi_run_message_set=1
-                shift 2
-                ;;
-            --koi-enable-help-on-unknown-commands)
-                if (( __koi_run_unknown_help )); then
-                    koi::internal::author_error koi::run 'repeated --koi-enable-help-on-unknown-commands'
-                    return 2
-                fi
-                __koi_run_unknown_help=1
-                shift
-                ;;
-            *)
-                break
-                ;;
-        esac
-    done
-
-    if (( __koi_run_verbose && ! __koi_run_help )); then
-        koi::internal::author_error koi::run '--koi-enable-verbose-help requires the built-in help subcommand'
-        return 2
-    fi
-    koi::internal::prepare_spec __koi_parsed 1
-    __koi_parsed_meta[builtin]=$__koi_run_help
-    __koi_parsed_meta[verbose]=$__koi_run_verbose
-    __koi_parsed_meta[hints]=$__koi_run_hints
-    __koi_parsed_meta[runner]=1
 
     # parse root options and prepare command dispatch
     if koi::internal::parse_spec __koi_parsed 1 '' "$__koi_run_message" "$__koi_run_unknown_help" \
-        __koi_selected_handler __koi_selected_command __koi_remaining "${__koi_run_scan_settings[@]}" "$@"; then
+        __koi_selected_handler __koi_selected_command __koi_remaining "$@"; then
         __koi_result=0
     else
         __koi_result=$?
@@ -885,9 +836,8 @@ koi::run() {
 # ------------------ INTERNAL ------------------
 
 # Complete consumed metadata with script settings and direct-call defaults
-# Usage: koi::internal::prepare_spec PREFIX API ROOT
+# Usage: koi::internal::prepare_spec PREFIX ROOT
 #   PREFIX  consumed spec prefix
-#   API     public parsing API responsible for layout validation
 #   ROOT    1 for script-scope registration, otherwise 0
 # ShellCheck cannot infer associative keys through this nameref
 # shellcheck disable=SC2154
@@ -902,8 +852,26 @@ koi::internal::prepare_spec() {
     __koi_prepare_meta[hints]=0
     __koi_prepare_meta[runner]=0
     __koi_prepare_meta[single-pipe]=0
+
+    if [[ ${__koi_prepare_meta[use-single-pipe-for-or-groups]-false} == true ]]; then
+        __koi_prepare_meta[single-pipe]=1
+    fi
+
     if (( $2 )); then
         __koi_prepare_meta[description]=${__koi_config[description]-}
+        __koi_prepare_meta[runner]=1
+
+        if [[ ${__koi_prepare_meta[help-subcommand]-true} == true ]]; then
+            __koi_prepare_meta[builtin]=1
+        fi
+
+        if [[ ${__koi_prepare_meta[verbose-help]-false} == true ]]; then
+            __koi_prepare_meta[verbose]=1
+        fi
+
+        if [[ ${__koi_prepare_meta[help-hints]-false} == true ]]; then
+            __koi_prepare_meta[hints]=1
+        fi
     fi
 }
 
@@ -963,7 +931,7 @@ koi::internal::walk_spec() {
 
 # Inspect one routed handler into invocation-local arrays before descending
 # Usage: koi::internal::visit_command HANDLER PATH DESCRIPTION
-#   HANDLER      registered function to invoke once with --koi-inspect spec
+#   HANDLER      registered function to invoke once with an internal collector
 #   PATH         complete CLI command path
 #   DESCRIPTION  selected alias description
 # Returns 2 on active-ancestry recursion, handler failure, or missing collection
@@ -1009,7 +977,7 @@ koi::internal::visit_command() {
     local __koi_route_handler=$__koi_visit_handler __koi_route_path=$__koi_visit_path
     local __koi_route_description=$__koi_visit_description
     local __koi_route_depth=$__koi_inspection_depth
-    if "$__koi_visit_handler" --koi-inspect spec; then
+    if "$__koi_visit_handler"; then
         if (( ! __koi_inspection_received )); then
             koi::internal::clear_spec __koi_pending
             koi::internal::author_error koi::run "inspection at '$__koi_visit_path' did not reach koi::parse"
@@ -1138,12 +1106,20 @@ koi::internal::parse_spec() {
         __koi_engine_api=koi::run
     fi
 
+    # validate root policy before layout removes unavailable help features
+    if (( __koi_engine_root )) &&
+        [[ ${__koi_engine_meta[verbose-help]-false} == true &&
+           ${__koi_engine_meta[help-subcommand]-true} == false ]]; then
+        koi::internal::author_error "$__koi_engine_api" 'verbose-help requires help-subcommand true'
+        return 2
+    fi
+
     # validate the completed layout and resolve help availability before parsing
     koi::internal::finalize_spec "$__koi_engine_prefix" "$__koi_engine_api" || return 2
     local __koi_engine_command_root=$((__koi_engine_root && ! ${__koi_engine_meta[positionals]}))
 
     if (( __koi_engine_meta[builtin] )) && [[ ${__koi_handlers[help]+present} ]]; then
-        koi::internal::author_error "$__koi_engine_api" "command 'help' conflicts with built-in help, use --koi-disable-help-subcommand"
+        koi::internal::author_error "$__koi_engine_api" "command 'help' conflicts with built-in help, use 'koi::config help-subcommand false' at script scope"
         return 2
     fi
 
@@ -1155,32 +1131,10 @@ koi::internal::parse_spec() {
         fi
     done
 
-    # authored parser settings may precede the collector's internal request
+    # only the collector's matched invocation can stop here to capture a spec
     if (( ${__koi_collect_matches:-0} )); then
-        local -A __koi_inspect_settings_seen=()
-        while [[ ${1-} == --koi-use-single-pipe-for-or-groups ||
-                 ${1-} == --koi-ignore-unknown-positionals ||
-                 ${1-} == --koi-error-on-scalar-duplicates ]]; do
-            if [[ ${__koi_inspect_settings_seen[$1]+present} ]]; then
-                koi::internal::author_error "$__koi_engine_api" "repeated $1 setting"
-                return 2
-            fi
-
-            __koi_inspect_settings_seen[$1]=1
-            if [[ $1 == --koi-use-single-pipe-for-or-groups ]]; then
-                __koi_engine_meta[single-pipe]=1
-            fi
-            shift
-        done
-    fi
-
-    if [[ ${1-} == --koi-inspect ]]; then
-        if (( $# != 2 )) || [[ ${2-} != spec ]]; then
-            koi::internal::author_error "$__koi_engine_api" 'invalid inspection request: expected --koi-inspect spec'
-            return 2
-        fi
-        if (( ! ${__koi_collect_matches:-0} )) || [[ -z ${__koi_inspection_sink-} ]]; then
-            koi::internal::author_error "$__koi_engine_api" 'standalone inspection is not supported, an internal collector is required'
+        if [[ -z ${__koi_inspection_sink-} ]]; then
+            koi::internal::author_error "$__koi_engine_api" 'inspection collector requires a sink'
             return 2
         fi
         koi::internal::copy_spec "$__koi_engine_prefix" "$__koi_inspection_sink"
@@ -1719,7 +1673,7 @@ koi::internal::finalize_spec() {
 #   TAIL_ARRAY    receives the child command and remaining tokens
 #   ROOT          1 to recognize a command even with no registered children
 #   CATEGORY_VAR  receives author or user for the first diagnostic
-#   $@            script arguments, including koi-reserved parser settings
+#   $@            application arguments
 # Returns 1 for help or 0 after scanning without assigning user destinations
 # namerefs point to associative arrays whose keys require string expansion
 # shellcheck disable=SC2004
@@ -1738,8 +1692,13 @@ koi::internal::scan_args() {
     local -n __koi_scan_category=$7
     local __koi_scan_ignore=0 __koi_scan_surplus=''
     local __koi_scan_step=0 __koi_scan_error_step=0 __koi_scan_surplus_step=0
-    local __koi_scan_single_pipe_seen=0
     local __koi_scan_duplicates=0 __koi_scan_duplicate=''
+    if [[ ${__koi_scan_meta[ignore-unknown-positionals]-false} == true ]]; then
+        __koi_scan_ignore=1
+    fi
+    if [[ ${__koi_scan_meta[error-on-scalar-duplicates]-false} == true ]]; then
+        __koi_scan_duplicates=1
+    fi
     shift 7
 
     local __koi_scan_dest __koi_scan_token __koi_scan_value __koi_scan_char
@@ -1790,7 +1749,7 @@ koi::internal::scan_args() {
                 fi
                 __koi_scan_seen[$__koi_scan_dest]=1
             elif [[ -z $__koi_scan_surplus ]]; then
-                # defer surplus data so a later setting applies to this invocation
+                # defer surplus data so help can take precedence
                 __koi_scan_surplus="unsupported positional argument: '$__koi_scan_token'"
                 __koi_scan_surplus_step=$__koi_scan_step
             fi
@@ -1800,31 +1759,6 @@ koi::internal::scan_args() {
         elif [[ $__koi_scan_token == -- ]]; then
             # end option recognition for the remaining tokens
             __koi_scan_positional=1
-        elif [[ $__koi_scan_token == --koi-use-single-pipe-for-or-groups ]]; then
-            # inherited formatting is distinct from an explicit setting occurrence
-            if (( __koi_scan_single_pipe_seen )) && [[ -z $__koi_scan_error ]]; then
-                __koi_scan_category=author
-                __koi_scan_error_step=$__koi_scan_step
-                __koi_scan_error='repeated --koi-use-single-pipe-for-or-groups setting'
-            fi
-            __koi_scan_single_pipe_seen=1
-            __koi_scan_meta[single-pipe]=1
-        elif [[ $__koi_scan_token == --koi-ignore-unknown-positionals ]]; then
-            # ignore surplus positional arguments for this invocation
-            if (( __koi_scan_ignore )) && [[ -z $__koi_scan_error ]]; then
-                __koi_scan_category=author
-                __koi_scan_error_step=$__koi_scan_step
-                __koi_scan_error='repeated --koi-ignore-unknown-positionals setting'
-            fi
-            __koi_scan_ignore=1
-        elif [[ $__koi_scan_token == --koi-error-on-scalar-duplicates ]]; then
-            # enable strict duplicate checking
-            if (( __koi_scan_duplicates )) && [[ -z $__koi_scan_error ]]; then
-                __koi_scan_category=author
-                __koi_scan_error_step=$__koi_scan_step
-                __koi_scan_error='repeated --koi-error-on-scalar-duplicates setting'
-            fi
-            __koi_scan_duplicates=1
         elif [[ -n $__koi_scan_token && ${__koi_scan_lookup[$__koi_scan_token]+present} ]]; then
             # resolve an exact spelling to its destination and value
             __koi_scan_dest=${__koi_scan_lookup[$__koi_scan_token]}
@@ -1926,7 +1860,7 @@ koi::internal::scan_args() {
         __koi_scan_error=$__koi_scan_surplus
     fi
 
-    # the reserved setting can appear after the duplicate it should reject
+    # report duplicate input only after allowing help to take precedence
     if (( __koi_scan_duplicates )) && [[ -n $__koi_scan_duplicate && -z $__koi_scan_error ]]; then
         __koi_scan_error_step=$__koi_scan_step
         __koi_scan_error="duplicate argument: '$__koi_scan_duplicate'"

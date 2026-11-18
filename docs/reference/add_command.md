@@ -57,7 +57,7 @@ By default, [koi::run](/docs/reference/run) adds the subcommand `help` to each [
 
 The leaf command `app` would still support `-h`/`--help`, but `./cli.sh infra deploy app help` would treat `help` as positional input and either accept or reject it according to its argument declarations. Directly called parsing functions (see [calls and routing](/docs/concepts/routing)) also support `-h`/`--help`, but do not receive the built-in `help` subcommand.
 
-To register your own command named `help`, use `koi::run --koi-disable-help-subcommand "$@"` (see [koi::run](/docs/reference/run)). Otherwise, the declaration conflicts with built-in help and fails when its context parses. Automatic `-h`/`--help` remains available with this setting. See [customizing the generated help](/docs/guides/help) for more help configuration.
+To register your own command named `help`, use `koi::config help-subcommand false` (see [koi::config](/docs/reference/config)). Otherwise, the declaration conflicts with built-in help and fails when its context parses. Automatic `-h`/`--help` remains available with this setting. See [customizing the generated help](/docs/guides/help) for more help configuration.
 
 <!-- koi:example -->
 

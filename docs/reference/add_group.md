@@ -68,7 +68,7 @@ Adding `--required` makes no input to the group an error, even though both defau
 
 In the usage line koi generates in help menus, `|` means exclusive choice, `||` means one or more, and `&` means all together. Koi does not generate a legend for this notation in the help menu.
 
-The difference between `||` and `|` in usage statements is not always obvious. Use `--koi-use-single-pipe-for-or-groups` on [koi::run](/docs/reference/run) or [koi::parse](/docs/reference/parse) if you'd prefer to display inclusive OR with `|` too.
+The difference between `||` and `|` in usage statements is not always obvious. Use `koi::config use-single-pipe-for-or-groups true` at script scope or inside a parsing function if you'd prefer to display inclusive OR with `|` too. See [koi::config](/docs/reference/config).
 
 ## Return and enforcement
 

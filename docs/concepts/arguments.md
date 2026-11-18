@@ -73,7 +73,7 @@ Outside an option's value, an unrecognized token beginning with `-` is an error.
 ./copy.sh -- -draft.txt --help
 ```
 
-Here, `-draft.txt` and `--help` fill positional slots. A lone `-` is ordinary data even without the separator. In a [branch with child commands](/docs/concepts/routing), `--` ends the parent's option recognition, and the next token still selects a command. Extra, unknown positional values are treated as errors by default. You can silently ignore them by using `--koi-ignore-unknown-positionals` with [koi::parse](/docs/reference/parse) or [koi::run](/docs/reference/run).
+Here, `-draft.txt` and `--help` fill positional slots. A lone `-` is ordinary data even without the separator. In a [branch with child commands](/docs/concepts/routing), `--` ends the parent's option recognition, and the next token still selects a command. Extra, unknown positional values are treated as errors by default. You can silently ignore them by using `koi::config ignore-unknown-positionals true` in the relevant registration block (see [koi::config](/docs/reference/config)).
 
 For a walkthrough of declaring and using these arguments, see [define flags, options, and positionals](/docs/guides/arguments).
 

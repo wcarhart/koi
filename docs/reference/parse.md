@@ -9,7 +9,7 @@ layout: article
 ## Usage
 
 ```text usage
-koi::parse [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] "$@" || return "$koi_status"
+koi::parse "$@" || return "$koi_status"
 ```
 
 Always include `|| return "$koi_status"`, even when the function declares no custom arguments (see [control flow](/docs/concepts/control-flow)). This guard returns from your function after help, a parsing error, or child dispatch, keeping those outcomes from reaching the function's business logic. Forward arguments with `"$@"` to preserve token boundaries, including empty strings and values containing whitespace.
@@ -22,32 +22,33 @@ Always include `|| return "$koi_status"`, even when the function declares no cus
 
 | Parameter | Description |
 | --- | --- |
-| `--koi-error-on-scalar-duplicates` | Reject repeated scalar options and flags within the current context. Arrays are exempt. |
-| `--koi-ignore-unknown-positionals` | Ignore and discard remaining unknown positional values instead of returning an error. Unknown positionals will cause an error by default. |
-| `--koi-use-single-pipe-for-or-groups` | Display inclusive OR groups with `\|` instead of `\|\|`. |
 | `"$@"` | The function arguments to parse, such as flags, option values, positionals, or a child command and its arguments. |
+
+You can configure the function's parsing policy with [koi::config](/docs/reference/config) inside its [registration block](/docs/concepts/lifecycle).
 
 ## Repeated flags and scalar options
 
-By default, repeated scalar options keep their last value and repeated flags remain `1`. With `--koi-error-on-scalar-duplicates`, both are errors, including when callers mix short and long labels for the same argument. For example, `-n Will --name Ada` repeats the argument if `-n` and `--name` are its labels. Array options accumulate values even with duplicate checking enabled. Put the setting before `"$@"`:
+By default, repeated scalar options keep their last value and repeated flags remain `1`. With `koi::config error-on-scalar-duplicates true` (see [koi::config](/docs/reference/config)), both are errors, including when callers mix short and long labels for the same argument. For example, `-n Will --name Ada` repeats the argument if `-n` and `--name` are its labels. Array options accumulate values even with duplicate checking enabled. Declare the setting in the function registration block:
 
 ```bash
-koi::parse --koi-error-on-scalar-duplicates "$@" || return "$koi_status"
+koi::config error-on-scalar-duplicates true
+koi::parse "$@" || return "$koi_status"
 ```
 
 This setting applies only to the current parser and does not carry into child commands. See [arguments and values](/docs/concepts/arguments#recognizing-options) for supported input forms, flag clusters, and the `--` separator.
 
 ## Unknown positional values
 
-By default when koi encounters more positionals than are registered in a [context](/docs/concepts/lifecycle) it will return an error. You can customize this behavior with `--koi-ignore-unknown-positionals`, which will tell koi to ignore and discard surplus positional values rather than error.
+By default when koi encounters more positionals than are registered in a [context](/docs/concepts/lifecycle) it will return an error. You can customize this behavior with `koi::config ignore-unknown-positionals true` (see [koi::config](/docs/reference/config)), which will tell koi to ignore and discard surplus positional values rather than error.
 
-For example, consider a scenario where you have a single registered positional argument and the arguments `source.txt extra.txt` are provided. By default, parsing `extra.txt` would produce an error. If you use `--koi-ignore-unknown-positionals`, koi would still assign `source.txt` to the first positional destination and then ignore `extra.txt`. 
+For example, consider a scenario where you have a single registered positional argument and the arguments `source.txt extra.txt` are provided. By default, parsing `extra.txt` would produce an error. If you use `koi::config ignore-unknown-positionals true`, koi would still assign `source.txt` to the first positional destination and then ignore `extra.txt`.
 
 ```bash
-koi::parse --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+koi::config ignore-unknown-positionals true
+koi::parse "$@" || return "$koi_status"
 ```
 
-Note that `--koi-ignore-unknown-positionals` only impacts the associated `koi::parse` and is not inherited in dispatched children, nested calls, or later invocations.
+Note that `koi::config ignore-unknown-positionals true` only impacts the associated `koi::parse` and is not inherited in dispatched children, nested calls, or later invocations.
 
 ## Return
 

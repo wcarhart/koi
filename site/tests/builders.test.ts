@@ -293,7 +293,7 @@ test('multiple array loops share locals, reset indices, and preserve destination
   assert.equal(result.stdout, 'i[0]: one\ni[1]: \nvalue[0]: two\n');
 });
 
-test('runtime and builder reserve the same administrative long names', () => {
+test('runtime and builder reserve only the built-in help long name', () => {
   const out = spawnSync(
     'bash',
     ['-c', 'source ./koi; printf "%s\\n" "${__koi_reserved_longs[@]}"'],
@@ -301,8 +301,16 @@ test('runtime and builder reserve the same administrative long names', () => {
   );
   assert.equal(out.status, 0, out.stderr);
   const names = out.stdout.trim().split('\n');
-  assert.ok(names.includes('koi-ignore-unknown-positionals'));
+  assert.deepEqual(names, ['help']);
   for (const long of names) {
     assert.ok(argumentErrors({ ...defaultArgument, long }).length, long);
+  }
+  for (const long of [
+    'koi-ignore-unknown-positionals',
+    'koi-error-on-scalar-duplicates',
+    'koi-use-single-pipe-for-or-groups',
+    'koi-inspect',
+  ]) {
+    assert.deepEqual(argumentErrors({ ...defaultArgument, long }), []);
   }
 });

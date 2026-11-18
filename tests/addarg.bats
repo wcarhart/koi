@@ -242,7 +242,7 @@ assert_invalid() {
 
 @test "long spelling must be an unprefixed non-help name" {
     local spelling
-    for spelling in '' help koi-error-on-scalar-duplicates koi-error-on-duplicate --mode -mode _mode 1mode 'two words' 'mode!' 'mode/path'; do
+    for spelling in '' help --mode -mode _mode 1mode 'two words' 'mode!' 'mode/path'; do
         assert_invalid mode -o -l "$spelling" -d Mode
     done
 }

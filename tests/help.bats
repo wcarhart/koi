@@ -81,7 +81,7 @@ run_help() {
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        koi::run --koi-enable-verbose-help --koi-enable-help-hints "$@"
+        koi::config verbose-help true; koi::config help-hints true; koi::run "$@"
     ' --help
     [ "$status" -eq 0 ]
     [[ "$output" == Application*'Usage: tool [-h] COMMAND'*'tool help --verbose'*'tool COMMAND --help'* ]]
@@ -126,7 +126,7 @@ run_help() {
     [ -z "$stderr" ]
 }
 
-@test "function configuration fails without invalidating root metadata" {
+@test "script-only configuration fails in functions without invalidating root metadata" {
     run_help '
         helper() {
             koi::config name forbidden 2>/dev/null || :
@@ -379,7 +379,7 @@ run_help() {
     run_help '
         koi::add_command help -f custom -d Custom
         custom() { echo CUSTOM; }
-        koi::run --koi-disable-help-subcommand help
+        koi::config help-subcommand false; koi::run help
     '
     [ "$status" -eq 0 ]
     [ "$output" = CUSTOM ]
@@ -394,7 +394,7 @@ run_help() {
             koi::parse "$@" || return "$koi_status"
         }
         custom() { echo CUSTOM; }
-        koi::run --koi-disable-help-subcommand branch help
+        koi::config help-subcommand false; koi::run branch help
     '
     [ "$status" -eq 0 ]
     [ "$output" = CUSTOM ]
@@ -413,24 +413,24 @@ run_help() {
 }
 
 @test "disabling help preserves automatic flags and omits empty commands sections" {
-    run_help 'koi::run --koi-disable-help-subcommand --help'
+    run_help 'koi::config help-subcommand false; koi::run --help'
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: app.sh [-h]'* ]]
     [[ "$output" != *Commands:* && "$output" != *COMMAND* ]]
-    run_help 'koi::run --koi-disable-help-subcommand help'
+    run_help 'koi::config help-subcommand false; koi::run help'
     [ "$status" -eq 2 ]
 }
 
 @test "help switches reject duplicates and incompatible settings" {
     local switch
-    for switch in --koi-disable-help-subcommand --koi-enable-verbose-help --koi-enable-help-hints; do
-        run_help 'koi::run "$@"' "$switch" "$switch"
+    for switch in help-subcommand verbose-help help-hints; do
+        run_help "koi::config $switch true; koi::config $switch true; koi::run"
         [ "$status" -eq 2 ]
         [[ "$stderr" == *repeated* ]]
     done
-    run_help 'koi::run --koi-enable-verbose-help --koi-disable-help-subcommand --help'
+    run_help 'koi::config verbose-help true; koi::config help-subcommand false; koi::run --help'
     [ "$status" -eq 2 ]
-    [[ "$stderr" == *'requires the built-in help subcommand'* ]]
+    [[ "$stderr" == *'verbose-help requires help-subcommand true'* ]]
 }
 
 @test "verbose help is opt-in root-only and rejects unsupported help arguments" {
@@ -445,7 +445,7 @@ run_help() {
         leaf() {
             koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-enable-verbose-help leaf help --verbose
+        koi::config verbose-help true; koi::run leaf help --verbose
     '
     [ "$status" -eq 2 ]
     [ "$stderr" = "koi: unsupported positional argument: 'help'" ]
@@ -462,10 +462,10 @@ run_help() {
 }
 
 @test "hints reflect enabled features and only appear at the runner root" {
-    run_help 'koi::run --koi-enable-help-hints --help'
+    run_help 'koi::config help-hints true; koi::run --help'
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
-    run_help 'koi::run --koi-enable-help-hints --koi-enable-verbose-help --help'
+    run_help 'koi::config help-hints true; koi::config verbose-help true; koi::run --help'
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
     [[ "$output" != *'app.sh COMMAND --help'* ]]
@@ -474,7 +474,7 @@ run_help() {
         leaf() {
             koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-enable-help-hints --help
+        koi::config help-hints true; koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *Hints:*'app.sh COMMAND --help'* ]]
@@ -484,7 +484,7 @@ run_help() {
         leaf() {
             koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-enable-help-hints --koi-enable-verbose-help leaf --help
+        koi::config help-hints true; koi::config verbose-help true; koi::run leaf --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" != *Hints:* ]]
@@ -556,14 +556,14 @@ run_help() {
     local declarations
     for declarations in '' 'koi::add_arg name -o -s n -D world -d Name'; do
         run_help "$declarations"'
-            koi::run --koi-enable-verbose-help --koi-enable-help-hints --help
+            koi::config verbose-help true; koi::config help-hints true; koi::run --help
         '
         [ "$status" -eq 0 ]
         [[ "$output" == Application*'Usage: app.sh [-h]'* ]]
         [[ "$output" != *COMMAND* && "$output" != *Commands:* && "$output" != *Hints:* ]]
         [ -z "$stderr" ]
         run_help "$declarations"'
-            koi::run --koi-enable-verbose-help help --verbose
+            koi::config verbose-help true; koi::run help --verbose
         '
         [ "$status" -eq 2 ]
         [ -z "$output" ]

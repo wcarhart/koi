@@ -110,7 +110,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
 - Direct function calls do not require command registration or runner wrappers.
 - A function owns one uninterrupted registration block: zero or more `koi::add_arg`,
   `koi::add_validator`, `koi::add_group`, `koi::add_dependency`, `koi::add_description`,
-  and `koi::add_command` calls followed by exactly one guarded `koi::parse`.
+  `koi::config`, and `koi::add_command` calls followed by exactly one guarded `koi::parse`.
   Preparation may execute before the block; business logic executes after it.
   Conditional declarations are supported. Registration helpers that contribute
   another function's interface are unsupported.
@@ -135,7 +135,13 @@ redesign and bug fixes, rather than only modernization of the existing code.
 - Script-scope declarations, including files sourced at script scope, build the
   persistent root registration buffer. Function declarations use the separate
   pending function buffer, even when the library itself was loaded in a function.
-- Call `koi::run [supported admin flags] "$@"` once per library initialization.
+- Author settings use `koi::config KEY VALUE`, separately from application argv.
+  Script identity and width are script-wide; help controls are root-owned.
+  Duplicate checking and surplus-positional handling belong to one parser.
+  OR formatting inherits only through matched command routing, with local overrides.
+  Function configuration is consumed with its uninterrupted registration block.
+  Internal inspection uses a matched collector, never synthetic application flags.
+- Call `koi::run "$@"` once per library initialization.
   The first attempt consumes root registration even on help or error. A second
   call or later root declaration reports an error. Re-sourcing does not reset
   this state; no reset API is currently provided.

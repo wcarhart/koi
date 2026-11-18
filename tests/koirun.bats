@@ -59,7 +59,7 @@ Options:
 @test "leading help ignores subsequent tokens and the zero-argument setting" {
     local flag
     for flag in -h --help; do
-        run_app 'koi::run --koi-zero-argument-message "Need a command" "$@"' "$flag" ignored
+        run_app 'koi::config missing-command-message "Need a command"; koi::run "$@"' "$flag" ignored
         [ "$status" -eq 0 ]
         [[ "$output" == Application*Usage:* ]]
         [ -z "$stderr" ]
@@ -67,7 +67,7 @@ Options:
 }
 
 @test "zero-argument messages preserve literal text" {
-    run_app 'koi::run --koi-zero-argument-message '"'"'Need %s $command'"'"' "$@"'
+    run_app 'koi::config missing-command-message '"'"'Need %s $command'"'"'; koi::run "$@"'
     [ "$status" -eq 2 ]
     [ -z "$output" ]
     [ "$stderr" = 'koi: Need %s $command' ]
@@ -75,20 +75,20 @@ Options:
 
 @test "runner settings reject missing empty and repeated values" {
     local setting
-    for setting in '--koi-zero-argument-message' '--koi-zero-argument-message ""' \
-        '--koi-zero-argument-message One --koi-zero-argument-message Two' \
-        '--koi-enable-help-on-unknown-commands --koi-enable-help-on-unknown-commands'; do
-        run_app "koi::run $setting"
+    for setting in 'koi::config missing-command-message' 'koi::config missing-command-message ""' \
+        'koi::config missing-command-message One; koi::config missing-command-message Two' \
+        'koi::config help-on-unknown-commands true; koi::config help-on-unknown-commands true'; do
+        run_app "$setting; koi::run"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *invalid* || "$stderr" == *repeated* ]]
+        [[ "$stderr" == *koi::config:* ]]
     done
 }
 
 @test "runner settings accept either order" {
-    run_app 'koi::run --koi-enable-help-on-unknown-commands --koi-zero-argument-message Required "$@"' unknown --help
+    run_app 'koi::config help-on-unknown-commands true; koi::config missing-command-message Required; koi::run "$@"' unknown --help
     [ "$status" -eq 0 ]
-    run_app 'koi::run --koi-zero-argument-message Required --koi-enable-help-on-unknown-commands "$@"' unknown --help
+    run_app 'koi::config missing-command-message Required; koi::config help-on-unknown-commands true; koi::run "$@"' unknown --help
     [ "$status" -eq 0 ]
 }
 
@@ -105,14 +105,14 @@ Options:
 @test "unknown-command override recognizes standalone help before the separator" {
     local flag
     for flag in -h --help; do
-        run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown extra "$flag"
+        run_app 'koi::config help-on-unknown-commands true; koi::run "$@"' unknown extra "$flag"
         [ "$status" -eq 0 ]
         [[ "$output" == Application*Usage:* ]]
-        run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown -- "$flag"
+        run_app 'koi::config help-on-unknown-commands true; koi::run "$@"' unknown -- "$flag"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
     done
-    run_app 'koi::run --koi-enable-help-on-unknown-commands "$@"' unknown -vh
+    run_app 'koi::config help-on-unknown-commands true; koi::run "$@"' unknown -vh
     [ "$status" -eq 2 ]
 }
 

@@ -23,7 +23,7 @@ koi::add_arg DEST (-f|-o|-p) -d DESCRIPTION [-s SHORT] [-l LONG] [-S|-a] [-r] [-
 | `-S`, `--scalar` | Store only one value when parsing an option or positional. This is the default behavior for options and positionals. Cannot be used with flags. |
 | `-a`, `--array` | Accumulate values in an indexed array when parsing options or positionals. Options consume one value per occurrence, positionals consume remaining positional values. Cannot be used with flags. |
 | `-s`, `--short SHORT` | The one-letter spelling for the argument label, without a dash. `h` is reserved. |
-| `-l`, `--long LONG` | The long spelling for the argument label, without dashes. `help` and some koi-internal strings are reserved. |
+| `-l`, `--long LONG` | The long spelling for the argument label, without dashes. `help` is reserved. |
 | `-d`, `--description DESCRIPTION` | The nonempty help text for the argument. |
 | `-r`, `--required` | Require explicit presence when parsing. All arguments are optional by default. |
 | `-D`, `--default DEFAULT` | The default value for optional scalar options or positionals, including an empty string. If none is provided, the empty string will be used. Flags, arrays, and required arguments cannot have defaults. |

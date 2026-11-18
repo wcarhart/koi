@@ -12,7 +12,7 @@ A **registration context** is the script root or function invocation that owns a
 
 A **registration block** is the code that declares this interface and closes it with parsing. The declarations accumulate into a **registration spec**, which describes the context's arguments, immediate child commands, and help metadata.
 
-Inside functions, use [koi::add_arg](/docs/reference/add_arg) for arguments, [koi::add_command](/docs/reference/add_command) for child commands, and [koi::add_description](/docs/reference/add_description) for a description. At script scope, use `koi::add_arg` and `koi::add_command` for the root interface and [koi::config](/docs/reference/config) for script-wide settings such as the name and description.
+Inside functions, use [koi::config](/docs/reference/config) for local parsing policies, [koi::add_arg](/docs/reference/add_arg) for arguments, [koi::add_command](/docs/reference/add_command) for child commands, and [koi::add_description](/docs/reference/add_description) for a description. At script scope, use `koi::add_arg` and `koi::add_command` for the root interface and [koi::config](/docs/reference/config) for script-wide settings such as the name and description.
 
 Within registration blocks at either scope, use [koi::add_validator](/docs/reference/add_validator) after an option or positional declaration to register [validators](/docs/reference/glossary#validator), which are predicates that run during parsing before destination assignment. Validator metadata belongs to that block and is consumed with its spec.
 

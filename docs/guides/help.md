@@ -15,7 +15,7 @@ layout: split
 ## Configure branch help
 
 - TODO: Demonstrate runner-provided branch `help` commands, leaves without built-in help commands, and bare `help` as data on positional leaves.
-- TODO: Demonstrate `--koi-disable-help-subcommand` for application-defined help commands while retaining automatic help flags; direct calls outside the runner do not acquire built-in help commands.
+- TODO: Demonstrate `koi::config help-subcommand false` for application-defined help commands while retaining automatic help flags; direct calls outside the runner do not acquire built-in help commands.
 - TODO: Show that routing to child help still requires valid ancestor arguments; link [calls and command routing](/docs/concepts/routing).
 
 ## Enable hints and verbose help

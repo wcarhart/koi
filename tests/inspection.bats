@@ -81,9 +81,9 @@ run_inspection() {
     [ -z "$stderr" ]
 }
 
-@test "inspection rejects standalone malformed repeated and trailing requests" {
+@test "former inspection flags are ordinary unsupported application arguments" {
     local args
-    for args in '--koi-inspect' '--koi-inspect commands' '--koi-inspect spec extra' '--koi-inspect spec --koi-inspect spec' '--koi-inspect spec --help' '--koi-inspect spec'; do
+    for args in '--koi-inspect' '--koi-inspect commands' '--koi-inspect spec extra' '--koi-inspect spec --koi-inspect spec' '--koi-inspect spec'; do
         # Fixed token lists intentionally undergo word splitting.
         # shellcheck disable=SC2086
         run_inspection '
@@ -95,12 +95,12 @@ run_inspection() {
         ' $args
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *inspection* ]]
+        [[ "$stderr" == *"--koi-inspect"* ]]
         # shellcheck disable=SC2086
         run_inspection 'koi::run "$@"' $args
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *inspection* ]]
+        [[ "$stderr" == *"--koi-inspect"* ]]
     done
 }
 
@@ -132,7 +132,7 @@ run_inspection() {
 @test "recursive direct calls cannot consume the expected invocation collector" {
     run_inspection '
         leaf() {
-            if [[ $1 == inner ]]; then
+            if [[ ${1-} == inner ]]; then
                 shift
                 koi::add_description Inner
             else
@@ -202,7 +202,7 @@ run_inspection() {
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        koi::run --koi-enable-verbose-help --koi-enable-help-hints help --verbose
+        koi::config verbose-help true; koi::config help-hints true; koi::run help --verbose
         [[ $branch_count == 1 && $leaf_count == 3 ]]
         [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
     '
@@ -226,7 +226,7 @@ run_inspection() {
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        koi::run --koi-enable-verbose-help help --verbose
+        koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *Helper*'Usage: app.sh [-h]'*Alias*'Usage: app.sh alias [-h]'* ]]
@@ -241,7 +241,7 @@ run_inspection() {
             koi::add_command again -f node -d Recursive
             koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-enable-verbose-help help --verbose
+        koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 2 ]
     [[ "$output" == Application*'Usage: app.sh again [-h] COMMAND'* ]]
@@ -267,7 +267,7 @@ run_inspection() {
             leaf() {
                 $body
             }
-            koi::run --koi-enable-verbose-help help --verbose
+            koi::config verbose-help true; koi::run help --verbose
         "
         [ "$status" -eq 2 ]
         [[ "$output" == Application* ]]
@@ -283,7 +283,7 @@ run_inspection() {
             koi::parse "$@" || return "$koi_status"
         }
         custom() { echo BAD; }
-        koi::run --koi-enable-verbose-help help --verbose
+        koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 2 ]
     [[ "$output" == Application* ]]
@@ -292,7 +292,7 @@ run_inspection() {
 }
 
 @test "root with no application children suppresses verbose help and renders flag help once" {
-    run_inspection 'koi::run --koi-enable-verbose-help --help'
+    run_inspection 'koi::config verbose-help true; koi::run --help'
     [ "$status" -eq 0 ]
     [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 1 ]
     [ -z "$stderr" ]
@@ -305,7 +305,7 @@ run_inspection() {
             koi::add_description Abandoned
             koi::add_arg stale -f -s s -d Stale
         }
-        if koi::run --koi-enable-verbose-help help --verbose >/dev/null 2>/dev/null; then
+        if koi::config verbose-help true; koi::run help --verbose >/dev/null 2>/dev/null; then
             exit 9
         fi
         [[ ${#__koi_pending_args[@]} == 0 && ${#__koi_pending_meta[@]} == 0 ]]

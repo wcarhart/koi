@@ -192,14 +192,14 @@ main'
     run_positional '
         koi::config name tool
         koi::add_arg value -p -r -d Value
-        koi::run --koi-enable-verbose-help --koi-enable-help-hints help
+        koi::config verbose-help true; koi::config help-hints true; koi::run help
         [[ $value == help ]]
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     run_positional '
         koi::add_arg value -p -r -d Value
-        koi::run --koi-enable-verbose-help --koi-enable-help-hints --help
+        koi::config verbose-help true; koi::config help-hints true; koi::run --help
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool [-h] VALUE'* ]]
@@ -210,7 +210,7 @@ main'
     run_positional '
         value=stale
         koi::add_arg value -p -D default -d Value
-        koi::run --koi-zero-argument-message "Need a command" --koi-enable-help-on-unknown-commands
+        koi::config missing-command-message "Need a command"; koi::config help-on-unknown-commands true; koi::run
         [[ $value == default ]]
         if koi::run; then
             exit 9
@@ -220,7 +220,7 @@ main'
     [[ "$stderr" == *'call only once'* ]]
     run_positional '
         koi::add_arg value -p -r -d Value
-        koi::run --koi-zero-argument-message "Need a command"
+        koi::config missing-command-message "Need a command"; koi::run
     '
     [ "$status" -eq 2 ]
     [[ "$stderr" == *"missing required argument: 'value'"* ]]
@@ -340,7 +340,7 @@ main'
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
-        koi::run --koi-enable-verbose-help help --verbose
+        koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool leaf [-h] VALUE'*'Positionals:'* ]]
@@ -407,11 +407,12 @@ main'
             koi::add_arg value -p -r -d Value
             koi::add_arg name -o -s n -d Name
             koi::add_arg flag -f -s v -d Flag
+            koi::config error-on-scalar-duplicates true
             koi::parse "$@" || return "$koi_status"
             [[ $value == supplied && $name == -- && $flag == 1 ]]
         }
-        parse -n -- supplied -v --koi-error-on-scalar-duplicates
-        if parse supplied -v -v --koi-error-on-scalar-duplicates; then
+        parse -n -- supplied -v
+        if parse supplied -v -v; then
             exit 9
         fi
     '

@@ -217,15 +217,15 @@ test('code builders update, constrain fields, and reset to documented defaults',
   const help = page.locator('#doc-guides-help');
   await help.getByLabel('Root verbose help').check();
   await expect(help.locator('.doc-example code').first()).toContainText(
-    '--koi-enable-verbose-help',
+    'koi::config verbose-help true',
   );
   await help.getByLabel('Built-in branch help commands').uncheck();
   await expect(help.getByLabel('Root verbose help')).toBeDisabled();
   await expect(help.locator('.doc-example code').first()).not.toContainText(
-    '--koi-enable-verbose-help',
+    'koi::config verbose-help true',
   );
   await expect(help.locator('.doc-example code').first()).toContainText(
-    '--koi-disable-help-subcommand',
+    'koi::config help-subcommand false',
   );
 });
 

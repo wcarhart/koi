@@ -73,11 +73,11 @@ koi::run|declare -a value=(); koi::add_arg value -p -d Value; koi::run x
 koi::parse|leaf() { local -a value=(); koi::add_arg value -p -d Value; koi::parse x || return "$koi_status"; }; leaf
 koi::run|koi::add_command child -f missing -d Child; koi::run --help
 koi::parse|leaf() { koi::add_command child -f missing -d Child; koi::parse --help || return "$koi_status"; }; leaf
-koi::run|koi::run --koi-inspect invalid
-koi::parse|leaf() { koi::parse --koi-inspect spec || return "$koi_status"; }; leaf
-koi::run|koi::run --koi-ignore-unknown-positionals --koi-ignore-unknown-positionals
-koi::parse|leaf() { koi::parse --koi-ignore-unknown-positionals --koi-ignore-unknown-positionals || return "$koi_status"; }; leaf
-koi::parse|leaf() { koi::parse --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates || return "$koi_status"; }; leaf
+koi::config|koi::config unknown true
+koi::config|leaf() { koi::config name invalid; }; leaf
+koi::config|koi::config ignore-unknown-positionals true; koi::config ignore-unknown-positionals true; koi::run
+koi::config|leaf() { koi::config ignore-unknown-positionals true; koi::config ignore-unknown-positionals true; koi::parse || return "$koi_status"; }; leaf
+koi::config|leaf() { koi::config error-on-scalar-duplicates true; koi::config error-on-scalar-duplicates true; koi::parse || return "$koi_status"; }; leaf
 CASES
 }
 
@@ -91,12 +91,12 @@ CASES
     done <<'CASES'
 koi::add_arg value -p -r -d Value; koi::run
 koi::add_arg value -o -s n -d Value; koi::run -n
-koi::add_arg flag -f -s v -d Flag; koi::run --koi-error-on-scalar-duplicates -v -v
+koi::add_arg flag -f -s v -d Flag; koi::config error-on-scalar-duplicates true; koi::run -v -v
 koi::add_arg value -p -d Value; koi::run --unknown
 koi::add_arg value -p -d Value; koi::run -xyz
 koi::add_arg value -p -d Value; koi::run one extra
 child() { :; }; koi::add_command child -f child -d Child; koi::run help one two
-koi::run --koi-zero-argument-message 'koi::parse: literal %s'
+koi::config missing-command-message 'koi::parse: literal %s'; koi::run
 CASES
     [ "$stderr" = 'yarf: koi::parse: literal %s' ]
 }
@@ -105,7 +105,7 @@ CASES
     scenario '
         shift
         koi::config name "$1"
-        koi::run --koi-zero-argument-message "$2"
+        koi::config missing-command-message "$2"; koi::run
     ' $'name %s\n"koi"' $'koi::parse: %s\n"$(false)"'
     [ "$status" -eq 2 ]
     [ "$stderr" = $'name %s\n"koi": koi::parse: %s\n"$(false)"' ]
@@ -129,22 +129,20 @@ CASES
                 parser=$1 policy=$2
                 parse() {
                     local value flag
+                    koi::config ignore-unknown-positionals "$([[ $policy == ignore ]] && echo true || echo false)"
                     koi::add_arg value -p -r -d Value
                     koi::add_arg flag -f -s v -d Flag
                     koi::parse "$@" || return "$koi_status"
                     [[ $value == source.txt && $flag == 1 ]]
                 }
-                settings=()
-                if [[ $policy == ignore ]]; then
-                    settings=(--koi-ignore-unknown-positionals)
-                fi
                 if [[ $parser == root ]]; then
                     koi::add_arg value -p -r -d Value
                     koi::add_arg flag -f -s v -d Flag
-                    koi::run "${settings[@]}" source.txt extra.txt -v
+                    koi::config ignore-unknown-positionals "$([[ $policy == ignore ]] && echo true || echo false)"
+                    koi::run source.txt extra.txt -v
                     [[ $value == source.txt && $flag == 1 ]]
                 else
-                    parse "${settings[@]}" source.txt extra.txt -v
+                    parse source.txt extra.txt -v
                 fi
             ' "$parser" "$args"
             if [[ $args == strict ]]; then
@@ -161,7 +159,7 @@ CASES
 @test "ignore accepts empty function layouts and post-separator dash data" {
     scenario '
         leaf() {
-            koi::parse --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+            koi::config ignore-unknown-positionals true; koi::config error-on-scalar-duplicates true; koi::parse "$@" || return "$koi_status"
         }
         leaf one - -- -unknown -- --koi-ignore-unknown-positionals --help
     '
@@ -176,7 +174,7 @@ CASES
             local name
             koi::add_arg values -p -a -r -d Values
             koi::add_arg name -o -s n -d Name
-            koi::parse --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+            koi::config ignore-unknown-positionals true; koi::config error-on-scalar-duplicates true; koi::parse "$@" || return "$koi_status"
             [[ ${values[*]} == "one two three" && $name == --koi-ignore-unknown-positionals ]]
         }
         leaf one two -n --koi-ignore-unknown-positionals three
@@ -188,13 +186,13 @@ CASES
 
 @test "ignore does not suppress unknown options clusters missing values or scalar duplicates" {
     local args
-    for args in '--unknown' '-xyz' '-n' '-v -v --koi-error-on-scalar-duplicates'; do
+    for args in '--unknown' '-xyz' '-n' '-v -v'; do
         scenario '
             leaf() {
                 local value flag
                 koi::add_arg value -o -s n -d Value
                 koi::add_arg flag -f -s v -d Flag
-                koi::parse --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+                koi::config ignore-unknown-positionals true; koi::config error-on-scalar-duplicates true; koi::parse "$@" || return "$koi_status"
             }
             leaf surplus '"$args"
         [ "$status" -eq 2 ]
@@ -202,12 +200,12 @@ CASES
     done
 }
 
-@test "help overrides deferred author errors and discarded tokens without assigning" {
+@test "help overrides unknown former flags and discarded tokens without assigning" {
     scenario '
         leaf() {
             local value=original
             koi::add_arg value -p -r -d Value
-            if koi::parse --koi-ignore-unknown-positionals one two --koi-ignore-unknown-positionals --help; then
+            if koi::config ignore-unknown-positionals true; koi::parse one two --koi-ignore-unknown-positionals --help; then
                 return 9
             fi
             [[ $koi_status == 0 && $value == original ]]
@@ -221,8 +219,8 @@ CASES
 
 @test "ignore does not change root or branch command candidates" {
     local body
-    for body in 'koi::run --koi-ignore-unknown-positionals unknown' \
-        'child() { :; }; leaf() { koi::add_command child -f child -d Child; koi::parse --koi-ignore-unknown-positionals unknown || return "$koi_status"; }; leaf'; do
+    for body in 'koi::config ignore-unknown-positionals true; koi::run unknown' \
+        'child() { :; }; leaf() { koi::add_command child -f child -d Child; koi::config ignore-unknown-positionals true; koi::parse unknown || return "$koi_status"; }; leaf'; do
         scenario "$body"
         [ "$status" -eq 2 ]
         [ "$stderr" = "koi: unknown command 'unknown'" ]
@@ -234,26 +232,28 @@ CASES
         child() { koi::parse "$@" || return "$koi_status"; }
         parent() {
             koi::add_command child -f child -d Child
-            koi::parse --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+            koi::config ignore-unknown-positionals true; koi::config error-on-scalar-duplicates true; koi::parse "$@" || return "$koi_status"
         }
         if parent child excess; then
             exit 9
         fi
         [[ $koi_status == 2 ]]
         leaf() {
-            koi::parse "$@" || return "$koi_status"
-            if [[ $1 == --koi-ignore-unknown-positionals ]]; then
-                child nested
+            if [[ ${1-} == ignore ]]; then
+                shift
+                koi::config ignore-unknown-positionals true
             fi
+            koi::parse "$@" || return "$koi_status"
+            child nested
         }
-        if leaf --koi-ignore-unknown-positionals discarded; then
+        if leaf ignore discarded; then
             exit 9
         fi
         if leaf later; then
             exit 9
         fi
         koi::add_command child -f child -d Child
-        if koi::run --koi-ignore-unknown-positionals --koi-enable-help-hints child root-child; then
+        if koi::config ignore-unknown-positionals true; koi::config help-hints true; koi::run child root-child; then
             exit 9
         fi
     '
@@ -261,36 +261,27 @@ CASES
     [ "$stderr" = $'koi: unsupported positional argument: \'excess\'\nkoi: unsupported positional argument: \'nested\'\nkoi: unsupported positional argument: \'later\'\nkoi: unsupported positional argument: \'root-child\'' ]
 }
 
-@test "runner settings interoperate and reserve ignore spelling" {
+@test "runner settings interoperate and release former ignore spelling" {
     scenario '
         koi::add_arg value -p -r -d Value
-        koi::run --koi-error-on-scalar-duplicates --koi-enable-help-hints --koi-ignore-unknown-positionals --koi-disable-help-subcommand one two
+        koi::config error-on-scalar-duplicates true; koi::config help-hints true; koi::config ignore-unknown-positionals true; koi::config help-subcommand false; koi::run one two
         [[ $value == one ]]
     '
     [ "$status" -eq 0 ]
-    scenario 'koi::add_arg flag -f -l koi-ignore-unknown-positionals -d Flag'
-    [ "$status" -eq 2 ]
-    [ "$stderr" = "koi: koi::add_arg: invalid or reserved long spelling: 'koi-ignore-unknown-positionals'" ]
+    scenario 'leaf() { koi::add_arg flag -f -l koi-ignore-unknown-positionals -d Flag; koi::parse --koi-ignore-unknown-positionals || return "$koi_status"; [[ $flag == 1 ]]; }; leaf'
+    [ "$status" -eq 0 ]
+    [ -z "$stderr" ]
 }
 
-@test "later ignore settings discard earlier surplus data and retain first-error category" {
+@test "configured ignore retains ordinary unknown option errors" {
     scenario '
-        leaf() { koi::parse "$@" || return "$koi_status"; }
-        leaf one two --koi-ignore-unknown-positionals
-        leaf surplus --koi-ignore-unknown-positionals --unknown
+        leaf() {
+            koi::config ignore-unknown-positionals true
+            koi::parse "$@" || return "$koi_status"
+        }
+        leaf one two
+        leaf surplus --unknown
     '
     [ "$status" -eq 2 ]
     [ "$stderr" = "koi: unsupported positional argument: '--unknown'" ]
-    scenario '
-        leaf() { koi::parse "$@" || return "$koi_status"; }
-        leaf surplus --koi-ignore-unknown-positionals --koi-ignore-unknown-positionals
-    '
-    [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: koi::parse: repeated --koi-ignore-unknown-positionals setting' ]
-    scenario '
-        leaf() { koi::parse "$@" || return "$koi_status"; }
-        leaf surplus --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates
-    '
-    [ "$status" -eq 2 ]
-    [ "$stderr" = "koi: unsupported positional argument: 'surplus'" ]
 }

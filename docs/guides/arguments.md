@@ -16,7 +16,7 @@ layout: article
 
 - TODO: Show optional and required declarations, an empty default, and explicit empty input; link presence semantics to [parsing and control flow](/docs/concepts/control-flow).
 - TODO: Put required positionals before optional ones and demonstrate left-to-right optional filling without skipping slots.
-- TODO: Demonstrate repeated scalar options keeping the last value and `--koi-error-on-scalar-duplicates` rejecting duplicates across spellings. Cover array accumulation and its duplicate-checking exemption.
+- TODO: Demonstrate repeated scalar options keeping the last value and `koi::config error-on-scalar-duplicates true` rejecting duplicates across spellings. Cover array accumulation and its duplicate-checking exemption.
 
 ## Pass literal values correctly
 

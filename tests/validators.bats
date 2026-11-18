@@ -412,7 +412,7 @@ scenario() {
             koi::parse "$@" || return "$koi_status"
         }
         koi::add_command branch -f branch -d Branch
-        koi::run --koi-enable-verbose-help help --verbose >/dev/null
+        koi::config verbose-help true; koi::run help --verbose >/dev/null
     '
     [ "$status" -eq 0 ]
 }

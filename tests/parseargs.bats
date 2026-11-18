@@ -15,7 +15,7 @@ setup() {
 
 # Parse and expose the guard status without hiding the parser's return code.
 # Usage: capture_parse "$@"
-#   $@  parser settings and script arguments
+#   $@  application arguments
 capture_parse() {
     local result
     koi::parse "$@"
@@ -26,7 +26,7 @@ capture_parse() {
 
 # Verify invalid input reports an error without assigning any destinations.
 # Usage: assert_parse_error "$@"
-#   $@  parser settings and script arguments
+#   $@  application arguments
 assert_parse_error() {
     run --separate-stderr parse_without_mutation "$@"
     [ "$status" -eq 2 ]
@@ -36,7 +36,7 @@ assert_parse_error() {
 
 # Retain old values while checking error paths in the same shell as parsing.
 # Usage: parse_without_mutation "$@"
-#   $@  parser settings and script arguments
+#   $@  application arguments
 parse_without_mutation() {
     local name=original verbose=original quiet=original result
     capture_parse "$@"
@@ -98,12 +98,13 @@ parse_without_mutation() {
     [ "$verbose" = 1 ]
 }
 
-@test "reserved duplicate-check setting rejects repeated values and flags" {
-    assert_parse_error --koi-error-on-scalar-duplicates -n Alice --name Bob
-    assert_parse_error --koi-error-on-scalar-duplicates -v --verbose
-    assert_parse_error --koi-error-on-scalar-duplicates -vv
-    assert_parse_error --koi-error-on-scalar-duplicates -v -qv
-    assert_parse_error -v --verbose --koi-error-on-scalar-duplicates
+@test "configured duplicate checking rejects repeated values and flags" {
+    koi::config error-on-scalar-duplicates true
+    assert_parse_error -n Alice --name Bob
+    assert_parse_error -v --verbose
+    assert_parse_error -vv
+    assert_parse_error -v -qv
+    assert_parse_error -v --verbose
 }
 
 @test "flags-only clusters match separate flags" {
@@ -134,12 +135,12 @@ parse_without_mutation() {
     assert_parse_error ''
 }
 
-@test "no delimiter is required and reserved settings cannot be repeated" {
+@test "no delimiter is required and former settings are ordinary unknown input" {
     local name verbose quiet
     koi::parse
     [ "$koi_status" -eq 0 ]
     setup
-    koi::parse --koi-error-on-scalar-duplicates -n Alice
+    koi::config error-on-scalar-duplicates true; koi::parse -n Alice
     [ "$name" = Alice ]
     assert_parse_error --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates
 }
@@ -150,11 +151,11 @@ parse_without_mutation() {
     koi::parse -e
     [ "$example" = 1 ]
     koi::add_arg example -f -s e -l error-on-duplicates -d Example
-    koi::parse --koi-error-on-scalar-duplicates --error-on-duplicates
+    koi::config error-on-scalar-duplicates true; koi::parse --error-on-duplicates
     [ "$example" = 1 ]
 }
 
-@test "reserved settings are literal option values and positionals after the separator" {
+@test "former settings are literal option values and positionals after the separator" {
     local name
     koi::parse -n --koi-error-on-scalar-duplicates
     [ "$name" = --koi-error-on-scalar-duplicates ]
@@ -200,7 +201,7 @@ parse_without_mutation() {
         run --separate-stderr capture_parse -n "$flag"
         [ "$status" -eq 1 ]
         [ -z "$stderr" ]
-        run --separate-stderr capture_parse --koi-error-on-scalar-duplicates -v --verbose "$flag"
+        run --separate-stderr bash -c 'source "$KOI_LIBRARY"; main() { koi::config error-on-scalar-duplicates true; koi::add_arg verbose -f -s v -d Verbose; koi::parse -v --verbose "$@"; }; main "$@"' app "$flag"
         [ "$status" -eq 1 ]
         [ -z "$stderr" ]
         run --separate-stderr capture_parse -nv "$flag"
@@ -354,7 +355,7 @@ parse_without_mutation() {
     [ -z "$stderr" ]
 }
 
-@test "help overrides errors in reserved settings" {
+@test "help overrides unknown former admin options" {
     run --separate-stderr capture_parse --koi-error-on-scalar-duplicates --koi-error-on-scalar-duplicates --help
     [ "$status" -eq 1 ]
     [[ "$output" == *'return=1 status=0' ]]

@@ -39,7 +39,7 @@ capture_spec() {
     if [[ $__koi_test_handler == koi::run ]]; then
         __koi_inspection_depth=$((${#FUNCNAME[@]} + 1))
     fi
-    "$__koi_test_handler" --koi-inspect spec || return $?
+    "$__koi_test_handler" || return $?
     [[ $__koi_inspection_received == 1 ]] || return 9
     "$__koi_test_checker"
 }

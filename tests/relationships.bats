@@ -172,7 +172,7 @@ setup() {
             koi::add_arg a -o -a -s a -d A
             koi::add_arg b -f -s b -d B
             koi::add_group -x -r a b
-            koi::parse --koi-error-on-scalar-duplicates -a "" -a two || return "$koi_status"
+            koi::config error-on-scalar-duplicates true; koi::parse -a "" -a two || return "$koi_status"
             [[ ${#a[@]} == 2 && ${a[0]} == "" && $b == 0 ]]
         }
         demo
@@ -390,9 +390,9 @@ koi: 'a' requires 'c'" ]
         branch() {
             leaf -h
             koi::add_command leaf -f leaf -d Leaf
-            koi::parse --koi-use-single-pipe-for-or-groups "$@" || return "$koi_status"
+            koi::config use-single-pipe-for-or-groups true; koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-use-single-pipe-for-or-groups branch leaf -h
+        koi::config use-single-pipe-for-or-groups true; koi::run branch leaf -h
     '
     [ "$status" -eq 0 ]
     [[ "${lines[0]}" == *'(-a || -b)' ]]
@@ -405,9 +405,9 @@ koi: 'a' requires 'c'" ]
             koi::add_arg a -f -s a -d A
             koi::add_arg b -f -s b -d B
             koi::add_group -o -r a b
-            koi::parse --koi-use-single-pipe-for-or-groups --koi-error-on-scalar-duplicates --koi-ignore-unknown-positionals "$@" || return "$koi_status"
+            koi::config use-single-pipe-for-or-groups true; koi::config error-on-scalar-duplicates true; koi::config ignore-unknown-positionals true; koi::parse "$@" || return "$koi_status"
         }
-        koi::run --koi-use-single-pipe-for-or-groups --koi-enable-verbose-help help --verbose
+        koi::config use-single-pipe-for-or-groups true; koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 0 ]
     [[ "$output" == *'leaf [-h] (-a | -b)'* ]]
@@ -417,12 +417,14 @@ koi: 'a' requires 'c'" ]
     run --separate-stderr bash -c '
         source "$KOI_LIBRARY"
         demo() {
+            koi::config use-single-pipe-for-or-groups true
+            koi::config use-single-pipe-for-or-groups false || :
             koi::parse "$@" || return "$koi_status"
         }
-        demo --koi-use-single-pipe-for-or-groups --koi-use-single-pipe-for-or-groups
+        demo
     '
     [ "$status" -eq 2 ]
-    [[ "$stderr" == 'koi: koi::parse: repeated --koi-use-single-pipe-for-or-groups setting' ]]
+    [[ "$stderr" == 'koi: koi::config: repeated key: use-single-pipe-for-or-groups' ]]
     run bash -c '
         source "$KOI_LIBRARY"
         demo() {
@@ -496,7 +498,7 @@ koi: 'a' requires 'c'" ]
     [ "$status" -eq 0 ]
 }
 
-@test "dependency rows wrap and new administrative spelling is reserved" {
+@test "dependency rows wrap and former administrative spelling is available" {
     run bash -c '
         source "$KOI_LIBRARY"
         koi::config help-width 24
@@ -516,6 +518,6 @@ koi: 'a' requires 'c'" ]
         source "$KOI_LIBRARY"
         koi::add_arg reserved -f -l koi-use-single-pipe-for-or-groups -d Reserved
     '
-    [ "$status" -eq 2 ]
-    [[ "$stderr" == 'koi: koi::add_arg: invalid or reserved long spelling:'* ]]
+    [ "$status" -eq 0 ]
+    [ -z "$stderr" ]
 }

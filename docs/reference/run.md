@@ -11,23 +11,16 @@ Scripts that call a parsing function directly can use that function as their ent
 ## Usage
 
 ```text usage
-koi::run [SETTINGS] "$@"
+koi::run "$@"
 ```
 
 ## Arguments
 
 | Parameter | Description |
 | --- | --- |
-| `--koi-zero-argument-message MESSAGE` | Show a custom (nonempty) error message when no root command is selected, instead of showing help. |
-| `--koi-enable-help-on-unknown-commands` | Show root help when an unknown root command is followed by a standalone `-h`/`--help`. Off by default, default behavior indicates unknown command, even when `-h`/`--help` is present. |
-| `--koi-disable-help-subcommand` | Disable the built-in `help` command throughout the routed command tree, allowing you to register your own. |
-| `--koi-enable-verbose-help` | Enable `help --verbose` at the root to show help for the whole command tree. Off by default. |
-| `--koi-enable-help-hints` | Append hints for command help and verbose help to ordinary root help when those features are available. Off by default. |
-| `--koi-ignore-unknown-positionals` | Ignore and discard remaining unknown positional values instead of returning an error. Unknown positionals will cause an error by default. |
-| `--koi-use-single-pipe-for-or-groups` | Display inclusive OR groups with `\|` instead of `\|\|`. |
 | `"$@"` | The application arguments, including root flags and options, the selected command, and its arguments. Roots without child commands can also accept positionals. |
 
-Supply settings before `"$@"`, in any order. Each setting can appear only once, and `--koi-enable-verbose-help` cannot be combined with `--koi-disable-help-subcommand`. These settings don't need declarations via `koi::add_arg`. Configure the script's name, description, and help width with [koi::config](/docs/reference/config).
+You can configure script-wide settings separately with [koi::config](/docs/reference/config) before calling `koi::run`.
 
 ## Return
 
@@ -55,7 +48,9 @@ deploy() {
 
 koi::add_arg verbose --flag --short v --long verbose --description 'Print progress'
 koi::add_command deploy --function deploy --description 'Deploy the application'
-koi::run --koi-enable-verbose-help --koi-enable-help-hints "$@"
+koi::config verbose-help true
+koi::config help-hints true
+koi::run "$@"
 ```
 
 Running `./app.sh -v deploy -e staging` assigns `1` to the root's `verbose` destination and forwards `-e staging` to `deploy`. The handler then parses its own arguments and prints `Deploying to staging (verbose=1)`.
@@ -73,13 +68,13 @@ A child's help request still requires its ancestors to parse successfully. For e
 
 The built-in `help` command is available in each routed [branch](/docs/reference/glossary#branch). [Leaves](/docs/reference/glossary#leaf) and [directly](/docs/reference/glossary#direct-call) called parsing functions support `-h`/`--help` without receiving a `help` command. Disabling the built-in command leaves automatic `-h`/`--help` available.
 
-Use `--koi-zero-argument-message 'Choose a command'` to return `2` with that error message when no root command is selected. This also applies when root flags or options are supplied without a command. Explicit help still succeeds, and nested branches still show help when no child is selected.
+Use `koi::config missing-command-message 'Choose a command'` (see [koi::config](/docs/reference/config)) to return `2` with that error message when no root command is selected. This also applies when root flags or options are supplied without a command. Explicit help still succeeds, and nested branches still show help when no child is selected.
 
-Unknown commands return `2` by default, including `./app.sh typo --help`. With `--koi-enable-help-on-unknown-commands`, that invocation shows root help and returns `0`. This setting applies only at the root and recognizes standalone `-h`/`--help` before a `--` separator, so `typo -- --help` still fails.
+Unknown commands return `2` by default, including `./app.sh typo --help`. With `koi::config help-on-unknown-commands true` (see [koi::config](/docs/reference/config)), that invocation shows root help and returns `0`. This setting applies only at the root and recognizes standalone `-h`/`--help` before a `--` separator, so `typo -- --help` still fails.
 
 ### Verbose help
 
-With `--koi-enable-verbose-help`, `./app.sh help --verbose` prints root help followed by each command's help in registration order, visiting descendants before the next sibling via depth-first-search. Verbose help is available only through the root's built-in `help` command.
+With `koi::config verbose-help true` (see [koi::config](/docs/reference/config)), `./app.sh help --verbose` prints root help followed by each command's help in registration order, visiting descendants before the next sibling via depth-first-search. Verbose help is available only through the root's built-in `help` command.
 
 Koi invokes handlers to collect their declarations, then stops at [guarded parsing](/docs/concepts/control-flow). Code before the guard still runs during help, including verbose help, so keep operations with side effects after it. See [customizing the generated help](/docs/guides/help).
 

@@ -61,7 +61,7 @@ scenario() {
             local -a files=([9]=stale)
             local literal=$'"'"'line\nquotes" \\ * $(false)'"'"'
             koi::add_arg files -o -a -s I -l include -d Files -r
-            koi::parse -I "" --include "$literal" -I same -I same --koi-error-on-scalar-duplicates || return "$koi_status"
+            koi::config error-on-scalar-duplicates true; koi::parse -I "" --include "$literal" -I same -I same || return "$koi_status"
             [[ ${#files[@]} == 4 && ${files[0]} == "" && ${files[1]} == "$literal" ]]
             [[ ${files[2]} == same && ${files[3]} == same && ! ${files[9]+yes} ]]
         }; main; main
@@ -165,7 +165,7 @@ scenario() {
 }
 
 @test "renamed scalar duplicate checking exempts arrays and rejects the former setting" {
-    scenario 'main() { local -a files; koi::add_arg files -o -a -s I -d Files; koi::parse -I a -I a --koi-error-on-scalar-duplicates || return "$koi_status"; [[ ${#files[@]} == 2 ]]; }; main'
+    scenario 'main() { local -a files; koi::add_arg files -o -a -s I -d Files; koi::config error-on-scalar-duplicates true; koi::parse -I a -I a || return "$koi_status"; [[ ${#files[@]} == 2 ]]; }; main'
     [ "$status" -eq 0 ]
     scenario 'main() { koi::parse --koi-error-on-duplicates || return "$koi_status"; }; main'
     [ "$status" -eq 2 ]

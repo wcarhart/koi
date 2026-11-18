@@ -45,13 +45,14 @@ Short and long labels supply the same argument, so they share replacement or acc
 
 Each occurrence of an array option still consumes exactly one value. Use `--include src --include docs` to supply two directories. Using `--include src docs` supplies `src` to the option and leaves `docs` as positional input, which this example would cause an error when parsed. Quoting `--include 'src docs'` supplies one value `src docs`.
 
-When scalar options (and flags) are repeated, by default the last value overrides the assigned destination. For example, `--include src --include docs` would assign the value `docs`. To instead reject repeated scalar options and flags, enable duplicate checking in your [guarded parse](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard):
+When scalar options (and flags) are repeated, by default the last value overrides the assigned destination. For example, `--include src --include docs` would assign the value `docs`. To instead reject repeated scalar options and flags, enable duplicate checking before your [guarded parse](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard):
 
 ```bash
-koi::parse --koi-error-on-scalar-duplicates "$@" || return "$koi_status"
+koi::config error-on-scalar-duplicates true
+koi::parse "$@" || return "$koi_status"
 ```
 
-Array options continue accumulating with `--koi-error-on-scalar-duplicates` enabled. See [parser settings](/docs/reference/parse#arguments).
+Array options continue accumulating with `koi::config error-on-scalar-duplicates true` enabled. See [parser settings](/docs/reference/parse#arguments).
 
 ## Repeating positionals
 

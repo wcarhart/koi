@@ -35,6 +35,8 @@ If you don't have Bash installed, you can install it via:
 
 <!-- koi:install bash -->
 
+Koi supports running with `errexit` and `nounset` enabled, but neither is required. You can run koi with any of `set -e`, `set +e`, `set -u`, `set +u`. For more details, see [control flow](/docs/concepts/control-flow).
+
 > [!NOTE] Bash POSIX mode
 > Koi cannot use Bash 5.2 in [POSIX mode](https://www.gnu.org/software/bash/manual/html_node/Bash-POSIX-Mode.html). POSIX mode in Bash 5.2 restricts the use of `::` in function names, so the namespaced function convention is not supported. Koi uses namespaced functions (e.g. `koi::parse`), which will fail in Bash 5.2 POSIX mode.
 >

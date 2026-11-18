@@ -104,7 +104,7 @@ Arguments are individually optional unless declared with `--required`. Groups an
 
 After successful parsing, omitted flags receive `0`, and omitted optional scalar options and positionals receive their declared default or an empty string. Every destination in the context gets a fresh value, so initializing a variable before parsing doesn't provide a default. See [destination variables and scope](/docs/concepts/destinations).
 
-Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated scalar options and flags, use `koi::parse --koi-error-on-scalar-duplicates "$@" || return "$koi_status"` (see [koi::parse](/docs/reference/parse)).
+Positionals fill in registration order, with required slots before optional ones. You cannot skip an optional slot to fill a later one. Repeated scalar options keep their last value by default. In the example `--name Will --name Ada`, koi would assign `Ada`. To reject repeated scalar options and flags, use `koi::config error-on-scalar-duplicates true` (see [koi::config](/docs/reference/config)).
 
 Optional arrays become empty [indexed arrays](https://www.gnu.org/software/bash/manual/html_node/Arrays.html) when omitted. Required arrays need at least one explicit element, including an empty string. See [scalars and arrays](/docs/concepts/cardinality).
 

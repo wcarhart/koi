@@ -54,14 +54,7 @@ const reservedDestinations = new Set(
     ' ',
   ),
 );
-const reservedLongNames = new Set([
-  'help',
-  'koi-error-on-scalar-duplicates',
-  'koi-ignore-unknown-positionals',
-  'koi-use-single-pipe-for-or-groups',
-  'koi-error-on-duplicate',
-  'koi-inspect',
-]);
+const reservedLongNames = new Set(['help']);
 export function argumentFieldErrors(
   s: ArgumentSettings,
 ): Partial<Record<keyof ArgumentSettings, string>> {
@@ -97,7 +90,7 @@ export function argumentFieldErrors(
         reservedLongNames.has(s.long))
     )
       errors.long =
-        'Use a long spelling starting with a letter; help and koi administrative spellings are reserved.';
+        'Use a long spelling starting with a letter; help is reserved.';
   }
   for (const field of ['defaultValue', 'displayName'] as const) {
     if (s[field].includes('\0'))
@@ -277,12 +270,14 @@ export function helpErrors(s: HelpSettings): string[] {
 export function helpScript(s: HelpSettings): string {
   const errors = helpErrors(s);
   if (errors.length) throw new Error(errors.join(' '));
-  const flags: string[] = [];
-  if (!s.helpCommand) flags.push('--koi-disable-help-subcommand');
-  if (s.verbose) flags.push('--koi-enable-verbose-help');
-  if (s.hints) flags.push('--koi-enable-help-hints');
-  if (s.unknownHelp) flags.push('--koi-enable-help-on-unknown-commands');
+  const settings: string[] = [];
+  if (!s.helpCommand) settings.push('koi::config help-subcommand false');
+  if (s.verbose) settings.push('koi::config verbose-help true');
+  if (s.hints) settings.push('koi::config help-hints true');
+  if (s.unknownHelp) settings.push('koi::config help-on-unknown-commands true');
   if (s.missingMessage)
-    flags.push('--koi-zero-argument-message', shellQuote(s.missingMessage));
-  return `#!/usr/bin/env bash\nsource ./koi\n\nkoi::config name ${shellQuote(s.name)}\nkoi::config description ${shellQuote(s.description)}\nkoi::config help-width ${s.width}\nkoi::add_command status -f status -d 'Show application status'\n\n# Show application status\n# Usage: status "$@"\n#   $@  arguments forwarded to koi\nstatus() {\n    koi::parse "$@" || return "$koi_status"\n\n    printf 'Ready\\n'\n}\n\nkoi::run${flags.length ? ' ' + flags.join(' ') : ''} "$@"\n`;
+    settings.push(
+      `koi::config missing-command-message ${shellQuote(s.missingMessage)}`,
+    );
+  return `#!/usr/bin/env bash\nsource ./koi\n\nkoi::config name ${shellQuote(s.name)}\nkoi::config description ${shellQuote(s.description)}\nkoi::config help-width ${s.width}\n${settings.length ? settings.join('\n') + '\n' : ''}koi::add_command status -f status -d 'Show application status'\n\n# Show application status\n# Usage: status "$@"\n#   $@  arguments forwarded to koi\nstatus() {\n    koi::parse "$@" || return "$koi_status"\n\n    printf 'Ready\\n'\n}\n\nkoi::run "$@"\n`;
 }
