@@ -1569,6 +1569,9 @@ kbd {
 [data-theme='light'] .shiki [style*='color:#D73A49'] {
   color: #b62c3a !important;
 }
+[data-theme='light'] .shiki [style*='color:#E36209'] {
+  color: #9c4a06 !important;
+}
 [data-theme='light'] .shiki [style*='color:#6A737D'] {
   color: #59646c !important;
 }
@@ -2743,4 +2746,61 @@ html:not(.js) [data-open-menu] {
     top: -19px;
     transform: translate(-50%, -50%) rotate(90deg);
   }
+}
+
+/* Keep the parser's two rows in reading order, with contained scrolling on phones. */
+.parsing-lifecycle-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.prose .validation-lifecycle.parsing-lifecycle {
+  min-width: 720px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 64px 28px;
+}
+.prose .parsing-lifecycle .validation-lifecycle-stage {
+  min-height: 110px;
+  padding: 16px 10px;
+  line-height: 1.5;
+}
+.parsing-lifecycle
+  .validation-lifecycle-stage
+  + .validation-lifecycle-stage::before {
+  left: -23px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+/* The fifth stage turns down and back to the start of the second row. */
+.parsing-lifecycle .validation-lifecycle-stage:nth-child(5)::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  width: 2px;
+  height: 26px;
+  background: var(--muted);
+  transform: translateX(-50%);
+}
+.parsing-lifecycle .validation-lifecycle-stage:nth-child(6)::before {
+  left: calc(50% - 1px);
+  top: -32px;
+  /* Four crossed columns include each stage's two 2px borders. */
+  width: calc(400% + 128px);
+  height: 15px;
+  border-top: 2px solid var(--muted);
+  border-left: 2px solid var(--muted);
+  background: none;
+  clip-path: none;
+  transform: none;
+}
+.parsing-lifecycle .validation-lifecycle-stage:nth-child(6)::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -17px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--muted);
+  transform: translateX(-50%);
 }

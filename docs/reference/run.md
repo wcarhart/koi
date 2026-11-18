@@ -24,6 +24,7 @@ koi::run [SETTINGS] "$@"
 | `--koi-enable-verbose-help` | Enable `help --verbose` at the root to show help for the whole command tree. Off by default. |
 | `--koi-enable-help-hints` | Append hints for command help and verbose help to ordinary root help when those features are available. Off by default. |
 | `--koi-ignore-unknown-positionals` | Ignore and discard remaining unknown positional values instead of returning an error. Unknown positionals will cause an error by default. |
+| `--koi-use-single-pipe-for-or-groups` | Display inclusive OR groups with `\|` instead of `\|\|`. |
 | `"$@"` | The application arguments, including root flags and options, the selected command, and its arguments. Roots without child commands can also accept positionals. |
 
 Supply settings before `"$@"`, in any order. Each setting can appear only once, and `--koi-enable-verbose-help` cannot be combined with `--koi-disable-help-subcommand`. These settings don't need declarations via `koi::add_arg`. Configure the script's name, description, and help width with [koi::config](/docs/reference/config).

@@ -40,6 +40,10 @@ In the context of koi, **a subcommand available on the CLI.** Commands are regis
 
 **The explicit value assigned to a registered [destination](#destination) for an omitted optional [scalar](#scalar) option or positional upon successful parsing.** You can specify a default value for optional scalar [options](#option) or [positionals](#positional) when registering the argument via [koi::add_arg](/docs/reference/add_arg). When you register an optional scalar option or positional and do not provide a default, the fallback default is the empty string (`''`). Arrays cannot have defaults. Omitted optional arrays become empty [indexed arrays](https://www.gnu.org/software/bash/manual/html_node/Arrays.html). Flags do not have default values, they are either `0` if absent or `1` if present. In addition, defaults do not make required arguments present. See [parsing and control flow](/docs/concepts/control-flow).
 
+## Dependency
+
+**An argument relationship defining a directed prequisite between flags or options.** If the dependent argument is supplied, its prerequisites must also be supplied. Default values do not satisfy dependencies. See [koi::add_dependency](/docs/reference/add_dependency), also see [groups](#group).
+
 ## Destination
 
 **The Bash variable an argument value will be read into upon successful parsing.** The destination (also called the _destination variable_) is the first parameter of [koi::add_arg](/docs/reference/add_arg). Its identifier (e.g. `$myVar` in the case of `koi::add_arg myVar ...`) is independent of the associated argument label or override display name in generated help menus. If an override display name is not provided when registering an argumetn in [koi::add_arg](/docs/reference/add_arg) via `-n`/`--display-name`, then the destination is used as the fallback display name. See [destination variables and scope](/docs/concepts/destinations).
@@ -59,6 +63,10 @@ In the context of koi, **invoking the [handler](#handler) for a selected CLI [co
 ## Flag
 
 **An argument [kind](#flag) that consumes no additional value.** A common example is `-f`/`--force`. Upon successful parse, flags assign `1` to their [destination](#destination) when present and `0` when absent. Flags can be [required](#requiredness).
+
+## Group
+
+**An argument relationship defining a pattern for how two or more options and flags are supplied together when parsed.** `XOR` groups allow at most one member, `OR` groups require at least one member, and `AND` groups require all members together. See [koi::add_group](/docs/reference/add_group), also see [dependencies](#dependency).
 
 ## Guard
 

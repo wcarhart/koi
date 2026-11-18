@@ -4,7 +4,7 @@ description: "Set script-wide koi metadata."
 layout: article
 ---
 
-`koi::config KEY VALUE` configures script-level metadata, like script name, root description, and help word-wrap width. Call it at script scope after sourcing koi, before [koi::run](/docs/reference/run) or your application's entrypoint function runs.
+`koi::config` configures script-level metadata, like script name, root description, and help word-wrap width. Call it at script scope after sourcing koi, before [koi::run](/docs/reference/run) or your application's entrypoint function runs.
 
 ## Usage
 

@@ -58,6 +58,7 @@ const reservedLongNames = new Set([
   'help',
   'koi-error-on-scalar-duplicates',
   'koi-ignore-unknown-positionals',
+  'koi-use-single-pipe-for-or-groups',
   'koi-error-on-duplicate',
   'koi-inspect',
 ]);

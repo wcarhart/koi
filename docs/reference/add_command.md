@@ -4,7 +4,7 @@ description: "Register one child command in the immediate registration context."
 layout: split
 ---
 
-`koi::add_command NAME -f HANDLER -d DESCRIPTION` registers a subcommand in the current registration context (see [registration contexts](/docs/concepts/lifecycle)). Use `koi::add_command` to define subcommands that will be accessible from your CLI or child-parsed functions. `koi::add_command` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [koi::parse](/docs/reference/parse) statement at the function level or a [koi::run](/docs/reference/run) statement at the root level.
+`koi::add_command` registers a subcommand in the current registration context (see [registration contexts](/docs/concepts/lifecycle)). Use `koi::add_command` to define subcommands that will be accessible from your CLI or child-parsed functions. `koi::add_command` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [koi::parse](/docs/reference/parse) statement at the function level or a [koi::run](/docs/reference/run) statement at the root level.
 
 ## Usage
 

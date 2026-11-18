@@ -23,7 +23,7 @@ export const usageLanguage: LanguageRegistration = {
       name: 'variable.parameter',
     },
     { match: '\\b[A-Z][A-Z0-9_]*\\b', name: 'constant.other' },
-    { match: '[\\[\\]()|]', name: 'punctuation.definition.usage' },
+    { match: '[\\[\\]()|&]', name: 'punctuation.definition.usage' },
   ],
   repository: {
     variable: {

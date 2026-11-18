@@ -1,0 +1,7 @@
+Usage: test.sh [-h] [-n NAME | -i IDENTIFIER] [-t TOKEN]
+
+Options:
+  -h, --help                   Show this help
+  -n, --name NAME              Name (default: world)
+  -i, --identifier IDENTIFIER  Identifier (default: anonymous)
+  -t, --token TOKEN            Token

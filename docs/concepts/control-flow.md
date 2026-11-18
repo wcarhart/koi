@@ -78,11 +78,29 @@ At script scope, [koi::run](/docs/reference/run) returns the child's status afte
 >
 > What if the guard uses `|| return $?` instead of `|| return "$koi_status"`? Using `|| return $?` would return the parser's control signal `1` after successful help and after any child dispatch, losing the child's actual result. Use `"$koi_status"` in the immediate guard. Koi sets it for you automatically, and a later parse can overwrite it.
 
+## Parsing steps
+
+After declaration checks pass, a successful parsing invocation follows these steps. Help is the exception, which exits this flow early.
+
+<div class="parsing-lifecycle-scroll" role="region" aria-label="Parsing pipeline" tabindex="0">
+<ol class="validation-lifecycle parsing-lifecycle" aria-label="Parsing steps">
+  <li class="validation-lifecycle-stage">Token parsing</li>
+  <li class="validation-lifecycle-stage">Requiredness checks</li>
+  <li class="validation-lifecycle-stage">Check groups</li>
+  <li class="validation-lifecycle-stage">Check dependencies</li>
+  <li class="validation-lifecycle-stage">Default resolution</li>
+  <li class="validation-lifecycle-stage">Destination-type checks</li>
+  <li class="validation-lifecycle-stage">Validation</li>
+  <li class="validation-lifecycle-stage">Destination assignment</li>
+  <li class="validation-lifecycle-stage">Dispatch<br>(if selected)</li>
+</ol>
+</div>
+
 ## Presence, values, and defaults
 
-Koi tracks whether an argument was explicitly supplied separately from its value. For example, `--name ''` supplies an empty string, so the example above prints `Hello, !` instead of using the default. An empty string also satisfies a [required](/docs/reference/glossary#requiredness) option or positional. If your application needs a nonempty value, check it manually after parsing.
+Koi tracks whether an argument was explicitly supplied separately from its value. For example, `--name ''` supplies an empty string, so the example above prints `Hello, !` instead of using the default. An empty string also satisfies a [required](/docs/reference/glossary#requiredness) option or positional. Use a [nonempty validator](/docs/reference/add_validator) when an explicit value must not be empty.
 
-All arguments are optional unless declared with `--required`. Required arguments need explicit input on each parse, regardless of any value already in their [destination](/docs/reference/glossary#destination). Required options and positionals cannot have defaults.
+Arguments are individually optional unless declared with `--required`. Groups and dependencies can impose additional presence requirements. Required arguments need explicit input on each parse, regardless of any value already in their [destination](/docs/reference/glossary#destination). Required options and positionals cannot have defaults.
 
 After successful parsing, omitted flags receive `0`, and omitted optional scalar options and positionals receive their declared default or an empty string. Every destination in the context gets a fresh value, so initializing a variable before parsing doesn't provide a default. See [destination variables and scope](/docs/concepts/destinations).
 

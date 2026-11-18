@@ -85,3 +85,11 @@ These scope rules also apply when you source a script into your shell. Global as
 ## Validation
 
 When [validators](/docs/reference/glossary#validator) are registered in a context, all validators must pass before any destinations are assigned. This ensures that contexts are parsed _atomically_, and you will never end up in a state with partial update to context destinations upon validator failure.
+
+## Group defaults
+
+Arguments within [groups](/docs/reference/add_group#presence-and-defaults) still assign their associated default when omitted. Koi does not equate a destination being assigned a value with _presence_ of its associated argument when parsing.
+
+This means that you can have an `--xor` group where the members of the group each have defaults. While two or members of the mutually exclusive group cannot be present when parsed, all of them can be assigned default values when omitted.
+
+[Validators](/docs/reference/add_validator) still run on omitted explicit defaults, even in groups.

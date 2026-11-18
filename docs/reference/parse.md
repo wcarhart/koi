@@ -9,7 +9,7 @@ layout: article
 ## Usage
 
 ```text usage
-koi::parse [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] "$@" || return "$koi_status"
+koi::parse [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] "$@" || return "$koi_status"
 ```
 
 Always include `|| return "$koi_status"`, even when the function declares no custom arguments (see [control flow](/docs/concepts/control-flow)). This guard returns from your function after help, a parsing error, or child dispatch, keeping those outcomes from reaching the function's business logic. Forward arguments with `"$@"` to preserve token boundaries, including empty strings and values containing whitespace.
@@ -24,6 +24,7 @@ Always include `|| return "$koi_status"`, even when the function declares no cus
 | --- | --- |
 | `--koi-error-on-scalar-duplicates` | Reject repeated scalar options and flags within the current context. Arrays are exempt. |
 | `--koi-ignore-unknown-positionals` | Ignore and discard remaining unknown positional values instead of returning an error. Unknown positionals will cause an error by default. |
+| `--koi-use-single-pipe-for-or-groups` | Display inclusive OR groups with `\|` instead of `\|\|`. |
 | `"$@"` | The function arguments to parse, such as flags, option values, positionals, or a child command and its arguments. |
 
 ## Repeated flags and scalar options

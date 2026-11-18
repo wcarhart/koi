@@ -107,3 +107,7 @@ Help uses ellipses (`...`) to show that an argument accepts multiple values (see
 | Required array option | `-I DIR [-I DIR]...` |
 | Optional positional array | `[FILE...]` |
 | Required positional array | `FILE...` |
+
+## Array presence in relationships
+
+An array option counts as a _single_ member in a [group](/docs/reference/add_group) or [dependency](/docs/reference/add_dependency), regardless of how many values are provided when parsed. An explicitly provided empty string value counts as present. No occurrences of the array means it is absent.

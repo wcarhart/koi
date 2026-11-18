@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 for (const name of [
   'add_arg',
   'add_command',
+  'add_validator',
+  'add_group',
+  'add_dependency',
   'add_description',
   'parse',
   'config',

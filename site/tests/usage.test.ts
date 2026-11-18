@@ -15,6 +15,8 @@ import {
 const references = [
   'add_arg',
   'add_validator',
+  'add_group',
+  'add_dependency',
   'add_command',
   'add_description',
   'parse',

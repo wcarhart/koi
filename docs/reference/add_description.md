@@ -4,7 +4,7 @@ description: "Add a description to a directly-called function."
 layout: article
 ---
 
-`koi::add_description TEXT` sets the help description for a directly called parsing function. Declare it inside the function's [registration block](/docs/concepts/lifecycle), before its guarded [koi::parse](/docs/reference/parse) call.
+`koi::add_description` sets the help description for a directly called parsing function. Declare it inside the function's [registration block](/docs/concepts/lifecycle), before its guarded [koi::parse](/docs/reference/parse) call.
 
 ## Usage
 

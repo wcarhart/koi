@@ -20,6 +20,11 @@ import {
 // Only these reviewed scripts and argument vectors may be executed by this check.
 const fixtures = [
   {
+    script: 'relationships',
+    args: ['--name', 'Ada', '--token', 'demo'],
+    output: 'relationships',
+  },
+  {
     script: 'validators',
     args: ['--count', '3', '--environment', 'staging'],
     output: 'validators',

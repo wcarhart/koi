@@ -16,7 +16,7 @@ Inside functions, use [koi::add_arg](/docs/reference/add_arg) for arguments, [ko
 
 Within registration blocks at either scope, use [koi::add_validator](/docs/reference/add_validator) after an option or positional declaration to register [validators](/docs/reference/glossary#validator), which are predicates that run during parsing before destination assignment. Validator metadata belongs to that block and is consumed with its spec.
 
-The order of koi APIs within registration blocks does not matter as long as the block is closed with [koi::parse](/docs/reference/parse) and arguments are registered with [koi::add_arg](/docs/reference/add_arg) before their associated [validator](/docs/reference/glossary#validator) is registered with [koi::add_validator](/docs/reference/add_validator). For example this:
+The order of koi APIs within registration blocks does not matter as long as the block is closed with [koi::parse](/docs/reference/parse) and arguments are registered with [koi::add_arg](/docs/reference/add_arg) before their associated [validator](/docs/reference/glossary#validator), [group](/docs/reference/add_group), or [dependency](/docs/reference/add_dependency) is registered. For example this:
 
 ```bash
 koi::add_description 'Name a person'
@@ -198,3 +198,5 @@ Root declarations have a separate buffer, including declarations from files sour
 > [!NOTE] Function descriptions
 >
 > When you register a child command via [koi::add_command -d DESCRIPTION](/docs/reference/add_command), its description appears in the parent's help menu and in the handler's help when koi dispatches that command. Direct calls use the description set by [koi::add_description](/docs/reference/add_description), even if the function is also registered as a command. Without `koi::add_description`, direct-call help has no description. The registered command's description takes precedence only during dispatch.
+
+Relationship declarations belong to the owning registration block too. Declare flags/options before [groups](/docs/reference/add_group) or [dependencies](/docs/reference/add_dependency) that reference them.

@@ -4,7 +4,7 @@ description: "Define one flag, option, or positional argument in the current reg
 layout: split
 ---
 
-`koi::add_arg DEST` registers a parseable argument in the current registration context (see [registration contexts](/docs/concepts/lifecycle#contexts-blocks-and-specs)). Use `koi::add_arg` to define an argument that can be parsed by your function. `koi::add_arg` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [koi::parse](/docs/reference/parse) statement at the function level or a [koi::run](/docs/reference/run) statement at the root level.
+`koi::add_arg` registers a parseable argument in the current registration context (see [registration contexts](/docs/concepts/lifecycle#contexts-blocks-and-specs)). Use `koi::add_arg` to define an argument that can be parsed by your function. `koi::add_arg` statements must be used inside [registration blocks](/docs/concepts/lifecycle) and must be followed by a guarded [koi::parse](/docs/reference/parse) statement at the function level or a [koi::run](/docs/reference/run) statement at the root level.
 
 ## Usage
 
@@ -105,6 +105,10 @@ Scalar destinations must be absent, ordinary scalars or exported scalars. Array 
 ## Validation
 
 Use [koi::add_validator](/docs/reference/add_validator) after declaring an option or positional to check its effective values when parsing. Checks run after parsing and all destination-type checks, before any destination assignment or child dispatch. Supplied rejections are [user errors](/docs/reference/glossary#user-error). Flag values cannot be validated.
+
+## Argument relationships
+
+You can also organize of two or more arguments into relationships such as _groups_ (like mutually exclusive groups) or _dependencies_ (like one flag requiring another). Use [koi::add_group](/docs/reference/add_group) or [koi::add_dependency](/docs/reference/add_dependency) after declaring the participating flags and options. Relationships use explicit presence. Defaults still apply to omitted options after relationship checks pass. When registered in a group, an individual argument cannot be marked as `--required`.
 
 ## Explore
 

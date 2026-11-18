@@ -23,6 +23,14 @@ capture_spec() {
     local -a __koi_saved_validator_selectors=()
     local -a __koi_saved_validator_functions=()
     local -a __koi_saved_validator_messages=()
+    local -a __koi_saved_group_types=()
+    local -a __koi_saved_group_requireds=()
+    local -a __koi_saved_group_offsets=()
+    local -a __koi_saved_group_counts=()
+    local -a __koi_saved_group_members=()
+    local -A __koi_saved_arg_groups=()
+    local -a __koi_saved_dependency_sources=()
+    local -a __koi_saved_dependency_targets=()
     local -A __koi_saved_meta=()
     local -i __koi_saved_spec_valid=1
     local __koi_inspection_sink=__koi_saved __koi_inspection_received=0

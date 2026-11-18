@@ -33,7 +33,7 @@ fi
 
 # Re-sourcing preserves both unfinished registration and the root lifecycle
 if [[ ${__koi_initialized-} != 1 ]]; then
-    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_cardinalities arg_descriptions arg_requireds arg_defaults arg_display_names validator_dests validator_selectors validator_functions validator_messages meta)
+    declare -ga __koi_spec_fields=(commands handlers descriptions args arg_shorts arg_longs arg_kinds arg_cardinalities arg_descriptions arg_requireds arg_defaults arg_display_names validator_dests validator_selectors validator_functions validator_messages group_types group_requireds group_offsets group_counts group_members arg_groups dependency_sources dependency_targets meta)
     declare -ga __koi_root_commands=()
     declare -gA __koi_root_handlers=()
     declare -gA __koi_root_descriptions=()
@@ -50,6 +50,14 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -ga __koi_root_validator_selectors=()
     declare -ga __koi_root_validator_functions=()
     declare -ga __koi_root_validator_messages=()
+    declare -ga __koi_root_group_types=()
+    declare -ga __koi_root_group_requireds=()
+    declare -ga __koi_root_group_offsets=()
+    declare -ga __koi_root_group_counts=()
+    declare -ga __koi_root_group_members=()
+    declare -gA __koi_root_arg_groups=()
+    declare -ga __koi_root_dependency_sources=()
+    declare -ga __koi_root_dependency_targets=()
     declare -gA __koi_config=()
     declare -gA __koi_root_meta=()
     declare -gi __koi_root_spec_valid=1
@@ -69,10 +77,18 @@ if [[ ${__koi_initialized-} != 1 ]]; then
     declare -ga __koi_pending_validator_selectors=()
     declare -ga __koi_pending_validator_functions=()
     declare -ga __koi_pending_validator_messages=()
+    declare -ga __koi_pending_group_types=()
+    declare -ga __koi_pending_group_requireds=()
+    declare -ga __koi_pending_group_offsets=()
+    declare -ga __koi_pending_group_counts=()
+    declare -ga __koi_pending_group_members=()
+    declare -gA __koi_pending_arg_groups=()
+    declare -ga __koi_pending_dependency_sources=()
+    declare -ga __koi_pending_dependency_targets=()
     declare -gA __koi_pending_meta=()
     declare -gi __koi_pending_spec_valid=1
     declare -gi __koi_root_used=0
-    declare -ga __koi_reserved_longs=(help koi-ignore-unknown-positionals koi-error-on-scalar-duplicates koi-error-on-duplicate koi-inspect)
+    declare -ga __koi_reserved_longs=(help koi-ignore-unknown-positionals koi-use-single-pipe-for-or-groups koi-error-on-scalar-duplicates koi-error-on-duplicate koi-inspect)
     # shellcheck disable=SC2034
     declare -g koi_status=0
     __koi_initialized=1
@@ -446,20 +462,163 @@ koi::add_validator() {
     return 0
 }
 
+# Register a flat group of previously declared optional flags and options
+# Usage: koi::add_group (-x|-o|-a) [-r] DEST DEST...
+#   -x, --xor       allow zero or one member, or exactly one when required
+#   -o, --or        require one or more members, must include --required
+#   -a, --and       allow zero or all members, or require all when required
+#   -r, --required  require the group instead of allowing no members
+#   DEST...         at least two distinct destinations in this context
+# Returns 2 and invalidates registration on an invalid declaration
+koi::add_group() {
+    local __koi_buffer
+    koi::internal::select_registration_buffer __koi_buffer koi::add_group || return 2
+    local -n __koi_group_types="${__koi_buffer}_group_types"
+    local -n __koi_group_requireds="${__koi_buffer}_group_requireds"
+    local -n __koi_group_offsets="${__koi_buffer}_group_offsets"
+    local -n __koi_group_counts="${__koi_buffer}_group_counts"
+    local -n __koi_group_members="${__koi_buffer}_group_members"
+    local -n __koi_arg_groups="${__koi_buffer}_arg_groups"
+    local -n __koi_group_arg_requireds="${__koi_buffer}_arg_requireds"
+    local __koi_group_type='' __koi_group_required=0 __koi_group_dest
+    local -A __koi_group_seen=()
+
+    while (( $# )) && [[ $1 == -* ]]; do
+        case $1 in
+            -x|--xor|-o|--or|-a|--and)
+                if [[ -n $__koi_group_type ]]; then
+                    koi::internal::spec_error "$__koi_buffer" koi::add_group 'exactly one group type required'
+                    return 2
+                fi
+                case $1 in
+                    -x|--xor)
+                        __koi_group_type=xor
+                        ;;
+                    -o|--or)
+                        __koi_group_type=or
+                        ;;
+                    -a|--and)
+                        __koi_group_type=and
+                        ;;
+                esac
+                ;;
+            -r|--required)
+                if (( __koi_group_required )); then
+                    koi::internal::spec_error "$__koi_buffer" koi::add_group 'repeated --required'
+                    return 2
+                fi
+                __koi_group_required=1
+                ;;
+            *)
+                koi::internal::spec_error "$__koi_buffer" koi::add_group "unknown declaration parameter: $1"
+                return 2
+                ;;
+        esac
+        shift
+    done
+
+    if [[ -z $__koi_group_type ]] || (( $# < 2 )); then
+        koi::internal::spec_error "$__koi_buffer" koi::add_group 'one group type and at least two destinations required'
+        return 2
+    fi
+
+    if [[ $__koi_group_type == or ]] && (( ! __koi_group_required )); then
+        koi::internal::spec_error "$__koi_buffer" koi::add_group '--or requires --required'
+        return 2
+    fi
+
+    for __koi_group_dest in "$@"; do
+        koi::internal::check_relationship_arg "$__koi_buffer" koi::add_group "$__koi_group_dest" || return 2
+        if [[ ${__koi_group_seen[$__koi_group_dest]+present} || ${__koi_arg_groups[$__koi_group_dest]+present} ]]; then
+            koi::internal::spec_error "$__koi_buffer" koi::add_group "duplicate or already grouped argument: '$__koi_group_dest'"
+            return 2
+        fi
+
+        if [[ ${__koi_group_arg_requireds[$__koi_group_dest]} == 1 ]]; then
+            koi::internal::spec_error "$__koi_buffer" koi::add_group "group member cannot be individually required: '$__koi_group_dest'"
+            return 2
+        fi
+        __koi_group_seen[$__koi_group_dest]=1
+    done
+
+    local __koi_group_index=${#__koi_group_types[@]}
+    __koi_group_types+=("$__koi_group_type")
+    __koi_group_requireds+=("$__koi_group_required")
+    __koi_group_offsets+=("${#__koi_group_members[@]}")
+    __koi_group_counts+=("$#")
+    for __koi_group_dest in "$@"; do
+        __koi_arg_groups[$__koi_group_dest]=$__koi_group_index
+        __koi_group_members+=("$__koi_group_dest")
+    done
+
+    return 0
+}
+
+# Require explicit prerequisites whenever a previously declared argument is supplied
+# Usage: koi::add_dependency DEST (-r) DEST...
+#   DEST             one dependent flag or option in this context
+#   -r, --requires   separate the dependent from its prerequisites
+#   DEST...          one or more distinct prerequisite flags or options
+# Returns 2 and invalidates registration on an invalid declaration
+koi::add_dependency() {
+    local __koi_buffer
+    koi::internal::select_registration_buffer __koi_buffer koi::add_dependency || return 2
+    if (( $# < 3 )) || [[ $2 != -r && $2 != --requires ]]; then
+        koi::internal::spec_error "$__koi_buffer" koi::add_dependency 'expected DEST --requires DEST...'
+        return 2
+    fi
+
+    local __koi_dependency_source=$1 __koi_dependency_target __koi_dependency_index
+    koi::internal::check_relationship_arg "$__koi_buffer" koi::add_dependency "$__koi_dependency_source" || return 2
+    shift 2
+    local -n __koi_dependency_sources="${__koi_buffer}_dependency_sources"
+    local -n __koi_dependency_targets="${__koi_buffer}_dependency_targets"
+    local -A __koi_dependency_seen=()
+    for __koi_dependency_target in "$@"; do
+        koi::internal::check_relationship_arg "$__koi_buffer" koi::add_dependency "$__koi_dependency_target" || return 2
+        if [[ $__koi_dependency_source == "$__koi_dependency_target" ]]; then
+            koi::internal::spec_error "$__koi_buffer" koi::add_dependency 'an argument cannot depend on itself'
+            return 2
+        fi
+
+        if [[ ${__koi_dependency_seen[$__koi_dependency_target]+present} ]]; then
+            koi::internal::spec_error "$__koi_buffer" koi::add_dependency "duplicate dependency: '$__koi_dependency_source' requires '$__koi_dependency_target'"
+            return 2
+        fi
+
+        for __koi_dependency_index in "${!__koi_dependency_sources[@]}"; do
+            if [[ ${__koi_dependency_sources[$__koi_dependency_index]} == "$__koi_dependency_source" &&
+                  ${__koi_dependency_targets[$__koi_dependency_index]} == "$__koi_dependency_target" ]]; then
+                koi::internal::spec_error "$__koi_buffer" koi::add_dependency "duplicate dependency: '$__koi_dependency_source' requires '$__koi_dependency_target'"
+                return 2
+            fi
+        done
+        __koi_dependency_seen[$__koi_dependency_target]=1
+    done
+
+    for __koi_dependency_target in "$@"; do
+        __koi_dependency_sources+=("$__koi_dependency_source")
+        __koi_dependency_targets+=("$__koi_dependency_target")
+    done
+
+    return 0
+}
+
 # Consume argument registration and parse arguments, assign literal scalar/array
 # values, and optionally route a child command. Closes the current
 # uninterrupted registration block. $koi_status is the owning function's
 # return status and is used for exit/return control flow. Only supported from
 # inside application functions, not top-level/root context (use koi::run
 # in that scenario).
-# Usage: koi::parse [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
+# Usage: koi::parse [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-error-on-scalar-duplicates] [--koi-inspect MODE] "$@" || return "$koi_status"
 # Internal usage: koi::parse --koi-inspect spec || return "$koi_status"
-#   --koi-error-on-scalar-duplicates  reject repeated scalar options and flags
-#   --koi-inspect MODE         run the registered command handler functions
-#                              in inspect mode (available modes: 'spec' -
-#                              internal-only spec collection)
-#   --koi-ignore-unknown-positionals discard surplus positional values in this call
-#   $@                         the script arguments to parse
+#   --koi-error-on-scalar-duplicates     reject repeated scalar options and flags
+#   --koi-inspect MODE                   run the registered command handler functions
+#                                        in inspect mode (available modes: 'spec' -
+#                                        internal-only spec collection)
+#   --koi-use-single-pipe-for-or-groups  use | for inclusive OR in this routed subtree
+#   --koi-ignore-unknown-positionals     discard surplus positional values in this call
+#   $@                                   the script arguments to parse
 # Returns 0 to continue, 1 to stop after help/dispatch, or 2 on error
 koi::parse() {
     local __koi_buffer __koi_path='' __koi_result __koi_collect_matches=0
@@ -485,6 +644,14 @@ koi::parse() {
     local -a __koi_parsed_validator_selectors=()
     local -a __koi_parsed_validator_functions=()
     local -a __koi_parsed_validator_messages=()
+    local -a __koi_parsed_group_types=()
+    local -a __koi_parsed_group_requireds=()
+    local -a __koi_parsed_group_offsets=()
+    local -a __koi_parsed_group_counts=()
+    local -a __koi_parsed_group_members=()
+    local -A __koi_parsed_arg_groups=()
+    local -a __koi_parsed_dependency_sources=()
+    local -a __koi_parsed_dependency_targets=()
     local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
 
@@ -505,6 +672,7 @@ koi::parse() {
         __koi_parsed_meta[description]=${__koi_route_description-}
         __koi_parsed_meta[builtin]=${__koi_route_help:-0}
         __koi_parsed_meta[verbose]=${__koi_route_verbose:-0}
+        __koi_parsed_meta[single-pipe]=${__koi_route_single_pipe:-0}
     fi
 
     __koi_parsed_meta[path]=$__koi_path
@@ -526,12 +694,14 @@ koi::parse() {
     fi
     local __koi_selected_help=${__koi_parsed_meta[builtin]}
     local __koi_selected_verbose=${__koi_parsed_meta[verbose]}
+    local __koi_selected_single_pipe=${__koi_parsed_meta[single-pipe]}
 
     # release declaration metadata before invoking the selected child
     koi::internal::clear_spec __koi_parsed
     if (( __koi_result == 3 )); then
         local __koi_route_description=$__koi_selected_description
         local __koi_route_help=$__koi_selected_help __koi_route_verbose=$__koi_selected_verbose
+        local __koi_route_single_pipe=$__koi_selected_single_pipe
         local __koi_route_handler=$__koi_selected_handler
         local __koi_route_depth=$((${#FUNCNAME[@]} + 2))
         local __koi_route_path=${__koi_path:+$__koi_path }$__koi_selected_command
@@ -557,19 +727,20 @@ koi::parse() {
 
 # Consume root registration and route once per library initialization.
 # Expected to be called once per script, repeated calls will error.
-# Usage: koi::run [--koi-ignore-unknown-positionals] [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
-#   --koi-zero-argument-message MESSAGE   error text override when no command is given
-#                                         (default is help menu)
-#   --koi-enable-help-on-unknown-commands allow unknown commands with standalone help
-#   --koi-disable-help-subcommand         allow custom help instead of built-in help
-#   --koi-enable-verbose-help             enable root help --verbose
-#   --koi-enable-help-hints               append available hints to ordinary root help
-#   --koi-inspect MODE                    run the registered command handler functions
-#                                         in inspect mode (available modes: 'spec' -
-#                                         internal-only spec collection)
-#   --koi-ignore-unknown-positionals     discard surplus positional values in this call
-#   $@                                    root options, positionals, or command and
-#                                         child arguments
+# Usage: koi::run [--koi-use-single-pipe-for-or-groups] [--koi-ignore-unknown-positionals] [--koi-zero-argument-message MESSAGE] [--koi-enable-help-on-unknown-commands] [--koi-disable-help-subcommand] [--koi-enable-verbose-help] [--koi-enable-help-hints] [--koi-inspect MODE] "$@"
+#   --koi-zero-argument-message MESSAGE    error text override when no command is given
+#                                          (default is help menu)
+#   --koi-enable-help-on-unknown-commands  allow unknown commands with standalone help
+#   --koi-disable-help-subcommand          allow custom help instead of built-in help
+#   --koi-enable-verbose-help              enable root help --verbose
+#   --koi-enable-help-hints                append available hints to ordinary root help
+#   --koi-inspect MODE                     run the registered command handler functions
+#                                          in inspect mode (available modes: 'spec' -
+#                                          internal-only spec collection)
+#   --koi-use-single-pipe-for-or-groups    use | for inclusive OR in this routed subtree
+#   --koi-ignore-unknown-positionals       discard surplus positional values in this call
+#   $@                                     root options, positionals, or command and
+#                                          child arguments
 # Returns the handler's status, 0 for help/terminal parsing, or 2 on error
 koi::run() {
     if (( __koi_root_used )); then
@@ -593,6 +764,14 @@ koi::run() {
     local -a __koi_parsed_validator_selectors=()
     local -a __koi_parsed_validator_functions=()
     local -a __koi_parsed_validator_messages=()
+    local -a __koi_parsed_group_types=()
+    local -a __koi_parsed_group_requireds=()
+    local -a __koi_parsed_group_offsets=()
+    local -a __koi_parsed_group_counts=()
+    local -a __koi_parsed_group_members=()
+    local -A __koi_parsed_arg_groups=()
+    local -a __koi_parsed_dependency_sources=()
+    local -a __koi_parsed_dependency_targets=()
     local -A __koi_parsed_meta=()
     local -i __koi_parsed_spec_valid=1
     koi::internal::take_spec __koi_root __koi_parsed
@@ -613,7 +792,7 @@ koi::run() {
     local -a __koi_remaining=()
     while (( $# )); do
         case $1 in
-            --koi-ignore-unknown-positionals|--koi-error-on-scalar-duplicates)
+            --koi-use-single-pipe-for-or-groups|--koi-ignore-unknown-positionals|--koi-error-on-scalar-duplicates)
                 __koi_run_scan_settings+=("$1")
                 shift
                 ;;
@@ -683,6 +862,7 @@ koi::run() {
         __koi_selected_description=${__koi_parsed_descriptions[$__koi_selected_command]-}
     fi
 
+    local __koi_selected_single_pipe=${__koi_parsed_meta[single-pipe]}
     # discard root metadata and translate help into a successful runner return
     koi::internal::clear_spec __koi_parsed
     if (( __koi_result != 3 )); then
@@ -694,6 +874,7 @@ koi::run() {
 
     local __koi_route_description=$__koi_selected_description
     local __koi_route_help=$__koi_run_help __koi_route_verbose=$__koi_run_verbose
+    local __koi_route_single_pipe=$__koi_selected_single_pipe
     local __koi_route_handler=$__koi_selected_handler
     local __koi_route_depth=$((${#FUNCNAME[@]} + 2))
     local __koi_route_path=$__koi_selected_command
@@ -720,6 +901,7 @@ koi::internal::prepare_spec() {
     __koi_prepare_meta[verbose]=0
     __koi_prepare_meta[hints]=0
     __koi_prepare_meta[runner]=0
+    __koi_prepare_meta[single-pipe]=0
     if (( $2 )); then
         __koi_prepare_meta[description]=${__koi_config[description]-}
     fi
@@ -769,6 +951,7 @@ koi::internal::walk_spec() {
     local -n __koi_tree_meta="${__koi_tree_prefix}_meta"
     koi::internal::print_help "$__koi_tree_prefix" "${__koi_tree_meta[runner]}" "${__koi_tree_meta[path]}"
     local __koi_route_help=${__koi_tree_meta[builtin]} __koi_route_verbose=${__koi_tree_meta[verbose]}
+    local __koi_route_single_pipe=${__koi_tree_meta[single-pipe]}
     local __koi_tree_child
     for __koi_tree_child in "${__koi_tree_commands[@]}"; do
         koi::internal::visit_command "${__koi_tree_handlers[$__koi_tree_child]}" \
@@ -810,6 +993,14 @@ koi::internal::visit_command() {
     local -a __koi_visit_spec_validator_selectors=()
     local -a __koi_visit_spec_validator_functions=()
     local -a __koi_visit_spec_validator_messages=()
+    local -a __koi_visit_spec_group_types=()
+    local -a __koi_visit_spec_group_requireds=()
+    local -a __koi_visit_spec_group_offsets=()
+    local -a __koi_visit_spec_group_counts=()
+    local -a __koi_visit_spec_group_members=()
+    local -A __koi_visit_spec_arg_groups=()
+    local -a __koi_visit_spec_dependency_sources=()
+    local -a __koi_visit_spec_dependency_targets=()
     local -A __koi_visit_spec_meta=()
     local -i __koi_visit_spec_spec_valid=1
     local __koi_inspection_sink=__koi_visit_spec __koi_inspection_received=0
@@ -964,6 +1155,25 @@ koi::internal::parse_spec() {
         fi
     done
 
+    # authored parser settings may precede the collector's internal request
+    if (( ${__koi_collect_matches:-0} )); then
+        local -A __koi_inspect_settings_seen=()
+        while [[ ${1-} == --koi-use-single-pipe-for-or-groups ||
+                 ${1-} == --koi-ignore-unknown-positionals ||
+                 ${1-} == --koi-error-on-scalar-duplicates ]]; do
+            if [[ ${__koi_inspect_settings_seen[$1]+present} ]]; then
+                koi::internal::author_error "$__koi_engine_api" "repeated $1 setting"
+                return 2
+            fi
+
+            __koi_inspect_settings_seen[$1]=1
+            if [[ $1 == --koi-use-single-pipe-for-or-groups ]]; then
+                __koi_engine_meta[single-pipe]=1
+            fi
+            shift
+        done
+    fi
+
     if [[ ${1-} == --koi-inspect ]]; then
         if (( $# != 2 )) || [[ ${2-} != spec ]]; then
             koi::internal::author_error "$__koi_engine_api" 'invalid inspection request: expected --koi-inspect spec'
@@ -1082,6 +1292,11 @@ koi::internal::parse_spec() {
             return 2
         fi
 
+    done
+
+    koi::internal::check_relationships "$__koi_engine_prefix" __koi_parse_seen || return 2
+
+    for __koi_parse_dest in "${__koi_args[@]}"; do
         # determine default, if one is available
         if [[ ! ${__koi_parse_seen[$__koi_parse_dest]+present} ]]; then
             if [[ ${__koi_arg_kinds[$__koi_parse_dest]} == flag ]]; then
@@ -1313,6 +1528,109 @@ koi::internal::validate_arg_spec() {
     return 0
 }
 
+# Check a relationship member without changing successful registration
+# Usage: koi::internal::check_relationship_arg PREFIX API DEST
+#   PREFIX  owning registration buffer
+#   API     declaration responsible for any diagnostic
+#   DEST    previously registered flag or option destination
+# Returns 2 and invalidates registration for an invalid member
+koi::internal::check_relationship_arg() {
+    local -n __koi_relation_kinds="${1}_arg_kinds"
+    if [[ ! $3 =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || [[ ! ${__koi_relation_kinds[$3]+present} ]]; then
+        koi::internal::spec_error "$1" "$2" "unknown argument: '$3'"
+        return 2
+    fi
+
+    if [[ ${__koi_relation_kinds[$3]} == positional ]]; then
+        koi::internal::spec_error "$1" "$2" "positionals cannot participate in relationships: '$3'"
+        return 2
+    fi
+    return 0
+}
+
+# Reject direct prerequisites between members of the same exclusive group
+# Usage: koi::internal::check_relationship_layout PREFIX
+#   PREFIX  consumed spec containing complete group and dependency declarations
+# Returns 2 for a direct contradiction, including during help and inspection
+koi::internal::check_relationship_layout() {
+    local -n __koi_layout_groups="${1}_arg_groups" __koi_layout_types="${1}_group_types"
+    local -n __koi_layout_sources="${1}_dependency_sources" __koi_layout_targets="${1}_dependency_targets"
+    local __koi_layout_edge __koi_layout_source_group __koi_layout_target_group
+    for __koi_layout_edge in "${!__koi_layout_sources[@]}"; do
+        __koi_layout_source_group=${__koi_layout_groups[${__koi_layout_sources[$__koi_layout_edge]}]-}
+        __koi_layout_target_group=${__koi_layout_groups[${__koi_layout_targets[$__koi_layout_edge]}]-}
+        if [[ -n $__koi_layout_source_group && $__koi_layout_source_group == "$__koi_layout_target_group" &&
+              ${__koi_layout_types[$__koi_layout_source_group]} == xor ]]; then
+            koi::internal::author_error koi::add_dependency "'${__koi_layout_sources[$__koi_layout_edge]}' cannot require '${__koi_layout_targets[$__koi_layout_edge]}' in the same XOR group"
+            return 2
+        fi
+    done
+    return 0
+}
+
+# Check explicit member presence before resolving defaults or invoking validators
+# Usage: koi::internal::check_relationships PREFIX SEEN_ARRAY
+#   PREFIX      consumed spec containing groups and dependency edges
+#   SEEN_ARRAY  associative set of explicitly supplied destinations
+# Returns 2 on the first group or dependency violation, otherwise 0
+koi::internal::check_relationships() {
+    local -n __koi_relation_seen=$2
+    local -n __koi_relation_types="${1}_group_types" __koi_relation_requireds="${1}_group_requireds"
+    local -n __koi_relation_offsets="${1}_group_offsets" __koi_relation_counts="${1}_group_counts"
+    local -n __koi_relation_members="${1}_group_members"
+    local -n __koi_relation_sources="${1}_dependency_sources" __koi_relation_targets="${1}_dependency_targets"
+    local __koi_relation_group __koi_relation_index __koi_relation_count __koi_relation_dest
+    local __koi_relation_list __koi_relation_reason
+    for __koi_relation_group in "${!__koi_relation_types[@]}"; do
+        __koi_relation_count=0
+        __koi_relation_list=''
+        __koi_relation_reason=''
+        for ((__koi_relation_index=0; __koi_relation_index<__koi_relation_counts[$__koi_relation_group]; __koi_relation_index++)); do
+            __koi_relation_dest=${__koi_relation_members[${__koi_relation_offsets[$__koi_relation_group]}+__koi_relation_index]}
+            __koi_relation_list+="${__koi_relation_list:+, }'$__koi_relation_dest'"
+            if [[ ${__koi_relation_seen[$__koi_relation_dest]+present} ]]; then
+                __koi_relation_count=$((__koi_relation_count + 1))
+            fi
+        done
+
+        case ${__koi_relation_types[$__koi_relation_group]} in
+            xor)
+                if (( __koi_relation_count > 1 )); then
+                    __koi_relation_reason="at most one of $__koi_relation_list may be supplied"
+                elif (( __koi_relation_requireds[$__koi_relation_group] && __koi_relation_count == 0 )); then
+                    __koi_relation_reason="exactly one of $__koi_relation_list is required"
+                fi
+                ;;
+            or)
+                if (( __koi_relation_count == 0 )); then
+                    __koi_relation_reason="at least one of $__koi_relation_list is required"
+                fi
+                ;;
+            and)
+                if (( __koi_relation_count != __koi_relation_counts[$__koi_relation_group] &&
+                      (__koi_relation_requireds[$__koi_relation_group] || __koi_relation_count > 0) )); then
+                    __koi_relation_reason="all of $__koi_relation_list must be supplied together"
+                fi
+                ;;
+        esac
+
+        if [[ -n $__koi_relation_reason ]]; then
+            koi::internal::user_error "$__koi_relation_reason"
+            return 2
+        fi
+    done
+
+    for __koi_relation_index in "${!__koi_relation_sources[@]}"; do
+        if [[ ${__koi_relation_seen[${__koi_relation_sources[$__koi_relation_index]}]+present} &&
+              ! ${__koi_relation_seen[${__koi_relation_targets[$__koi_relation_index]}]+present} ]]; then
+            koi::internal::user_error "'${__koi_relation_sources[$__koi_relation_index]}' requires '${__koi_relation_targets[$__koi_relation_index]}'"
+            return 2
+        fi
+    done
+
+    return 0
+}
+
 # Validate positional layout and derive local help availability
 # Usage: koi::internal::finalize_spec PREFIX API
 #   PREFIX  consumed spec prefix
@@ -1340,6 +1658,8 @@ koi::internal::finalize_spec() {
             return 2
         fi
     done
+
+    koi::internal::check_relationship_layout "$1" || return 2
 
     # inspect positionals in declaration order, ignoring named arguments
     for __koi_layout_dest in "${__koi_layout_args[@]}"; do
@@ -1418,6 +1738,7 @@ koi::internal::scan_args() {
     local -n __koi_scan_category=$7
     local __koi_scan_ignore=0 __koi_scan_surplus=''
     local __koi_scan_step=0 __koi_scan_error_step=0 __koi_scan_surplus_step=0
+    local __koi_scan_single_pipe_seen=0
     local __koi_scan_duplicates=0 __koi_scan_duplicate=''
     shift 7
 
@@ -1479,8 +1800,17 @@ koi::internal::scan_args() {
         elif [[ $__koi_scan_token == -- ]]; then
             # end option recognition for the remaining tokens
             __koi_scan_positional=1
+        elif [[ $__koi_scan_token == --koi-use-single-pipe-for-or-groups ]]; then
+            # inherited formatting is distinct from an explicit setting occurrence
+            if (( __koi_scan_single_pipe_seen )) && [[ -z $__koi_scan_error ]]; then
+                __koi_scan_category=author
+                __koi_scan_error_step=$__koi_scan_step
+                __koi_scan_error='repeated --koi-use-single-pipe-for-or-groups setting'
+            fi
+            __koi_scan_single_pipe_seen=1
+            __koi_scan_meta[single-pipe]=1
         elif [[ $__koi_scan_token == --koi-ignore-unknown-positionals ]]; then
-            # TODO: add single line comment here
+            # ignore surplus positional arguments for this invocation
             if (( __koi_scan_ignore )) && [[ -z $__koi_scan_error ]]; then
                 __koi_scan_category=author
                 __koi_scan_error_step=$__koi_scan_step
@@ -1636,6 +1966,114 @@ koi::internal::print_commands() {
     done
 }
 
+# Build one selectable usage unit without outer optional brackets
+# Usage: koi::internal::usage_atom PREFIX DEST OUTPUT_VAR
+#   PREFIX      spec containing argument spellings and cardinalities
+#   DEST        flag or option to render
+#   OUTPUT_VAR  receives the unit, including any array repetition
+koi::internal::usage_atom() {
+    local -n __koi_atom_shorts="${1}_arg_shorts" __koi_atom_longs="${1}_arg_longs"
+    local -n __koi_atom_kinds="${1}_arg_kinds" __koi_atom_cards="${1}_arg_cardinalities"
+    local -n __koi_atom_names="${1}_arg_display_names" __koi_atom_output=$3
+    local __koi_atom_value
+    if [[ -n ${__koi_atom_shorts[$2]} ]]; then
+        __koi_atom_output=-${__koi_atom_shorts[$2]}
+    else
+        __koi_atom_output=--${__koi_atom_longs[$2]}
+    fi
+
+    if [[ ${__koi_atom_kinds[$2]} == option ]]; then
+        __koi_atom_value=${__koi_atom_names[$2]:-${__koi_atom_longs[$2]:-$2}}
+        __koi_atom_output+=" ${__koi_atom_value^^}"
+        if [[ ${__koi_atom_cards[$2]} == array ]]; then
+            __koi_atom_output+=" [$__koi_atom_output]..."
+        fi
+    fi
+}
+
+# Print one complete group expression in declaration order
+# Usage: koi::internal::print_group_usage PREFIX INDEX
+#   PREFIX  spec containing group membership and help metadata
+#   INDEX   group to render
+koi::internal::print_group_usage() {
+    local -n __koi_group_help_types="${1}_group_types" __koi_group_help_requireds="${1}_group_requireds"
+    local -n __koi_group_help_offsets="${1}_group_offsets" __koi_group_help_counts="${1}_group_counts"
+    local -n __koi_group_help_members="${1}_group_members" __koi_group_help_meta="${1}_meta"
+    local __koi_group_help_separator=' | ' __koi_group_help_index __koi_group_help_dest __koi_group_help_atom
+    if [[ ${__koi_group_help_types[$2]} == and ]]; then
+        __koi_group_help_separator=' & '
+    elif [[ ${__koi_group_help_types[$2]} == or ]] && (( ! __koi_group_help_meta[single-pipe] )); then
+        __koi_group_help_separator=' || '
+    fi
+
+    if (( __koi_group_help_requireds[$2] )); then
+        printf '('
+    else
+        printf '['
+    fi
+
+    for ((__koi_group_help_index=0; __koi_group_help_index<__koi_group_help_counts[$2]; __koi_group_help_index++)); do
+        if (( __koi_group_help_index )); then
+            printf '%s' "$__koi_group_help_separator"
+        fi
+
+        __koi_group_help_dest=${__koi_group_help_members[${__koi_group_help_offsets[$2]}+__koi_group_help_index]}
+        koi::internal::usage_atom "$1" "$__koi_group_help_dest" __koi_group_help_atom
+        printf '%s' "$__koi_group_help_atom"
+    done
+
+    if (( __koi_group_help_requireds[$2] )); then
+        printf ')'
+    else
+        printf ']'
+    fi
+}
+
+# Print ordered direct prerequisites without encoding them in usage
+# Usage: koi::internal::print_dependencies PREFIX
+#   PREFIX  spec containing dependency edges, spellings, and wrapping settings
+# Prints nothing when no dependencies are declared
+koi::internal::print_dependencies() {
+    local -n __koi_dep_help_sources="${1}_dependency_sources" __koi_dep_help_targets="${1}_dependency_targets"
+    local -n __koi_dep_help_shorts="${1}_arg_shorts" __koi_dep_help_longs="${1}_arg_longs"
+    local -A __koi_dep_help_seen=()
+    local __koi_dep_help_index __koi_dep_help_other __koi_dep_help_source __koi_dep_help_dest
+    local __koi_dep_help_text __koi_dep_help_list __koi_dep_help_label
+    if (( ${#__koi_dep_help_sources[@]} == 0 )); then
+        return 0
+    fi
+
+    printf '\nDependencies:\n'
+    for __koi_dep_help_index in "${!__koi_dep_help_sources[@]}"; do
+        __koi_dep_help_source=${__koi_dep_help_sources[$__koi_dep_help_index]}
+        if [[ ${__koi_dep_help_seen[$__koi_dep_help_source]+present} ]]; then
+            continue
+        fi
+
+        __koi_dep_help_seen[$__koi_dep_help_source]=1
+        __koi_dep_help_text=--${__koi_dep_help_longs[$__koi_dep_help_source]}
+        if [[ -n ${__koi_dep_help_shorts[$__koi_dep_help_source]} ]]; then
+            __koi_dep_help_text=-${__koi_dep_help_shorts[$__koi_dep_help_source]}
+        fi
+
+        __koi_dep_help_list=''
+        for __koi_dep_help_other in "${!__koi_dep_help_sources[@]}"; do
+            if [[ ${__koi_dep_help_sources[$__koi_dep_help_other]} != "$__koi_dep_help_source" ]]; then
+                continue
+            fi
+
+            __koi_dep_help_dest=${__koi_dep_help_targets[$__koi_dep_help_other]}
+            __koi_dep_help_label=--${__koi_dep_help_longs[$__koi_dep_help_dest]}
+            if [[ -n ${__koi_dep_help_shorts[$__koi_dep_help_dest]} ]]; then
+                __koi_dep_help_label=-${__koi_dep_help_shorts[$__koi_dep_help_dest]}
+            fi
+            __koi_dep_help_list+="${__koi_dep_help_list:+ and }$__koi_dep_help_label"
+        done
+
+        koi::internal::wrap "$__koi_dep_help_text requires $__koi_dep_help_list" '  ' '  '
+    done
+}
+
 # Print help for a consumed spec and its immediate children
 # Usage: koi::internal::print_help PREFIX ROOT PATH
 #   PREFIX  parser-local spec prefix
@@ -1660,6 +2098,9 @@ koi::internal::print_help() {
     __koi_help_width=${#__koi_help_labels[0]}
     local __koi_help_index=1 __koi_help_positional_section=0
     local -a __koi_help_order=()
+    local -n __koi_help_groups="${1}_arg_groups"
+    local -A __koi_help_groups_printed=()
+    local __koi_help_group
 
     # show flags and options first while preserving their declaration order
     for __koi_help_dest in "${__koi_args[@]}"; do
@@ -1708,20 +2149,31 @@ koi::internal::print_help() {
             __koi_help_usage=$__koi_help_value
         fi
 
-        # bracket optional arguments and leave required arguments unbracketed
-        if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
-            printf ' %s' "$__koi_help_usage"
-        else
-            printf ' [%s]' "$__koi_help_usage"
-        fi
-
-        # repeat the full option-value unit since each occurrence consumes one value
-        if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
-            if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
-                printf ' [%s]...' "$__koi_help_usage"
-            else
-                printf '...'
+        # replace grouped members once, keeping detailed argument rows below
+        if [[ ${__koi_help_groups[$__koi_help_dest]+present} ]]; then
+            __koi_help_group=${__koi_help_groups[$__koi_help_dest]}
+            if [[ ! ${__koi_help_groups_printed[$__koi_help_group]+present} ]]; then
+                printf ' '
+                koi::internal::print_group_usage "$1" "$__koi_help_group"
+                __koi_help_groups_printed[$__koi_help_group]=1
             fi
+        else
+            # bracket optional arguments and leave required arguments unbracketed
+            if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
+                printf ' %s' "$__koi_help_usage"
+            else
+                printf ' [%s]' "$__koi_help_usage"
+            fi
+
+            # repeat the full option-value unit since each occurrence consumes one value
+            if [[ ${__koi_arg_cardinalities[$__koi_help_dest]} == array && ${__koi_arg_kinds[$__koi_help_dest]} == option ]]; then
+                if [[ ${__koi_arg_requireds[$__koi_help_dest]} == 1 ]]; then
+                    printf ' [%s]...' "$__koi_help_usage"
+                else
+                    printf '...'
+                fi
+            fi
+
         fi
 
         # start the options-table label with the short spelling if present
@@ -1785,6 +2237,8 @@ koi::internal::print_help() {
         koi::internal::wrap "$__koi_help_description" "$__koi_help_first" "$__koi_help_indent"
         __koi_help_index=$((__koi_help_index + 1))
     done
+
+    koi::internal::print_dependencies "$1"
 
     if (( __koi_help_root && __koi_help_meta[hints] )) &&
         (( __koi_help_meta[verbose] || ${#__koi_commands[@]} )); then

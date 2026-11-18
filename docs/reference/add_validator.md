@@ -119,7 +119,7 @@ Hello, Ada!
 Koi validates provided values during parsing, before [destination assignment](/docs/concepts/destinations) or [child dispatch](/docs/concepts/routing):
 
 <ol class="validation-lifecycle" aria-label="Parsing lifecycle">
-  <li class="validation-lifecycle-stage">Token parsing<br>Requiredness checks<br>Default resolution<br>Destination-type-specific checks</li>
+  <li class="validation-lifecycle-stage">Token parsing<br>Requiredness checks<br>Check groups<br>Check dependencies<br>Default resolution<br>Destination-type checks</li>
   <li class="validation-lifecycle-stage validation-lifecycle-check"><strong>Validation</strong></li>
   <li class="validation-lifecycle-stage">Destination assignment<br>Dispatch</li>
 </ol>

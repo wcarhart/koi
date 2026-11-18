@@ -144,7 +144,7 @@ test('index headings navigate to isolated docs pages and article links restore t
   }
   await page.locator('.index-list a').first().click();
   await expect(page).toHaveURL('/docs/examples/function-entrypoint');
-  await expect(page.locator('[data-doc-section]')).toHaveCount(27);
+  await expect(page.locator('[data-doc-section]')).toHaveCount(29);
   await expect(
     page.locator('#doc-examples-function-entrypoint h1'),
   ).toBeInViewport();
@@ -195,12 +195,14 @@ test('guide and API indexes list the published collection', async ({
     'koi::add_arg',
     'koi::add_command',
     'koi::add_validator',
+    'koi::add_group',
+    'koi::add_dependency',
     'koi::add_description',
     'koi::parse',
     'koi::config',
     'koi::run',
   ]);
-  await page.locator('.index-list a').nth(4).click();
+  await page.locator('.index-list a[href="/docs/reference/parse"]').click();
   await expect(page).toHaveURL('/docs/reference/parse');
   await expect(page.locator('#doc-reference-parse h1')).toBeInViewport();
 });
@@ -217,7 +219,7 @@ test('Reference links to the glossary beside its title and places Conventions be
   await expect(glossary).toHaveAttribute('href', '/docs/reference/glossary');
   await expect(
     page.locator('.section-toolbar .section-number').last(),
-  ).toHaveText('7 commands');
+  ).toHaveText('9 commands');
   await page.evaluate(() => document.fonts.ready);
   const titleBox = (await heading.boundingBox())!;
   const buttonBox = (await glossary.boundingBox())!;
@@ -249,7 +251,7 @@ test('Reference links to the glossary beside its title and places Conventions be
   const conventionsBox = (await conventions.boundingBox())!;
   expect(conventionsBox.y).toBeGreaterThan(buttonBox.y + buttonBox.height);
   expect(conventionsBox.x).toBe(buttonBox.x);
-  await expect(page.locator('.api-index-list a')).toHaveCount(7);
+  await expect(page.locator('.api-index-list a')).toHaveCount(9);
   const shaft = glossary.locator('.cta-arrow-shaft');
   await expect(shaft).toHaveCSS('opacity', '0');
   for (const theme of ['light', 'dark']) {
