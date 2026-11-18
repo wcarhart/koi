@@ -6,7 +6,6 @@ for (const name of [
   'add_validator',
   'add_group',
   'add_dependency',
-  'add_description',
   'parse',
   'config',
   'run',

@@ -54,7 +54,6 @@ scenario() {
         [ -z "$output$stderr" ]
     done <<'KEYS'
 name app
-description Text
 help-width 80
 help-subcommand true
 verbose-help false
@@ -251,4 +250,74 @@ KEYS
     '
     [ "$status" -eq 0 ]
     [ "$stderr" = "koi: unsupported positional argument: 'excess'" ]
+}
+
+@test "function descriptions are isolated from root and caller descriptions" {
+    scenario '
+        koi::config description Root
+        child() {
+            koi::parse "$@" || return "$koi_status"
+        }
+        parent() {
+            child --help
+            koi::config description Parent
+            koi::parse "$@" || return "$koi_status"
+            child --help
+        }
+        parent --help
+        parent
+        [[ ${__koi_config[description]} == Root ]]
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Parent$')" -eq 1 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Root$')" -eq 1 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Usage:')" -eq 5 ]
+    [ -z "$stderr" ]
+}
+
+@test "descriptions are optional on each call including after successful parsing" {
+    scenario '
+        leaf() {
+            if [[ ${1-} == described ]]; then
+                shift
+                koi::config description Local
+            fi
+            koi::parse "$@" || return "$koi_status"
+        }
+        leaf described
+        leaf --help
+        leaf described --help
+        leaf --help
+        [[ ${#__koi_pending_meta[@]} == 0 ]]
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == Usage:* ]]
+    [ "$(printf '%s\n' "$output" | grep -c '^Local$')" -eq 1 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Usage:')" -eq 3 ]
+    [ -z "$stderr" ]
+}
+
+@test "invalid descriptions prevent help and repeated direct descriptions do not affect root" {
+    scenario '
+        koi::config description Root
+        bad() {
+            koi::config description First
+            koi::config description Second 2>/dev/null || :
+            koi::parse --help || return "$koi_status"
+            return 9
+        }
+        if bad; then
+            exit 8
+        fi
+        [[ $koi_status == 2 && ${__koi_config[description]} == Root ]]
+        good() {
+            koi::config description false
+            koi::parse --help || return "$koi_status"
+        }
+        good
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == false$'\n\nUsage:'* ]]
+    [ -z "$stderr" ]
 }

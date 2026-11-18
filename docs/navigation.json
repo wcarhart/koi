@@ -104,11 +104,6 @@
     "group": "Reference"
   },
   {
-    "file": "reference/add_description.md",
-    "slug": "reference/add_description",
-    "group": "Reference"
-  },
-  {
     "file": "reference/parse.md",
     "slug": "reference/parse",
     "group": "Reference"

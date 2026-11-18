@@ -18,7 +18,6 @@ const references = [
   'add_group',
   'add_dependency',
   'add_command',
-  'add_description',
   'parse',
   'config',
   'run',
@@ -109,7 +108,7 @@ test('usage grammar distinguishes alternatives, options, placeholders, and the B
 
 test('usage rendering escapes content and composes with line numbers and disabled copying', async () => {
   const { html } = await renderMarkdown(
-    '```text usage line-numbers\nkoi::add_description TEXT\n\n<tag>&\n```',
+    '```text usage line-numbers\nkoi::config KEY VALUE\n\n<tag>&\n```',
     'usage',
     new Map(),
     { copy: false },

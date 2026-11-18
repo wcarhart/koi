@@ -8,7 +8,7 @@ layout: split
 
 ## Describe and format the interface
 
-- TODO: Walk through root `koi::config` settings for script name, description, and help width; contrast registered command descriptions with direct-call `koi::add_description` fallback text.
+- TODO: Walk through root `koi::config` settings for script name, description, and help width; contrast registered command descriptions with direct-call `koi::config description` fallback text.
 - TODO: Demonstrate wrapping descriptions while usage stays on one line; link exact settings to [koi::config](/docs/reference/config).
 - TODO: Explain automatic `-h`/`--help`, help skipping current-context required-value checks and assignments, and returning successfully through the standard guard.
 

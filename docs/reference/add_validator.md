@@ -71,7 +71,7 @@ source koi
 
 main() {
     local name
-    koi::add_description 'Say hello!'
+    koi::config description 'Say hello!'
     koi::add_arg name --positional --required -d 'Who to greet'
     koi::parse "$@" || return "$koi_status"
 
@@ -98,7 +98,7 @@ Then, we'd wire it up using `koi::add_validator`:
 ```bash
 main() {
     local name
-    koi::add_description 'Say hello!'
+    koi::config description 'Say hello!'
     koi::add_arg name --positional --required -d 'Who to greet'
     koi::add_validator name -f is_valid_name -m 'Name must contain letters only and start with a capital'
     koi::parse "$@" || return "$koi_status"

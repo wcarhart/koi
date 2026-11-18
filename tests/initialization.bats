@@ -192,12 +192,12 @@ setup() {
 @test "runtime defines only canonical public APIs and namespaced internal functions" {
     run --separate-stderr env -i PATH="$PATH" KOI_LIBRARY="$KOI_LIBRARY" bash -c '
         source "$KOI_LIBRARY"
-        for name in add_arg add_validator add_command add_group add_dependency add_description parse config run; do
+        for name in add_arg add_validator add_command add_group add_dependency parse config run; do
             declare -F "koi::$name" >/dev/null || exit 1
         done
         while read -r _ _ name; do
             case "$name" in
-                koi::add_group|koi::add_dependency|koi::add_arg|koi::add_validator|koi::add_command|koi::add_description|koi::parse|koi::config|koi::run|koi::internal::*)
+                koi::add_group|koi::add_dependency|koi::add_arg|koi::add_validator|koi::add_command|koi::parse|koi::config|koi::run|koi::internal::*)
                     ;;
                 *)
                     exit 1

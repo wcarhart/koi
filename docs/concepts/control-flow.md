@@ -45,7 +45,7 @@ An ordinary Bash function can only return from itself. [koi::parse](/docs/refere
 > When you use the bare `koi::parse "$@"` without the associated `|| return "$koi_status"`, your function's business logic can execute even when rendering help. This means if your function looks like this:
 > ```bash
 > rmdir() {
->     koi::add_description 'Remove a directory on the host'
+>     koi::config description 'Remove a directory on the host'
 >     koi::add_arg dir --positional --required --description 'The directory to remove'
 >     koi::parse "$@" # <-- note the dangerous bare koi::parse without the guard
 >

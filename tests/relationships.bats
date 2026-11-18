@@ -424,7 +424,7 @@ koi: 'a' requires 'c'" ]
         demo
     '
     [ "$status" -eq 2 ]
-    [[ "$stderr" == 'koi: koi::config: repeated key: use-single-pipe-for-or-groups' ]]
+    [[ "$stderr" == 'koi: koi::config: repeated config key: use-single-pipe-for-or-groups' ]]
     run bash -c '
         source "$KOI_LIBRARY"
         demo() {

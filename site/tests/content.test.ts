@@ -16,9 +16,9 @@ import { search } from '../src/lib/search';
 test('published content includes concepts and guide outlines, excludes planned drafts, and expands executable examples', async () => {
   const docs = await getDocs();
   const reference = docs.filter((d) => d.group === 'Reference');
-  assert.equal(reference.length, 11);
+  assert.equal(reference.length, 10);
   assert.equal(reference.at(-1)!.slug, 'reference/conventions');
-  assert.equal(docs.length, 29);
+  assert.equal(docs.length, 28);
   const concepts = docs.filter((d) => d.group === 'Core concepts');
   assert.deepEqual(
     concepts.map((d) => d.title),
@@ -392,7 +392,6 @@ test('canonical API routes, exports, signatures, examples, and search links agre
     'add_group',
     'add_dependency',
     'add_command',
-    'add_description',
     'parse',
     'config',
     'run',

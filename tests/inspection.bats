@@ -25,7 +25,7 @@ run_inspection() {
         text=$'"'"'line one\nline two "quoted" \\ $HOME $(false)'"'"'
         leaf() {
             local untouched=original
-            koi::add_description "$text"
+            koi::config description "$text"
             koi::add_arg untouched -o -s u -r -d "$text"
             koi::add_arg blank -o -l blank -D "" -n "Display name" -d Blank
             koi::add_arg absent -o -l absent -d Absent
@@ -107,7 +107,7 @@ run_inspection() {
 @test "preparation helpers cannot steal an inspection collector" {
     run_inspection '
         helper() {
-            koi::add_description Helper
+            koi::config description Helper
             koi::parse "$@" || return "$koi_status"
         }
         leaf() {
@@ -115,7 +115,7 @@ run_inspection() {
             if helper --koi-inspect spec 2>/dev/null; then
                 return 9
             fi
-            koi::add_description Leaf
+            koi::config description Leaf
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
@@ -134,12 +134,12 @@ run_inspection() {
         leaf() {
             if [[ ${1-} == inner ]]; then
                 shift
-                koi::add_description Inner
+                koi::config description Inner
             else
                 if leaf inner --koi-inspect spec 2>/dev/null; then
                     return 9
                 fi
-                koi::add_description Outer
+                koi::config description Outer
             fi
             koi::parse "$@" || return "$koi_status"
         }
@@ -196,7 +196,7 @@ run_inspection() {
         }
         leaf() {
             leaf_count=$((leaf_count + 1))
-            koi::add_description Fallback
+            koi::config description Fallback
             local required=unchanged
             koi::add_arg required -o -s r -r -d Required
             koi::parse "$@" || return "$koi_status"
@@ -217,12 +217,12 @@ run_inspection() {
     run_inspection '
         koi::add_command alias -f leaf -d Alias
         helper() {
-            koi::add_description Helper
+            koi::config description Helper
             koi::parse "$@" || return "$koi_status"
         }
         leaf() {
             helper --help
-            koi::add_description Fallback
+            koi::config description Fallback
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
@@ -261,7 +261,7 @@ run_inspection() {
 
 @test "verbose traversal diagnoses handlers that fail or omit parsing" {
     local body
-    for body in 'return 0' 'return 42' 'koi::add_description Unconsumed'; do
+    for body in 'return 0' 'return 42' 'koi::config description Unconsumed'; do
         run_inspection "
             koi::add_command leaf -f leaf -d Leaf
             leaf() {
@@ -302,7 +302,7 @@ run_inspection() {
     run_inspection '
         koi::add_command broken -f broken -d Broken
         broken() {
-            koi::add_description Abandoned
+            koi::config description Abandoned
             koi::add_arg stale -f -s s -d Stale
         }
         if koi::config verbose-help true; koi::run help --verbose >/dev/null 2>/dev/null; then
@@ -339,7 +339,7 @@ run_inspection() {
 @test "inspection enters a namespaced handler and stops at the guard" {
     run_inspection '
         app::internal::deploy() {
-            koi::add_description "Namespaced details"
+            koi::config description "Namespaced details"
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }

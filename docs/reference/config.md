@@ -17,7 +17,7 @@ koi::config KEY VALUE
 | Key | Type | Default | Scope | Effect |
 | --- | --- | --- | --- | --- |
 | `name` | string | `koi` | Script only | Help naming and [user errors](/docs/reference/glossary#user-error) branding throughout the script. |
-| `description` | string | ∅ | Script only | Root help description. |
+| `description` | string | ∅ | Script or function | Root help description at script scope, direct-call help description inside a function. |
 | `help-width` | integer | `100` | Script only | The word-wrap width for all help menus. |
 | `help-subcommand` | boolean | `true` | Script only | Support the builtin `help` subcommand where applicable throughout the routed command tree. Does not disable `-h`/`--help`. |
 | `verbose-help` | boolean | `false` | Script only | Support `help --verbose` as the top command-level. Requires `help-subcommand true`. |
@@ -50,6 +50,23 @@ process() {
     printf '%s\n' "$input"
 }
 ```
+
+## Function descriptions
+
+Use `koi::config` to declare a nonempty description inside the function's registration block:
+
+```bash
+status() {
+    koi::config description 'Show application status'
+    koi::parse "$@" || return "$koi_status"
+
+    printf 'Ready\n'
+}
+
+status --help
+```
+
+When you register a command via [koi::add_command](/docs/reference/add_command), you provided a description via `-d` that koi will use in help menus. However, when using [directly called functions](/docs/concepts/routing#direct-calls-and-entrypoints), your function won't have a description by default. You can add one for use in help menus via `koi::config description DESC`.
 
 ## Error prefixes
 
@@ -113,7 +130,7 @@ Options:
 
 The configured name also appears in child usage lines, so `./app.sh deploy --help` shows `Usage: infra deploy [-h]`. The script is still invoked as `app.sh`.
 
-The root description applies only to root help. Routed commands use their [koi::add_command](/docs/reference/add_command) descriptions, while directly called functions use [koi::add_description](/docs/reference/add_description). See [how help follows the call](/docs/concepts/routing#help-follows-the-call).
+The script-level description applies only to root help. Directly called functions use their own `koi::config description` text, if declared. During routing, the selected [koi::add_command](/docs/reference/add_command) description takes precedence. See [how help follows the call](/docs/concepts/routing#help-follows-the-call).
 
 Help wraps descriptions at word boundaries and preserves explicit line breaks. Long words and argument labels can exceed `help-width`. The usage statement stays on one line.
 

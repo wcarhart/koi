@@ -144,9 +144,9 @@ run_help() {
     [ -z "$stderr" ]
 }
 
-@test "description registration is function-only nonempty and unique" {
+@test "description configuration is nonempty and unique in each scope" {
     local declaration
-    for declaration in 'koi::add_description' 'koi::add_description ""' 'koi::add_description A B' 'koi::add_description A; koi::add_description B'; do
+    for declaration in 'koi::config description' 'koi::config description ""' 'koi::config description A B' 'koi::config description A; koi::config description B'; do
         run_help "
             helper() {
                 $declaration
@@ -156,22 +156,22 @@ run_help() {
             helper
         "
         [ "$status" -eq 2 ]
-        if [[ $declaration == 'koi::add_description A; koi::add_description B' ]]; then
-            [ "$stderr" = 'koi: koi::add_description: repeated description' ]
+        if [[ $declaration == 'koi::config description A; koi::config description B' ]]; then
+            [ "$stderr" = 'koi: koi::config: repeated config key: description' ]
         else
-            [ "$stderr" = 'koi: koi::add_description: expected exactly one nonempty description' ]
+            [ "$stderr" = 'koi: koi::config: KEY and nonempty VALUE required' ]
         fi
         [[ "$output" != *BAD* ]]
     done
-    run_help 'koi::add_description Root'
+    run_help 'koi::config description Root; koi::run --help'
     [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: koi::add_description: call inside a function; use koi::config description TEXT for the script description' ]
+    [ "$stderr" = 'koi: koi::config: repeated config key: description' ]
 }
 
 @test "direct descriptions are rebuilt and routed descriptions take precedence" {
     run_help '
         leaf() {
-            koi::add_description "Direct description"
+            koi::config description "Direct description"
             koi::parse "$@" || return "$koi_status"
             echo BAD
         }
@@ -190,9 +190,9 @@ run_help() {
     run_help '
         helper() {
             if [[ $1 == invalid ]]; then
-                koi::add_description "" 2>/dev/null || :
+                koi::config description "" 2>/dev/null || :
             else
-                koi::add_description "Fresh description"
+                koi::config description "Fresh description"
             fi
             shift
             koi::parse "$@" || return "$koi_status"
@@ -223,7 +223,7 @@ run_help() {
     run_help '
         koi::config help-width 5
         f() {
-            koi::add_description $'"'"'one\n\nextraordinarilylongword'"'"'
+            koi::config description $'"'"'one\n\nextraordinarilylongword'"'"'
             koi::parse "$@" || return "$koi_status"
         }
         f --help
@@ -247,7 +247,7 @@ run_help() {
     run_help '
         branch() {
             local required
-            koi::add_description Branch
+            koi::config description Branch
             koi::add_arg required -o -s r -r -d Required
             koi::add_command leaf -f leaf -d Leaf
             koi::parse "$@" || return "$koi_status"

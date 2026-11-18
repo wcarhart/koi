@@ -8,7 +8,7 @@ source ./koi
 #   -v, --verbose print progress
 main() {
     local source directory verbose
-    koi::add_description 'Preview a copy operation'
+    koi::config description 'Preview a copy operation'
     koi::add_arg source -p -r -d 'Source file'
     koi::add_arg directory -p -D . -d 'Destination directory'
     koi::add_arg verbose -f -s v -l verbose -d 'Print progress'

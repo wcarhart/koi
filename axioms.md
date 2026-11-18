@@ -10,9 +10,8 @@ packaging choices remain open to further design.
 The later [v2 configuration and help contract](docs/tmp/v2-help.md) supersedes the
 initial proposals below where they differ. In particular, branches with
 application children show help rather than executing local business logic when
-no child is selected. Root configuration uses `koi::config`; direct function
-descriptions use `koi::add_description`. Inspection currently collects into internal
-Bash arrays only; external transport and CLI output formats remain deferred.
+no child is selected. Root configuration and direct function descriptions use
+`koi::config`. Inspection currently collects into internal Bash arrays only; external transport and CLI output formats remain deferred.
 
 ## Purpose and scope
 
@@ -109,7 +108,7 @@ redesign and bug fixes, rather than only modernization of the existing code.
   and positional arguments. The callee registers and parses its own interface.
 - Direct function calls do not require command registration or runner wrappers.
 - A function owns one uninterrupted registration block: zero or more `koi::add_arg`,
-  `koi::add_validator`, `koi::add_group`, `koi::add_dependency`, `koi::add_description`,
+  `koi::add_validator`, `koi::add_group`, `koi::add_dependency`,
   `koi::config`, and `koi::add_command` calls followed by exactly one guarded `koi::parse`.
   Preparation may execute before the block; business logic executes after it.
   Conditional declarations are supported. Registration helpers that contribute

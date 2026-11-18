@@ -16,7 +16,7 @@ source koi
 
 deploy() {
     local environment
-    koi::add_description 'Choose a deployment environment'
+    koi::config description 'Choose a deployment environment'
     koi::add_arg environment --option --short e --long environment --default production --description 'Where to deploy'
     koi::parse "$@" || return "$koi_status"
 
@@ -71,7 +71,7 @@ Options:
   -e, --environment ENVIRONMENT  Where to deploy (default: production)
 ```
 
-A direct call uses only the script name in its usage line and the function's [koi::add_description](/docs/reference/add_description) text, if provided. Registering a function as a command doesn't change the help for direct calls to that function, including calls made from another handler.
+A direct call uses only the script name in its usage line and the function's [koi::config description](/docs/reference/config) text, if provided. Registering a function as a command doesn't change the help for direct calls to that function, including calls made from another handler.
 
 ## Branches and leaves
 

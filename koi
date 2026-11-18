@@ -99,9 +99,9 @@ fi
 # Configure script-wide or function level policies. Function-level settings are
 # consumed with the spec, repeated keys invalidate the block.
 # Usage: koi::config KEY VALUE
-#   KEY    name, description, help-width, help-subcommand, verbose-help, help-hints,
+#   KEY    name, help-width, help-subcommand, verbose-help, help-hints,
 #          missing-command-message, help-on-unknown-commands (script only), or
-#          use-single-pipe-for-or-groups, ignore-unknown-positionals,
+#          description, use-single-pipe-for-or-groups, ignore-unknown-positionals,
 #          error-on-scalar-duplicates (script or function)
 #   VALUE  nonempty text, positive help-width (at most nine digits), or true/false
 # Returns 2 on invalid arguments, scope, values, or repeated explicit settings
@@ -114,7 +114,10 @@ koi::config() {
     fi
 
     case $1 in
-        name|description|missing-command-message)
+        name|missing-command-message)
+            ;;
+        description)
+            __koi_config_script_only=0
             ;;
         help-width)
             if [[ ! $2 =~ ^[0-9]+$ || ${#2} -gt 9 ]] || (( 10#$2 == 0 )); then
@@ -147,8 +150,13 @@ koi::config() {
 
     local __koi_config_storage="${__koi_buffer}_meta"
     case $1 in
-        name|description|help-width)
+        name|help-width)
             __koi_config_storage=__koi_config
+            ;;
+        description)
+            if [[ $__koi_buffer == __koi_root ]]; then
+                __koi_config_storage=__koi_config
+            fi
             ;;
     esac
 
@@ -158,33 +166,6 @@ koi::config() {
         return 2
     fi
     __koi_config_values[$1]=$2
-}
-
-# Describe a directly invoked parsing function
-# Usage: koi::add_description TEXT
-#   TEXT  nonempty fallback description, routed command descriptions (i.e. from
-#         koi::add_command -d) take precedence
-# Returns 2 and invalidates registration on invalid scope, arguments, or duplicate descriptions
-koi::add_description() {
-    local __koi_buffer
-    koi::internal::select_registration_buffer __koi_buffer koi::add_description || return 2
-    local -n __koi_description_meta="${__koi_buffer}_meta"
-    if [[ $__koi_buffer == __koi_root ]]; then
-        koi::internal::spec_error "$__koi_buffer" koi::add_description 'call inside a function; use koi::config description TEXT for the script description'
-        return 2
-    fi
-
-    if (( $# != 1 )) || [[ -z $1 ]]; then
-        koi::internal::spec_error "$__koi_buffer" koi::add_description 'expected exactly one nonempty description'
-        return 2
-    fi
-
-    if [[ ${__koi_description_meta[description]+present} ]]; then
-        koi::internal::spec_error "$__koi_buffer" koi::add_description 'repeated description'
-        return 2
-    fi
-
-    __koi_description_meta[description]=$1
 }
 
 # Register a command with koi. The command will be registered as an immediate
