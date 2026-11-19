@@ -1,5 +1,8 @@
 ---
 import '../styles/global.css';
+import { getDocs } from '../lib/content';
+import { apiReferences } from '../lib/api-references';
+const references = apiReferences(await getDocs());
 interface Props {
   title: string;
   description: string;
@@ -56,6 +59,11 @@ const {
       Skip to content
     </a>
     <slot />
+    <script
+      id="api-references"
+      type="application/json"
+      set:html={JSON.stringify(references).replaceAll('<', '\\u003c')}
+    />
     <div
       id="announcement"
       class="sr-only"
@@ -65,6 +73,7 @@ const {
     <script>
       import '../scripts/global';
       import '../scripts/install-tabs';
+      import '../scripts/api-tooltips';
     </script>
   </body>
 </html>

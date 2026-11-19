@@ -56,3 +56,4 @@ layout: article
 - TODO: Explain user errors (`NAME: MESSAGE`, default name `koi`) and author errors (`koi: API: MESSAGE`). `koi::config name` changes only user-error branding and help naming.
 - TODO: Explain strict surplus positionals and invocation-local `koi::config ignore-unknown-positionals true`, including required arguments and unknown command/option exclusions.
 - TODO: "How can I turn off automatic -h/--help?" --&gt; you can't
+- TODO: limitation of koi on `--option -h` - you can't ever pass a prefixed value to an option
