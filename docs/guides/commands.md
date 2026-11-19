@@ -15,7 +15,7 @@ layout: article
 ## Add branches and leaves
 
 - TODO: Build a branch that registers immediate children and closes with guarded parsing; every registered handler must reach its parse, even without custom arguments.
-- TODO: Put business logic in leaf handlers and explain why a branch with no selected child shows help rather than performing a default action.
+- TODO: Show business logic in leaf and branch handlers; explain default actions and function-local `missing-command continue|help|error` policies for branches without a selected child.
 - TODO: Show deeper nesting, selected-alias help, and the prohibition on declaring positionals alongside application children.
 
 ## Route options and failures

@@ -68,7 +68,7 @@ A child's help request still requires its ancestors to parse successfully. For e
 
 The built-in `help` command is available in each routed [branch](/docs/reference/glossary#branch). [Leaves](/docs/reference/glossary#leaf) and [directly](/docs/reference/glossary#direct-call) called parsing functions support `-h`/`--help` without receiving a `help` command. Disabling the built-in command leaves automatic `-h`/`--help` available.
 
-Use `koi::config missing-command-message 'Choose a command'` (see [koi::config](/docs/reference/config)) to return `2` with that error message when no root command is selected. This also applies when root flags or options are supplied without a command. Explicit help still succeeds, and nested branches still show help when no child is selected.
+Use `koi::config missing-command-message 'Choose a command'` (see [koi::config](/docs/reference/config)) to return `2` with that error message when no root command is selected. This also applies when root flags or options are supplied without a command. Explicit help still succeeds, and nested branches continue into their default actions unless they declare `koi::config missing-command help` or `error` (see [koi::config](/docs/reference/config#missing-child-commands)). The function-only `missing-command` setting cannot be declared at root scope.
 
 Unknown commands return `2` by default, including `./app.sh typo --help`. With `koi::config help-on-unknown-commands true` (see [koi::config](/docs/reference/config)), that invocation shows root help and returns `0`. This setting applies only at the root and recognizes standalone `-h`/`--help` before a `--` separator, so `typo -- --help` still fails.
 

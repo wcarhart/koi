@@ -23,13 +23,14 @@ koi::config KEY VALUE
 | `help-subcommand` | boolean | `true` | Script only | Support the builtin `help` subcommand where applicable throughout the routed command tree. Does not disable `-h`/`--help`. |
 | `verbose-help` | boolean | `false` | Script only | Support root `help -v` / `help --verbose`. Requires `help-subcommand true`. |
 | `help-hints` | boolean | `false` | Script only | Append available hints to ordinary top command-level help. |
+| `missing-command` | enum | `continue` | Function only | With available children commands but no selected child (see [branch](/docs/reference/glossary#branch)), continue (`continue`) after parsing, show help (`help`), or report an error (`error`). No effect on [leaves](/docs/reference/glossary#leaf). |
 | `missing-command-message` | string | ∅ | Script only | The custom error text to print when no root command is selected, even when root options were supplied. No effect on positional roots or nested branches. |
 | `help-on-unknown-commands` | boolean | `false` | Script only | Show help menu on unknown commands, e.g. `typo --help`. |
 | `use-single-pipe-for-or-groups` | boolean | `false` | Script or function | In help menu usage lines, use a single pipe (`\|`) for inclusive OR in this context and routed descendants instead of the default (`\|\|`) |
 | `ignore-unknown-positionals` | boolean | `false` | Script or function | Discard surplus positional values instead of erroring. |
 | `error-on-scalar-duplicates` | boolean | `false` | Script or function | Reject repeated scalar options and flags. |
 
-Both `KEY` and `VALUE` are required. Supply one setting per call and quote text containing spaces. Booleans accept exactly `true` and `false`. Empty values, unknown keys, wrong scopes, and repeated explicit keys are [author errors](/docs/reference/glossary#author-error), even when the repeated value is identical. Dependencies are checked when the complete spec is consumed, so declaration order does not matter.
+Both `KEY` and `VALUE` are required. Supply one setting per call and quote text containing spaces. Booleans accept exactly `true` and `false`; `missing-command` accepts exactly `continue`, `help`, or `error`. Empty values, unknown keys, wrong scopes, and repeated explicit keys are [author errors](/docs/reference/glossary#author-error), even when the repeated value is identical. Dependencies are checked when the complete spec is consumed, so declaration order does not matter.
 
 ## Scope and lifecycle
 
@@ -51,6 +52,24 @@ process() {
     printf '%s\n' "$input"
 }
 ```
+
+## Missing child commands
+
+Functions with registered children commands (aka [branches](/docs/concepts/routing#branches-and-leaves)) continue into their own business logic when no child is selected by default. Configure the function's registration block to change that behavior:
+
+```bash
+deploy() {
+    koi::config missing-command help
+    koi::add_command app -f deploy_app -d 'Deploy the application'
+    koi::parse "$@" || return "$koi_status"
+}
+```
+
+| Value | No child selected | Parser return | `koi_status` |
+| --- | --- | --- | --- |
+| `continue` | Parse arguments, then continue after the [guard](/docs/concepts/control-flow#the-parsing-boundary-and-required-guard) (default) | `0` | `0` |
+| `help` | Show the function's help without validation or assignment | `1` | `0` |
+| `error` | Report `missing required command` without validation or assignment | `2` | `2` |
 
 ## Function descriptions
 

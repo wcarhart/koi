@@ -102,8 +102,9 @@ fi
 #   KEY    name, help-width, help-subcommand, verbose-help, help-hints,
 #          missing-command-message, help-on-unknown-commands (script only), or
 #          description, epilog, use-single-pipe-for-or-groups, ignore-unknown-positionals,
-#          error-on-scalar-duplicates (script or function)
-#   VALUE  nonempty text, positive help-width (at most nine digits), or true/false
+#          error-on-scalar-duplicates (script or function), or missing-command (function only)
+#   VALUE  nonempty text, positive help-width (at most nine digits), true/false,
+#          or continue/help/error for missing-command
 # Returns 2 on invalid arguments, scope, values, or repeated explicit settings
 koi::config() {
     local __koi_buffer __koi_config_script_only=1 __koi_config_boolean=0
@@ -114,6 +115,22 @@ koi::config() {
     fi
 
     case $1 in
+        missing-command)
+            if [[ $__koi_buffer == __koi_root ]]; then
+                koi::internal::spec_error "$__koi_buffer" koi::config 'function-only config key: missing-command'
+                return 2
+            fi
+
+            __koi_config_script_only=0
+            case $2 in
+                continue|help|error)
+                    ;;
+                *)
+                    koi::internal::spec_error "$__koi_buffer" koi::config 'missing-command must be continue, help, or error'
+                    return 2
+                    ;;
+            esac
+            ;;
         name|missing-command-message)
             ;;
         description|epilog)
@@ -611,7 +628,8 @@ koi::add_dependency() {
 # uninterrupted registration block. $koi_status is the owning function's
 # return status and is used for exit/return control flow. Only supported from
 # inside application functions, not top-level/root context (use koi::run
-# in that scenario).
+# in that scenario). With no selected child, continues by default (behavior
+# can be configured via koi::config).
 # Usage: koi::parse "$@" || return "$koi_status"
 #   $@  application arguments to parse
 # Returns 0 to continue, 1 to stop after help/dispatch, or 2 on error
@@ -1224,8 +1242,22 @@ koi::internal::parse_spec() {
             return 2
         fi
 
-        koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
-        return 1
+        if (( __koi_engine_root )); then
+            koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+            return 1
+        fi
+
+        # resolve local missing-child policy before validation or assignment
+        case ${__koi_engine_meta[missing-command]-continue} in
+            help)
+                koi::internal::print_help "$__koi_engine_prefix" 0 "$__koi_engine_path"
+                return 1
+                ;;
+            error)
+                koi::internal::user_error 'missing required command'
+                return 2
+                ;;
+        esac
     fi
 
     # check presence and fill omitted values without touching user variables
@@ -2165,7 +2197,11 @@ koi::internal::print_help() {
     done
 
     if (( ${#__koi_commands[@]} )); then
-        printf ' COMMAND'
+        if (( ! __koi_help_meta[runner] )) && [[ ${__koi_help_meta[missing-command]-continue} == continue ]]; then
+            printf ' [COMMAND]'
+        else
+            printf ' COMMAND'
+        fi
     fi
 
     printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''

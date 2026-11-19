@@ -1,1 +1,1 @@
-Would deploy to production
+docker <compose> <up> <-d>

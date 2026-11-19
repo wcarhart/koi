@@ -192,7 +192,7 @@ setup() {
     [ -z "$stderr" ]
 }
 
-@test "a branch without child selection shows help and skips business logic" {
+@test "a branch without child selection runs its default action but dispatch skips it" {
     run --separate-stderr bash -uc '
         source "$KOI_LIBRARY"
         child() { printf "child\n"; }
@@ -205,8 +205,7 @@ setup() {
         parent child
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == Usage:*COMMAND*child ]]
-    [[ "$output" != *default* ]]
+    [ "$output" = $'default\nchild' ]
     [ -z "$stderr" ]
 }
 
@@ -250,7 +249,7 @@ setup() {
         koi::run "$@"
     ' app.sh a a a a a a a a a a a a --help
     [ "$status" -eq 0 ]
-    [[ "${lines[0]}" == Next && "${lines[1]}" == 'Usage: app.sh a a a a a a a a a a a a [-h] COMMAND' ]]
+    [[ "${lines[0]}" == Next && "${lines[1]}" == 'Usage: app.sh a a a a a a a a a a a a [-h] [COMMAND]' ]]
     [[ "$output" == *'Commands:'*'Next'* ]]
     [[ "$output" != *BAD* ]]
     [ -z "$stderr" ]

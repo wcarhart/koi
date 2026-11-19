@@ -19,9 +19,12 @@ status() {
 }
 
 deploy() {
+    koi::config epilog 'Without a child command, deploy all Compose services.'
     koi::add_command service -f deploy_service -d 'Start or update a service'
     koi::add_command stack -f deploy_stack -d 'Apply an infrastructure stack'
     koi::parse "$@" || return "$koi_status"
+
+    docker compose up -d
 }
 
 deploy_service() {

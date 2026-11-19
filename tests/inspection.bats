@@ -209,7 +209,7 @@ run_inspection() {
             [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
         '
         [ "$status" -eq 0 ]
-        [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED COMMAND'*'Usage: tool branch one [-h] -r REQUIRED'*'Usage: tool branch two [-h] -r REQUIRED'*'Usage: tool alias [-h] -r REQUIRED'* ]]
+        [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED [COMMAND]'*'Usage: tool branch one [-h] -r REQUIRED'*'Usage: tool branch two [-h] -r REQUIRED'*'Usage: tool alias [-h] -r REQUIRED'* ]]
         [[ "$output" != *BAD* && "$output" != *Fallback* && "$output" != *Hints:* ]]
         [ -z "$stderr" ]
         [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 5 ]
@@ -247,7 +247,7 @@ run_inspection() {
         koi::config verbose-help true; koi::run help --verbose
     '
     [ "$status" -eq 2 ]
-    [[ "$output" == Application*'Usage: app.sh again [-h] COMMAND'* ]]
+    [[ "$output" == Application*'Usage: app.sh again [-h] [COMMAND]'* ]]
     [[ "$stderr" == *"recursive inspection at 'again again'"* ]]
     run_inspection '
         koi::add_command again -f node -d Recursive
@@ -258,7 +258,7 @@ run_inspection() {
         koi::run again again again --help
     '
     [ "$status" -eq 0 ]
-    [[ "$output" == Recursive*'Usage: app.sh again again again [-h] COMMAND'* ]]
+    [[ "$output" == Recursive*'Usage: app.sh again again again [-h] [COMMAND]'* ]]
     [ -z "$stderr" ]
 }
 

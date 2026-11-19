@@ -243,11 +243,12 @@ run_help() {
     [[ "$output" == Application*'Usage: stable [-h]'* ]]
 }
 
-@test "branch without a selection shows help before required argument validation" {
+@test "branch missing-command help bypasses required argument validation" {
     run_help '
         branch() {
             local required
             koi::config description Branch
+            koi::config missing-command help
             koi::add_arg required -o -s r -r -d Required
             koi::add_command leaf -f leaf -d Leaf
             koi::parse "$@" || return "$koi_status"

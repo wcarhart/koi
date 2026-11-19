@@ -61,7 +61,7 @@ Note that `koi::config ignore-unknown-positionals true` only impacts the associa
 
 The parser's return code decides whether the guard runs, while `$koi_status` supplies the status your function should return. Koi sets `$koi_status` for you. Subsequent parses can overwrite `$koi_status`. See [parsing and control flow](/docs/concepts/control-flow#parser-result-and-caller-result).
 
-A function with child commands dispatches or shows help when no child is selected, so code after its guard never runs. The parent must parse successfully before dispatching, even if the child requests help. See [calls and command routing](/docs/concepts/routing).
+A function with child commands dispatches the selected child and returns through its guard. With no selected child, it continues after the guard by default, after validation and destination assignment. You can configure this behavior via [koi::config](/docs/reference/config), see [missing child commands](/docs/reference/config#missing-child-commands). The parent must parse successfully before dispatching, even if the child requests help. See [calls and command routing](/docs/concepts/routing).
 
 ## Validation
 

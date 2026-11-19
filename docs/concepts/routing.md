@@ -77,7 +77,11 @@ A direct call uses only the script name in its usage line and the function's [ko
 
 A context with registered child commands is a **branch**. To nest commands, register children inside the owning handler before its guarded parse (see [registration blocks](/docs/concepts/lifecycle)). For example, if an `infra` handler registers `deploy`, callers can use `./app.sh infra deploy -e staging`. You can keep nesting commands as far as Bash's `FUNCNEST` setting and available memory allow.
 
-A branch dispatches the selected child or shows help when no child is given. Its parsing guard returns with the child's exit status after dispatch, so code after the guard never runs for a branch. At the root, you can configure [koi::run](/docs/reference/run) to report an error instead of showing help when no command is given.
+A branch dispatches the selected child and returns through its parsing guard with the child's exit status, skipping the parent's business logic. When no child is given, successful parsing continues after the guard into the branch's default action, just as it does for a leaf.
+
+For a branch that only groups commands, declare `koi::config missing-command help` to show help or `koi::config missing-command error` to report `missing required command` with status `2` (see [koi::config](/docs/reference/config)). These function-local policies do not inherit so you can configure each function separately. The default is `continue`, which continues into business logic after successful parse. With `continue`, help usage shows `[COMMAND]` for that policy to indicate that the command is optional. Explicit `-h`/`--help` still succeeds without running business logic under every policy. See [missing child commands](/docs/reference/config#missing-child-commands).
+
+At the root, [koi::run](/docs/reference/run) still shows help when no command is given, or reports the configured `missing-command-message` error. To implement a script-level default action, use a guarded function entrypoint.
 
 A context without children is a **leaf**, like `deploy` in the example `./app.sh infra deploy -e staging`. After successful parsing, a leaf continues into its business logic. Both branches and leaves can declare flags and options, but positionals cannot share a context with child commands because bare tokens select commands there.
 

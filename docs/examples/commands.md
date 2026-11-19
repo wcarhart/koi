@@ -1,19 +1,19 @@
 ---
 title: "A nested command application"
-description: "Register a branch, route to a leaf, and keep help automatic."
+description: "Give a branch a default action and route explicit child commands."
 layout: split
 ---
 
-Save the script as `app.sh` beside the library. Root and branch contexts show help when no application child is selected.
+Save the script as `app.sh` beside the library. The root shows help without a command. Bare `deploy` starts or updates all Compose services; selecting a child performs only that child action. Explicit help performs no operation.
 
 ```bash
 bash app.sh
 bash app.sh deploy
-bash app.sh deploy app --help
-bash app.sh deploy app -e production
+bash app.sh deploy --help
+bash app.sh deploy service api -f compose.prod.yaml
 ```
 
-The leaf prints a mock action. There is no deployment side effect.
+The script invokes Docker Compose or Terraform. The captured output below uses a mock Docker command to demonstrate the default action without deploying services. For a grouping-only branch, add `koi::config missing-command help` or `error` before parsing.
 
 <!-- koi:example -->
 

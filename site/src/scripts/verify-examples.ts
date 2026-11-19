@@ -75,6 +75,7 @@ const fixtures = [
   { script: 'greet', args: ['--help'], output: 'greet-help' },
   { script: 'help', args: ['--help'], output: 'help' },
   { script: 'copy', args: ['source.txt', '-v', 'out'], output: 'copy' },
+  { script: 'commands', args: ['deploy'], output: 'commands' },
   {
     script: 'commands',
     args: ['deploy', 'service', 'api', '-f', 'compose.prod.yaml'],

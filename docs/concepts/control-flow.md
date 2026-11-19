@@ -68,7 +68,7 @@ The parser's return code controls whether the guard runs. `$koi_status` supplies
 | Child dispatch | `1` | Child's exit status | Returns with the child's result |
 | Registration or parsing error | `2` | `2` | Returns an error |
 
-After dispatch, the parent returns even if the child succeeded. A [branch](/docs/concepts/routing#branches-and-leaves) always dispatches or shows help, so its own business logic after the guard never runs.
+After dispatch, the parent returns even if the child succeeded. When no child is selected, a [branch](/docs/concepts/routing#branches-and-leaves) continues into its own business logic after successful parsing by default. Set `koi::config missing-command help` or `error` to stop instead (see [koi::config](/docs/reference/config)).
 
 The guard only returns from the current function. A caller can still continue after `greet --help` because help returns success, and callers must handle failures explicitly when they need to stop their own work.
 

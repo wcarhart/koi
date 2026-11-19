@@ -19,6 +19,7 @@ status() {
 }
 
 deploy() {
+    koi::config missing-command help
     koi::add_command service -f deploy_service -d 'Start or update a service'
     koi::add_command stack -f deploy_stack -d 'Apply an infrastructure stack'
     koi::parse "$@" || return "$koi_status"

@@ -7,11 +7,14 @@ packaging choices remain open to further design.
 
 ## Implemented help increment
 
-The later [v2 configuration and help contract](docs/tmp/v2-help.md) supersedes the
-initial proposals below where they differ. In particular, branches with
-application children show help rather than executing local business logic when
-no child is selected. Root configuration and direct function descriptions use
-`koi::config`. Inspection currently collects into internal Bash arrays only; external transport and CLI output formats remain deferred.
+The implemented [configuration contract](docs/reference/config.md) supersedes
+initial proposals below where they differ. Functions with application children
+continue into local business logic when no child is selected, after successful
+argument validation. Function-local `koi::config missing-command continue|help|error`
+controls this behavior; the default is `continue`. Root missing-command behavior
+remains unchanged. Root configuration and direct function descriptions use
+`koi::config`. Inspection currently collects into internal Bash arrays only;
+external transport and CLI output formats remain deferred.
 
 ## Purpose and scope
 

@@ -22,7 +22,7 @@ In the context of koi, **a [destination](#destination) that holds multiple value
 
 ## Branch
 
-**A [registration context](#registration-context) with one or more child [commands](#command).** For example, in `./app.sh deploy service`, `deploy` is a branch if it registers `service` as a child command. A branch either [dispatches](#dispatch) the selected child or displays its help menu when no child is selected. Its [guarded](#guard) parse does not continue into the branch's own business logic. Koi's built-in `help` command does not make a context a branch on its own. See [calls and command routing](/docs/concepts/routing).
+**A [registration context](#registration-context) with one or more child [commands](#command).** For example, in `./app.sh deploy service`, `deploy` is a branch if it registers `service` as a child command. A branch [dispatches](#dispatch) the selected child and returns through its [guard](#guard). When no child is selected, successful parsing continues into its own business logic by default. This behavior can be configured via [koi::config missing-command](/docs/reference/config). Koi's built-in `help` command does not make a context a branch on its own. See [calls and command routing](/docs/concepts/routing).
 
 ## Cardinality
 
@@ -86,7 +86,7 @@ In the context of koi, **the caller-side control flow `|| return "$koi_status"` 
 
 ## Leaf
 
-**A [registration context](#registration-context) with no child [commands](#command).** For example, in `./app.sh deploy service`, `service` is a leaf if it does not register any further commands. Unlike a [branch](#branch), a leaf handler continues into its own business logic after successful parsing. Help and parsing errors still return through its [guard](#guard). Leaves do not receive koi's built-in `help` command, but automatic `-h`/`--help` is still available. See [calls and command routing](/docs/concepts/routing).
+**A [registration context](#registration-context) with no child [commands](#command).** For example, in `./app.sh deploy service`, `service` is a leaf if it does not register any further commands. A leaf handler continues into its own business logic after successful parsing. A [branch](#branch) can also continue when no child is selected (see [koi::config missing-command](/docs/reference/config)). Help and parsing errors still return through its [guard](#guard). Leaves do not receive koi's built-in `help` command, but automatic `-h`/`--help` is still available. See [calls and command routing](/docs/concepts/routing).
 
 ## Long spelling
 

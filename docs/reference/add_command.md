@@ -39,7 +39,7 @@ At the root-level (e.g. using `koi::add_command` at the top-level of your script
 
 From within a function, `koi::add_command` registers immediate child commands for that function's context. For example, in `./cli.sh infra deploy -f`, `infra` is registered at the root-level with a handler, perhaps also named `infra`. That handler registers `deploy` within its own registration block. Subcommands can be nested as far as `FUNCNEST` and system memory allow.
 
-A context with child commands is a [branch](/docs/reference/glossary#branch). It dispatches the selected child or shows help when no child is selected, so its guarded parse never continues into its own business logic. At the root-level, [koi::run](/docs/reference/run) can instead be configured to report an error when no command is given.
+A context with child commands is a [branch](/docs/reference/glossary#branch). It dispatches the selected child and returns through its guard. When no child is selected, successful parsing continues into its own business logic by default. To change this behavior, use `koi::config missing-command-help` or `error` (see [koi::config](/docs/reference/config)). At the root-level, [koi::run](/docs/reference/run) can instead be configured to report an error when no command is given.
 
 Flags and options can be registered alongside child commands, but positionals cannot. Declaring both positionals and child commands in the same context causes parsing to fail, including when help is requested. This is because koi cannot differentiate which parsed token is a subcommand vs. a positional value.
 
