@@ -20,7 +20,7 @@ koi::config KEY VALUE
 | `description` | string | ∅ | Script or function | Root help description at script scope, direct-call help description inside a function. |
 | `help-width` | integer | `100` | Script only | The word-wrap width for all help menus. |
 | `help-subcommand` | boolean | `true` | Script only | Support the builtin `help` subcommand where applicable throughout the routed command tree. Does not disable `-h`/`--help`. |
-| `verbose-help` | boolean | `false` | Script only | Support `help --verbose` as the top command-level. Requires `help-subcommand true`. |
+| `verbose-help` | boolean | `false` | Script only | Support root `help -v` / `help --verbose`. Requires `help-subcommand true`. |
 | `help-hints` | boolean | `false` | Script only | Append available hints to ordinary top command-level help. |
 | `missing-command-message` | string | ∅ | Script only | The custom error text to print when no root command is selected, even when root options were supplied. No effect on positional roots or nested branches. |
 | `help-on-unknown-commands` | boolean | `false` | Script only | Show help menu on unknown commands, e.g. `typo --help`. |

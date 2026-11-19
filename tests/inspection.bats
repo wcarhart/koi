@@ -179,38 +179,41 @@ run_inspection() {
 }
 
 @test "verbose help walks preorder preserves aliases and invokes each entry once" {
-    run_inspection '
-        branch_count=0
-        leaf_count=0
-        koi::config name tool
-        koi::add_command branch -f branch -d Branch
-        koi::add_command alias -f leaf -d Alias
-        branch() {
-            branch_count=$((branch_count + 1))
-            local required=unchanged
-            koi::add_arg required -o -s r -r -d Required
-            koi::add_command one -f leaf -d One
-            koi::add_command two -f leaf -d Two
-            koi::parse "$@" || return "$koi_status"
-            echo BAD
-        }
-        leaf() {
-            leaf_count=$((leaf_count + 1))
-            koi::config description Fallback
-            local required=unchanged
-            koi::add_arg required -o -s r -r -d Required
-            koi::parse "$@" || return "$koi_status"
-            echo BAD
-        }
-        koi::config verbose-help true; koi::config help-hints true; koi::run help --verbose
-        [[ $branch_count == 1 && $leaf_count == 3 ]]
-        [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
-    '
-    [ "$status" -eq 0 ]
-    [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED COMMAND'*'Usage: tool branch one [-h] -r REQUIRED'*'Usage: tool branch two [-h] -r REQUIRED'*'Usage: tool alias [-h] -r REQUIRED'* ]]
-    [[ "$output" != *BAD* && "$output" != *Fallback* && "$output" != *Hints:* ]]
-    [ -z "$stderr" ]
-    [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 5 ]
+    local flag
+    for flag in -v --verbose; do
+        run_inspection '
+            branch_count=0
+            leaf_count=0
+            koi::config name tool
+            koi::add_command branch -f branch -d Branch
+            koi::add_command alias -f leaf -d Alias
+            branch() {
+                branch_count=$((branch_count + 1))
+                local required=unchanged
+                koi::add_arg required -o -s r -r -d Required
+                koi::add_command one -f leaf -d One
+                koi::add_command two -f leaf -d Two
+                koi::parse "$@" || return "$koi_status"
+                echo BAD
+            }
+            leaf() {
+                leaf_count=$((leaf_count + 1))
+                koi::config description Fallback
+                local required=unchanged
+                koi::add_arg required -o -s r -r -d Required
+                koi::parse "$@" || return "$koi_status"
+                echo BAD
+            }
+            koi::config verbose-help true; koi::config help-hints true; koi::run help '"$flag"'
+            [[ $branch_count == 1 && $leaf_count == 3 ]]
+            [[ ${#__koi_pending_meta[@]} == 0 && ${#__koi_pending_args[@]} == 0 ]]
+        '
+        [ "$status" -eq 0 ]
+        [[ "$output" == *'Usage: tool [-h] COMMAND'*'Usage: tool branch [-h] -r REQUIRED COMMAND'*'Usage: tool branch one [-h] -r REQUIRED'*'Usage: tool branch two [-h] -r REQUIRED'*'Usage: tool alias [-h] -r REQUIRED'* ]]
+        [[ "$output" != *BAD* && "$output" != *Fallback* && "$output" != *Hints:* ]]
+        [ -z "$stderr" ]
+        [ "$(printf '%s\n' "$output" | rg -c '^Usage:')" -eq 5 ]
+    done
 }
 
 @test "verbose inspection isolates preparation helper paths and descriptions" {

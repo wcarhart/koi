@@ -453,11 +453,104 @@ run_help() {
 
 @test "disabled verbose help reports the same argument error as other unknown help arguments" {
     local argument
-    for argument in --verbose --unknown extra; do
+    for argument in -v --verbose --unknown extra; do
         run_help 'koi::add_command leaf -f leaf -d Leaf; leaf() { :; }; koi::run "$@"' help "$argument"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
         [ "$stderr" = "koi: unsupported positional argument: '$argument'" ]
+    done
+}
+
+@test "built-in help menus and verbose precedence follow the selected context" {
+    local enabled context help_flag verbose_flag menu
+    local body='
+        koi::config name tool
+        koi::config help-hints true
+        koi::config verbose-help "$1"
+        shift
+        koi::add_arg account -o -l account -r -d Account
+        koi::add_command branch -f branch -d Branch
+        branch() {
+            koi::add_arg required -o -l required -r -d Required
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
+            echo BAD
+        }
+        leaf() {
+            echo TRAVERSED
+            koi::parse "$@" || return "$koi_status"
+            echo BAD
+        }
+        account=unchanged
+        koi::run "$@" || exit
+        [[ $account == unchanged || $account == valid ]]
+    '
+    for enabled in false true; do
+        for context in root branch; do
+            local -a route=()
+            if [[ $context == branch ]]; then
+                route=(--account valid branch)
+            fi
+            run_help "$body" "$enabled" "${route[@]}" help -h
+            [ "$status" -eq 0 ]
+            [ -z "$stderr" ]
+            menu=$output
+            [[ "$menu" == 'Show help for the containing command.'* ]]
+            [[ "$menu" == *'-h, --help'*'Show this help command menu'* ]]
+            [[ "$menu" != *Account* && "$menu" != *Required* && "$menu" != *Commands:* && "$menu" != *Hints:* && "$menu" != *BAD* && "$menu" != *TRAVERSED* ]]
+            if [[ $context == branch ]]; then
+                [[ "$menu" == *'Usage: tool branch help [-h]'* ]]
+                [[ "$menu" != *--verbose* ]]
+            elif [[ $enabled == true ]]; then
+                [[ "$menu" == *'Usage: tool help [-h] [-v]'*'-v, --verbose'* ]]
+            else
+                [[ "$menu" == *'Usage: tool help [-h]'* ]]
+                [[ "$menu" != *--verbose* ]]
+            fi
+            for help_flag in -h --help; do
+                run_help "$body" "$enabled" "${route[@]}" help "$help_flag"
+                [ "$status" -eq 0 ]
+                [ "$output" = "$menu" ]
+                for verbose_flag in -v --verbose; do
+                    run_help "$body" "$enabled" "${route[@]}" help "$verbose_flag" "$help_flag"
+                    [ "$status" -eq 0 ]
+                    [ -z "$stderr" ]
+                    [ "$output" = "$menu" ]
+                    run_help "$body" "$enabled" "${route[@]}" help "$help_flag" "$verbose_flag"
+                    [ "$status" -eq 0 ]
+                    [ -z "$stderr" ]
+                    [ "$output" = "$menu" ]
+                done
+            done
+            if [[ $context == branch ]]; then
+                for verbose_flag in -v --verbose; do
+                    run_help "$body" "$enabled" "${route[@]}" help "$verbose_flag"
+                    [ "$status" -eq 2 ]
+                    [ -z "$output" ]
+                done
+                run_help "$body" "$enabled" branch help -v -h
+                [ "$status" -eq 2 ]
+                [[ "$stderr" == *"missing required argument: 'account'" ]]
+            fi
+        done
+    done
+}
+
+@test "help rejects repeated flags combined short spellings and unrelated arguments" {
+    local args
+    for args in '-h --help' '-v --verbose' '-vh' '-h extra' '-v -h extra' '-h --unknown'; do
+        # Intentionally split this fixed argument list into command tokens.
+        # shellcheck disable=SC2086
+        run_help '
+            koi::config verbose-help true
+            koi::add_command leaf -f leaf -d Leaf
+            leaf() {
+                koi::parse "$@" || return "$koi_status"
+            }
+            koi::run "$@"
+        ' help $args
+        [ "$status" -eq 2 ]
+        [ -z "$output" ]
     done
 }
 

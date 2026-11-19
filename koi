@@ -1157,35 +1157,44 @@ koi::internal::parse_spec() {
         __koi_engine_command=${__koi_engine_tail[0]}
         __koi_engine_remaining=("${__koi_engine_tail[@]:1}")
         if [[ $__koi_engine_command == help ]] && (( __koi_engine_meta[builtin] )); then
-            case ${#__koi_engine_remaining[@]} in
-                0)
-                    koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
-                    ;;
-                1)
-                    case ${__koi_engine_remaining[0]} in
-                        -h|--help)
-                            koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
-                            ;;
-                        --verbose)
-                            if (( ! __koi_engine_root || ! __koi_engine_meta[verbose] )); then
-                                koi::internal::user_error "unsupported positional argument: '${__koi_engine_remaining[0]}'"
-                                return 2
-                            fi
-                            __koi_engine_meta[hints]=0
-                            local -a __koi_walk_ancestors=()
-                            koi::internal::walk_spec "$__koi_engine_prefix" || return 2
-                            ;;
-                        *)
-                            koi::internal::user_error "unsupported positional argument: '${__koi_engine_remaining[0]}'"
-                            return 2
-                            ;;
-                    esac
-                    ;;
-                *)
+            local __koi_builtin_help=0 __koi_builtin_verbose=0 __koi_builtin_invalid=0
+            for __koi_engine_token in "${__koi_engine_remaining[@]}"; do
+                case $__koi_engine_token in
+                    -h|--help)
+                        __koi_builtin_help=$((__koi_builtin_help + 1))
+                        ;;
+                    -v|--verbose)
+                        __koi_builtin_verbose=$((__koi_builtin_verbose + 1))
+                        ;;
+                    *)
+                        __koi_builtin_invalid=1
+                        ;;
+                esac
+            done
+
+            if (( __koi_builtin_invalid || __koi_builtin_help > 1 || __koi_builtin_verbose > 1 )); then
+                if (( ${#__koi_engine_remaining[@]} == 1 )); then
+                    koi::internal::user_error "unsupported positional argument: '${__koi_engine_remaining[0]}'"
+                else
                     koi::internal::user_error 'unsupported help arguments'
+                fi
+                return 2
+            fi
+
+            # Resolve help before checking whether verbose traversal is available.
+            if (( __koi_builtin_help )); then
+                koi::internal::print_help_command "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+            elif (( __koi_builtin_verbose )); then
+                if (( ! __koi_engine_root || ! __koi_engine_meta[verbose] )); then
+                    koi::internal::user_error "unsupported positional argument: '${__koi_engine_remaining[0]}'"
                     return 2
-                    ;;
-            esac
+                fi
+                __koi_engine_meta[hints]=0
+                local -a __koi_walk_ancestors=()
+                koi::internal::walk_spec "$__koi_engine_prefix" || return 2
+            else
+                koi::internal::print_help "$__koi_engine_prefix" "$__koi_engine_root" "$__koi_engine_path"
+            fi
             return 1
         fi
 
@@ -1987,6 +1996,42 @@ koi::internal::print_dependencies() {
 
         koi::internal::wrap "$__koi_dep_help_text requires $__koi_dep_help_list" '  ' '  '
     done
+}
+
+# Print the built-in help command's own menu. Lists verbose
+# help only when available in the current context.
+# Usage: koi::internal::print_help_command PREFIX ROOT PATH
+#   PREFIX  parser-local spec prefix containing effective help metadata
+#   ROOT    1 for root command usage, otherwise 0
+#   PATH    CLI command path, or empty at the root
+koi::internal::print_help_command() {
+    local -n __koi_builtin_meta="${1}_meta"
+    local __koi_builtin_root=$2 __koi_builtin_path=$3
+    local __koi_builtin_width=10
+    if (( __koi_builtin_root && __koi_builtin_meta[verbose] )); then
+        __koi_builtin_width=13
+    fi
+
+    koi::internal::wrap 'Show help for the containing command.' '' ''
+    printf '\nUsage: %s' "${__koi_builtin_meta[name]}"
+    if [[ -n $__koi_builtin_path ]]; then
+        printf ' %s' "$__koi_builtin_path"
+    fi
+
+    printf ' help [-h]'
+    if (( __koi_builtin_root && __koi_builtin_meta[verbose] )); then
+        printf ' [-v]'
+    fi
+
+    printf '\n\nOptions:\n'
+    local __koi_builtin_indent __koi_builtin_first
+    printf -v __koi_builtin_indent '%*s' "$((__koi_builtin_width + 4))" ''
+    printf -v __koi_builtin_first '  %-*s  ' "$__koi_builtin_width" '-h, --help'
+    koi::internal::wrap 'Show this help command menu' "$__koi_builtin_first" "$__koi_builtin_indent"
+    if (( __koi_builtin_root && __koi_builtin_meta[verbose] )); then
+        printf -v __koi_builtin_first '  %-*s  ' "$__koi_builtin_width" '-v, --verbose'
+        koi::internal::wrap 'Show complete command documentation' "$__koi_builtin_first" "$__koi_builtin_indent"
+    fi
 }
 
 # Print help for a consumed spec and its immediate children

@@ -74,7 +74,7 @@ Unknown commands return `2` by default, including `./app.sh typo --help`. With `
 
 ### Verbose help
 
-With `koi::config verbose-help true` (see [koi::config](/docs/reference/config)), `./app.sh help --verbose` prints root help followed by each command's help in registration order, visiting descendants before the next sibling via depth-first-search. Verbose help is available only through the root's built-in `help` command.
+With `koi::config verbose-help true` (see [koi::config](/docs/reference/config)), `./app.sh help -v/--verbose` prints root help followed by each command's help in registration order, visiting descendants before the next sibling via depth-first-search. Verbose help is available only through the root's built-in `help` command.
 
 Koi invokes handlers to collect their declarations, then stops at [guarded parsing](/docs/concepts/control-flow). Code before the guard still runs during help, including verbose help, so keep operations with side effects after it. See [customizing the generated help](/docs/guides/help).
 
