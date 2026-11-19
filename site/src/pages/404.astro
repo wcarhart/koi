@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import TerminalCommand from '../components/TerminalCommand.astro';
+import CtaArrow from '../components/CtaArrow.astro';
 ---
 
 <Base
@@ -11,14 +13,26 @@ import Footer from '../components/Footer.astro';
 >
   <Header />
   <main id="main" class="error-page">
-    <span class="eyebrow">EXIT STATUS / 404</span>
-    <h1>Command not found.</h1>
+    <h1>Not found</h1>
+    <div class="terminal-session error-shell">
+      <TerminalCommand>echo $?</TerminalCommand>
+      <div>404</div>
+    </div>
     <p>
-      This page isn't here. Head back to the documentation to find your way.
+      There's nothing here. The link may be out of date, or the page may have
+      moved.
     </p>
-    <a class="button primary" href="/docs">
-      Open the docs →
-    </a>
+    <div class="button-row">
+      <a class="button" href="/">
+        <span class="error-back-arrow">
+          <CtaArrow />
+        </span>{' '}
+        Back home
+      </a>
+      <a class="button" href="/docs">
+        Read the docs <CtaArrow />
+      </a>
+    </div>
   </main>
   <Footer />
 </Base>

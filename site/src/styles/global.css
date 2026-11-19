@@ -1224,6 +1224,7 @@ kbd {
   margin: auto;
 }
 .error-page h1 {
+  margin-bottom: 0;
   font-size: 50px;
   font-weight: 500;
   letter-spacing: -0.04em;
@@ -1750,6 +1751,7 @@ html:not(.js) [data-open-menu] {
 /* Simple buttons change fill while keeping text color and position stable. */
 .home-page .button:hover,
 .install-page .button:hover,
+.error-page .button:is(:hover, :focus-visible),
 .docs-page .button:is(:hover, :focus-visible) {
   background: color-mix(in srgb, var(--surface) 88%, var(--ink));
   color: var(--ink);
@@ -2021,6 +2023,16 @@ html:not(.js) [data-open-menu] {
 .terminal-session .shell-prompt .koi-mark {
   width: 0.9em;
   height: 0.9em;
+}
+.error-shell {
+  margin-bottom: 64px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.error-back-arrow {
+  display: inline-flex;
+  transform: rotate(180deg);
 }
 .terminal-session .cursor {
   height: 1cap;
