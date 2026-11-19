@@ -18,6 +18,7 @@ koi::config KEY VALUE
 | --- | --- | --- | --- | --- |
 | `name` | string | `koi` | Script only | Help naming and [user errors](/docs/reference/glossary#user-error) branding throughout the script. |
 | `description` | string | ∅ | Script or function | Root help description at script scope, direct-call help description inside a function. |
+| `epilog` | string | ∅ | Script or function | Closing text below the current context's help menu. |
 | `help-width` | integer | `100` | Script only | The word-wrap width for all help menus. |
 | `help-subcommand` | boolean | `true` | Script only | Support the builtin `help` subcommand where applicable throughout the routed command tree. Does not disable `-h`/`--help`. |
 | `verbose-help` | boolean | `false` | Script only | Support root `help -v` / `help --verbose`. Requires `help-subcommand true`. |
@@ -68,6 +69,21 @@ status --help
 
 When you register a command via [koi::add_command](/docs/reference/add_command), you provided a description via `-d` that koi will use in help menus. However, when using [directly called functions](/docs/concepts/routing#direct-calls-and-entrypoints), your function won't have a description by default. You can add one for use in help menus via `koi::config description DESC`.
 
+## Help epilogs
+
+Use `koi::config epilog TEXT` to place free-form closing text below a help menu. By default epilogs are disabled unless provided. Each function's help menu can have its own epilog, which is separate from the script's epilog.
+
+```bash
+koi::config epilog 'For examples, visit https://example.com/docs.'
+
+deploy() {
+    koi::config epilog 'Deployments require an authenticated session.'
+    koi::parse "$@" || return "$koi_status"
+
+    printf 'Deploying\n'
+}
+```
+
 ## Error prefixes
 
 [User errors](/docs/reference/glossary#user-error) use the configured `name` across root parsing, routed commands, and direct function calls, e.g. `koi::config name my-script-name`. This allows you to brand your script or CLI so you don't need to expose that it's koi-powered. Without a provided `name`, user errors use the prefix `koi` and help uses the script's basename. [Author errors](/docs/reference/glossary#author-error) cannot be customized in this fashion. See [errors](/docs/concepts/errors).
@@ -102,6 +118,7 @@ source koi
 koi::config name infra
 koi::config description 'Manage infrastructure'
 koi::config help-width 80
+koi::config epilog 'For examples, visit https://example.com/docs.'
 
 deploy() {
     koi::parse "$@" || return "$koi_status"
@@ -126,6 +143,8 @@ Commands:
 
 Options:
   -h, --help  Show this help
+
+For examples, visit https://example.com/docs.
 ```
 
 The configured name also appears in child usage lines, so `./app.sh deploy --help` shows `Usage: infra deploy [-h]`. The script is still invoked as `app.sh`.

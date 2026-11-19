@@ -663,3 +663,126 @@ run_help() {
         [ "$stderr" = "koi: unknown command 'help'" ]
     done
 }
+
+@test "root epilog is last after arguments dependencies and hints" {
+    run_help '
+        koi::config epilog "Closing text"
+        koi::config help-hints true
+        koi::add_arg first -f -s f -d First
+        koi::add_arg second -f -s s -d Second
+        koi::add_dependency first -r second
+        koi::add_command leaf -f leaf -d Leaf
+        leaf() {
+            koi::parse "$@" || return "$koi_status"
+        }
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'Options:'*'requires'*'Hints:'*$'\n\nClosing text' ]]
+    [[ "$output" != *'Epilog:'* ]]
+    [ -z "$stderr" ]
+}
+
+@test "epilogs stay local during routing direct calls and verbose traversal" {
+    local invocation
+    local -a invocation_args=()
+    for invocation in '--help' 'branch --help' 'branch leaf --help' 'other --help' 'help --verbose'; do
+        read -r -a invocation_args <<< "$invocation"
+        run_help '
+            koi::config epilog ROOT_END
+            koi::config verbose-help true
+            koi::add_command branch -f branch -d Branch
+            koi::add_command other -f other -d Other
+            branch() {
+                koi::config epilog BRANCH_END
+                koi::add_command leaf -f leaf -d Leaf
+                koi::parse "$@" || return "$koi_status"
+            }
+            leaf() {
+                koi::config epilog LEAF_END
+                koi::parse "$@" || return "$koi_status"
+            }
+            other() {
+                koi::parse "$@" || return "$koi_status"
+            }
+            koi::run "$@"
+        ' "${invocation_args[@]}"
+        [ "$status" -eq 0 ]
+        case $invocation in
+            --help)
+                [[ "$output" == *$'\n\nROOT_END' && "$output" != *BRANCH_END* && "$output" != *LEAF_END* ]]
+                ;;
+            'branch --help')
+                [[ "$output" == *$'\n\nBRANCH_END' && "$output" != *ROOT_END* && "$output" != *LEAF_END* ]]
+                ;;
+            'branch leaf --help')
+                [[ "$output" == *$'\n\nLEAF_END' && "$output" != *ROOT_END* && "$output" != *BRANCH_END* ]]
+                ;;
+            'other --help')
+                [[ "$output" != *_END* ]]
+                ;;
+            'help --verbose')
+                [[ "$output" == *$'\n\nROOT_END\n\nBranch'*$'\n\nBRANCH_END\n\nLeaf'*$'\n\nLEAF_END\n\nOther'* ]]
+                ;;
+        esac
+        [ -z "$stderr" ]
+    done
+
+    run_help '
+        koi::config epilog ROOT_END
+        direct() {
+            koi::config epilog DIRECT_END
+            koi::parse "$@" || return "$koi_status"
+        }
+        direct --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'\n\nDIRECT_END' && "$output" != *ROOT_END* ]]
+    [ -z "$stderr" ]
+}
+
+@test "epilog wraps literal text and preserves explicit line breaks" {
+    run_help '
+        koi::config help-width 12
+        koi::config epilog $'"'"'one  two\tthree four\n\n  five\nabcdefghijklmnop\n"quote" \\n\n$(echo BAD)'"'"'
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'\n\none two\nthree four\n\nfive\nabcdefghijklmnop\n"quote" \\n\n$(echo BAD)' ]]
+    [ -z "$stderr" ]
+}
+
+@test "the built-in help command menu does not acquire the containing epilog" {
+    run_help '
+        koi::config epilog ROOT_END
+        koi::add_command branch -f branch -d Branch
+        branch() {
+            koi::config epilog BRANCH_END
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
+        }
+        leaf() {
+            koi::parse "$@" || return "$koi_status"
+        }
+        koi::run "$@"
+    ' help --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == 'Show help for the containing command.'* && "$output" != *_END* ]]
+    [ -z "$stderr" ]
+    run_help '
+        koi::config epilog ROOT_END
+        koi::add_command branch -f branch -d Branch
+        branch() {
+            koi::config epilog BRANCH_END
+            koi::add_command leaf -f leaf -d Leaf
+            koi::parse "$@" || return "$koi_status"
+        }
+        leaf() {
+            koi::parse "$@" || return "$koi_status"
+        }
+        koi::run "$@"
+    ' branch help --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == 'Show help for the containing command.'* && "$output" != *_END* ]]
+    [ -z "$stderr" ]
+}

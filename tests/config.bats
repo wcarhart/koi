@@ -321,3 +321,106 @@ KEYS
     [[ "$output" == false$'\n\nUsage:'* ]]
     [ -z "$stderr" ]
 }
+
+@test "epilog rejects malformed and repeated declarations at either scope" {
+    local declaration scope
+    for declaration in 'koi::config epilog' 'koi::config epilog ""' 'koi::config epilog A B' 'koi::config epilog A; koi::config epilog A'; do
+        for scope in root function; do
+            if [[ $scope == root ]]; then
+                scenario "$declaration"'
+                    koi::run --help
+                '
+            else
+                scenario '
+                    bad() {
+                        '"$declaration"'
+                        koi::parse --help || return "$koi_status"
+                    }
+                    bad
+                '
+            fi
+            [ "$status" -eq 2 ]
+            [ -z "$output" ]
+            [[ "$stderr" == 'koi: koi::config:'* ]]
+        done
+    done
+}
+
+@test "ignored invalid epilog poisons only its block and subsequent calls recover" {
+    scenario '
+        koi::config epilog Root
+        bad() {
+            koi::config epilog First
+            koi::config epilog Second 2>/dev/null || :
+            koi::parse --help || return "$koi_status"
+            return 9
+        }
+        if bad; then
+            exit 8
+        fi
+        [[ $koi_status == 2 && ${__koi_pending_meta[epilog]+present} != present ]]
+        good() {
+            koi::config epilog Local
+            koi::parse --help || return "$koi_status"
+        }
+        good
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'\n\nLocal\nUsage:'*$'\n\nRoot' ]]
+    [ -z "$stderr" ]
+}
+
+@test "epilog metadata is collected locally for roots and functions" {
+    scenario '
+        koi::config epilog Root
+        check_root() {
+            [[ ${__koi_saved_meta[epilog]} == Root ]]
+        }
+        check_local() {
+            [[ ${__koi_saved_meta[epilog]} == Local ]]
+        }
+        check_absent() {
+            [[ ! ${__koi_saved_meta[epilog]+present} ]]
+        }
+        leaf() {
+            koi::config epilog Local
+            koi::parse "$@" || return "$koi_status"
+        }
+        bare() {
+            koi::parse "$@" || return "$koi_status"
+        }
+        capture_spec leaf check_local
+        capture_spec bare check_absent
+        capture_spec koi::run check_root
+    '
+    [ "$status" -eq 0 ]
+    [ -z "$output$stderr" ]
+}
+
+@test "epilog metadata is consumed after success help and parsing errors" {
+    scenario '
+        leaf() {
+            if [[ ${1-} == configured ]]; then
+                shift
+                koi::config epilog Local
+            fi
+            koi::parse "$@" || return "$koi_status"
+        }
+        leaf configured
+        [[ ${#__koi_pending_meta[@]} == 0 ]]
+        leaf --help
+        leaf configured --help
+        [[ ${#__koi_pending_meta[@]} == 0 ]]
+        leaf --help
+        if leaf configured --unknown 2>/dev/null; then
+            exit 8
+        fi
+        [[ $koi_status == 2 && ${#__koi_pending_meta[@]} == 0 ]]
+        leaf --help
+    '
+    [ "$status" -eq 0 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Local$')" -eq 1 ]
+    [ "$(printf '%s\n' "$output" | grep -c '^Usage:')" -eq 4 ]
+    [ -z "$stderr" ]
+}

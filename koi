@@ -101,7 +101,7 @@ fi
 # Usage: koi::config KEY VALUE
 #   KEY    name, help-width, help-subcommand, verbose-help, help-hints,
 #          missing-command-message, help-on-unknown-commands (script only), or
-#          description, use-single-pipe-for-or-groups, ignore-unknown-positionals,
+#          description, epilog, use-single-pipe-for-or-groups, ignore-unknown-positionals,
 #          error-on-scalar-duplicates (script or function)
 #   VALUE  nonempty text, positive help-width (at most nine digits), or true/false
 # Returns 2 on invalid arguments, scope, values, or repeated explicit settings
@@ -116,7 +116,7 @@ koi::config() {
     case $1 in
         name|missing-command-message)
             ;;
-        description)
+        description|epilog)
             __koi_config_script_only=0
             ;;
         help-width)
@@ -2209,6 +2209,11 @@ koi::internal::print_help() {
         if (( ${#__koi_commands[@]} )); then
             printf '  %s COMMAND --help    Show individual command documentation\n' "${__koi_help_meta[name]}"
         fi
+    fi
+
+    if [[ -n ${__koi_help_meta[epilog]-} ]]; then
+        printf '\n'
+        koi::internal::wrap "${__koi_help_meta[epilog]}" '' ''
     fi
 }
 

@@ -14,6 +14,14 @@ layout: split
 
 ## Configure branch help
 
+Add closing text with `koi::config epilog TEXT` before `koi::run` for root help, or inside a function's registration block before `koi::parse` for that function's help:
+
+```bash
+koi::config epilog 'For examples, visit https://example.com/docs.'
+```
+
+The epilog appears last, after dependencies and hints, separated by a blank line with no automatic heading. It belongs only to that context and does not inherit into children. Declare it once per block with a nonempty value. Text wraps like descriptions and preserves explicit line breaks, but indentation and repeated spaces are not preserved. See [koi::config](/docs/reference/config#help-epilogs).
+
 Routed branches provide a built-in `help` command. Run `./app.sh help` to show root help, or `./app.sh branch help` to show a branch's help. Add `-h` or `--help` to document the help command itself: `./app.sh help -h` shows its options, while `./app.sh branch help --help` shows the nested help command's menu. Leaves and direct function calls do not receive built-in help commands; bare `help` can be data on positional leaves.
 
 - TODO: Demonstrate `koi::config help-subcommand false` for application-defined help commands while retaining automatic help flags; direct calls outside the runner do not acquire built-in help commands.
