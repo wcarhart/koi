@@ -416,6 +416,10 @@ img {
   font-weight: 600;
   background: var(--subtle);
 }
+#doc-reference-config table:first-of-type :is(th, td):nth-child(3),
+#doc-reference-config th code {
+  white-space: nowrap;
+}
 .prose th:first-child,
 .prose td:first-child {
   padding-left: 10px;
