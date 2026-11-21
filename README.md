@@ -1,4 +1,4 @@
-<p align="center"><img alt="koi logo" src="logo.png" /></p>
+<p align="center"><img alt="koi logo" src="site/public/brand/koi-original.svg" width="96" height="96" /></p>
 
 <h1 align="center">koi</h1>
 <p align="center">Bashful argument parsing</p>
