@@ -69,7 +69,9 @@ For included snippets, use `<!-- koi:include greet.sh line-numbers -->`. You can
 The `addarg` and `help` manifest component identifiers attach code builders to split sections. Builders generate Bash text locally, never execute it, and keep the last valid script when controls are invalid. The first example code block must contain the matching default builder script.
 
 ## Deployment
-Deployed via Netlify to koishell.com. See [netlify.toml](../netlify.toml).
+Deployed via Netlify to [koishell.com](https://koishell.com). See [netlify.toml](../netlify.toml).
+
+The manual installer is available at [get.koishell.com](https://get.koishell.com), which is just `scripts/install.sh`. [get.koishell.com](https://get.koishell.com) redirects to [koishell.com/install.sh](https://koishell.com/install.sh).
 
 ## Agents
 We want koishell.com to be well optimized for agents and LLM access. It's not unreasonable for human devs to just send their agent to the site. Ways we're promoting LLM access:

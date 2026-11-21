@@ -1,0 +1,80 @@
+name: Publish release assets
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+concurrency:
+  group: koi-release-publishing
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: ${{ !github.event.release.prerelease && !github.event.release.draft }}
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Install check tools
+        run: sudo apt-get update && sudo apt-get install -y bats shellcheck
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - name: Install PNPM
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - name: Validate tagged source and build deterministic assets
+        run: |
+          shellcheck koi scripts/install.sh scripts/test tests/fixtures/commands.sh
+          sh -n scripts/install.sh
+          ./scripts/test
+          pnpm test:distribution
+          pnpm release build --tag "$RELEASE_TAG" --epoch "$(git show -s --format=%ct HEAD)" --output tmp/release
+      - name: Publish assets without overwriting existing releases
+        run: pnpm release publish --tag "$RELEASE_TAG" --repository "$GH_REPO" --directory tmp/release
+      - name: Check whether to update the stable formula
+        id: latest
+        run: |
+          latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
+          if [ "$latest" = "$RELEASE_TAG" ]; then
+              echo 'update=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: steps.latest.outputs.update == 'true'
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: tap
+      - name: Commit formula metadata to the default branch
+        if: steps.latest.outputs.update == 'true'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          version=${RELEASE_TAG#v}
+          archive="koi-$version.tar.gz"
+          digest=$(sha256sum "tmp/release/$archive")
+          digest=${digest%% *}
+          git -C tap config user.name 'github-actions[bot]'
+          git -C tap config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+              echo "Formula update attempt $attempt"
+              git -C tap fetch origin "$DEFAULT_BRANCH"
+              git -C tap reset --hard FETCH_HEAD
+              latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
+              if [ "$latest" != "$RELEASE_TAG" ]; then
+                  exit 0
+              fi
+              pnpm release formula --tag "$RELEASE_TAG" --sha256 "$digest" --repository "$GH_REPO" --formula tap/Formula/koi.rb
+              if git -C tap diff --quiet -- Formula/koi.rb; then
+                  exit 0
+              fi
+              git -C tap add Formula/koi.rb
+              git -C tap commit -m "Release koi $RELEASE_TAG in Homebrew"
+              if git -C tap push origin "HEAD:$DEFAULT_BRANCH"; then
+                  exit 0
+              fi
+          done
+          echo 'Formula push failed; check branch permissions and rerun this job.' >&2
+          exit 1

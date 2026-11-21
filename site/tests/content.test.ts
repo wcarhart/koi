@@ -145,32 +145,41 @@ test('unprefixed homepage headings use clean title fragments', async () => {
   assert.match(html, /href="#intuitive-help-menus-for-free"/);
 });
 
-test('installation exports include every tab command and the five shared sections', async () => {
+test('installation exports include every tab command and the shared installation sections', async () => {
   const doc = (await getDocs()).find((doc) => doc.slug === 'install')!;
   assert.deepEqual(
     doc.headings.map((heading) => heading.title),
     [
       'Quick install',
       'Dependencies',
+      'Homebrew and mise',
       'Manual install',
+      'GitHub download',
       'Clone',
       'Older Bash versions',
     ],
   );
   const markdown = exportMarkdown(doc);
   for (const command of [
-    'sudo apt install koi',
-    'sudo pacman -S koi',
-    'sudo dnf install koi',
-    'sudo apk add koi',
-    'mise use -g koi@latest',
+    'brew tap wcarhart/koi https://github.com/wcarhart/koi.git',
+    'brew install wcarhart/koi/koi',
+    'mise use -g github:wcarhart/koi@latest',
+    'git clone git@github.com:wcarhart/koi.git',
+    'curl -fsSL https://get.koishell.com | sh',
+    'KOI_INSTALL_PATH=',
+    'KOI_VERSION=v2.0.5',
     'sudo apt-get install bash',
     'sudo dnf install bash',
     'wsl --install',
   ]) {
     assert.ok(markdown.includes(command));
   }
-  assert.doesNotMatch(markdown, /koi:install|<button|role="tab"/);
+  assert.doesNotMatch(
+    markdown,
+    /koi:install|<button|role="tab"|sudo (?:apt install|pacman -S|dnf install|apk add) koi/,
+  );
+  assert.ok(markdown.includes('Download from GitHub'));
+  assert.ok(markdown.includes('https://github.com/wcarhart/koi/releases'));
   assert.match(doc.prose, /data-install-tabs/);
   assert.match(
     doc.prose,

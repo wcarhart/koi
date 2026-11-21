@@ -6,21 +6,6 @@ import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import InstallBox from '../components/InstallBox.astro';
-import { installMethods, type InstallMethod } from '../lib/install';
-const heroInstallMethods: InstallMethod[] = [
-  ...installMethods.koi,
-  {
-    id: 'clone',
-    label: 'Clone',
-    command: 'git clone git@github.com:wcarhart/koi.git',
-  },
-  {
-    id: 'manual',
-    label: 'Manual',
-    href: 'https://github.com/wcarhart/koi/releases',
-    text: 'Download from GitHub',
-  },
-];
 import Icon from '../components/Icon.astro';
 import CtaArrow from '../components/CtaArrow.astro';
 import TerminalCommand from '../components/TerminalCommand.astro';
@@ -111,7 +96,7 @@ const helpCommand = readFileSync(
         </h1>
         <p class="hero-description">{home.data.description}</p>
         <div class="hero-actions">
-          <InstallBox idPrefix="hero-install" methods={heroInstallMethods} />
+          <InstallBox idPrefix="hero-install" />
           <div class="button-row">
             <a class="button primary" href="/docs">
               Read the docs <CtaArrow />

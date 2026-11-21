@@ -6,6 +6,19 @@
   NODE_VERSION = "24.22.1"
   PNPM_VERSION = "10.34.9"
 
+[[redirects]]
+  from = "https://get.koishell.com/"
+  to = "https://koishell.com/install.sh"
+  status = 302
+  force = true
+
+[[headers]]
+  for = "/install.sh"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/docs/*.md"
   [headers.values]

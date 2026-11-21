@@ -208,7 +208,8 @@ koi::run "$@"
 
 Keep the `koi` authoring CLI and sourceable library in separate files from the
 start. The CLI loads and depends on the library; never combine their distributions
-into one file. A single Homebrew formula installs both. Once argument parsing is
+into one file. Distribution currently installs only the library; keep the unfinished
+CLI in the repository without packaging it. Once argument parsing is
 available, the CLI will use koi's own command and argument APIs; interpreter checks
 remain a bootstrap step.
 
@@ -272,6 +273,9 @@ choices have less design consensus than the API axioms and may change.
 
 - Keep a single sourceable `koi` runtime file available for manual download and
   local vendoring. Running consumer scripts must not require developer tooling.
+- Support Homebrew, mise's GitHub backend, Git clone, the direct installer at
+  `get.koishell.com`, and GitHub Release downloads. Native Linux packages and
+  package repositories are outside the distribution scope.
 - Bring installation assets into this repository. If Homebrew remains supported,
   maintain its formula/tap here rather than in the deprecated tools repository.
 - Bring all documentation source into this repository, authored in Markdown and
@@ -290,10 +294,12 @@ choices have less design consensus than the API axioms and may change.
 - Bash 5.2+ as the minimum; confirm supported platforms before freezing it.
 - A clean v2 migration guide rather than pervasive v1 compatibility branches.
 - Version-pinned single-file release downloads with checksums and embedded
-  version/license information as the primary installation path.
-- Homebrew as a secondary convenience, with `Formula/koi.rb` here and a custom
-  remote tap pointing at this repository. Source-path layout and release/formula
-  update mechanics still need design.
+  version/license information. The direct installer defaults to
+  `$HOME/.local/bin/koi`, with `KOI_INSTALL_PATH` selecting its parent directory
+  and `KOI_VERSION` selecting a release tag.
+- Maintain `Formula/koi.rb` here with a custom remote tap pointing at this
+  repository. Install the library under `share/koi` and expose a `bin/koi`
+  symlink. Stable release publication generates assets and updates the formula.
 - Astro Starlight for the static Markdown documentation site, with build and
   Netlify configuration here; retain labeled v1 reference documentation.
 - Bats-core to replace the custom test harness, with Bash fixtures and specific

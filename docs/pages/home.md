@@ -31,4 +31,4 @@ Don't waste extra time building and maintaining help menus for your functions or
 
 ## Works on Mac and Linux.
 
-Koi is written 100% in Bash and supports any system running Bash 5.2 or later. It's available on all mainstream installers, such as Homebrew and `apt`, but you can also download the single `koi` source file from GitHub and vendor it yourself.
+Koi is written 100% in Bash and supports any system running Bash 5.2 or later. Install with [Homebrew](https://brew.sh/) or [mise](https://mise.jdx.dev/), use the manual installer, or get the source from GitHub. You can also vendor the single `koi` library file manually in your project.

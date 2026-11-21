@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import matter from 'gray-matter';
+import { readFileSync } from 'node:fs';
+
+test('static build serves the canonical installer without release access', async ({
+  request,
+}) => {
+  const response = await request.get('/install.sh');
+  expect(response.status()).toBe(200);
+  expect(await response.text()).toBe(
+    readFileSync(
+      new URL('../../../scripts/install.sh', import.meta.url),
+      'utf8',
+    ),
+  );
+});
 
 test('site external links open new tabs and internal links stay in the current tab', async ({
   browser,
@@ -461,14 +475,23 @@ test('homepage install tabs work with keyboard and copy only their command', asy
   const buttons = (await page.locator('.hero .button-row').boundingBox())!;
   expect(Math.abs(initialBox.width - buttons.width)).toBeLessThan(1);
   expect(Math.abs(initialBox.x - buttons.x)).toBeLessThan(1);
-  const downloadTab = box.getByRole('tab', { name: 'pacman', exact: true });
-  const idleTabStyle = await downloadTab.evaluate((tab) => ({
+  await expect(box.getByRole('tab')).toHaveText([
+    'brew',
+    'mise',
+    'git',
+    'Manual',
+    'GitHub',
+  ]);
+  const brew = box.getByRole('tab', { name: 'brew', exact: true });
+  await expect(brew).toHaveAttribute('aria-selected', 'true');
+  const idleTab = box.getByRole('tab', { name: 'GitHub', exact: true });
+  const idleTabStyle = await idleTab.evaluate((tab) => ({
     background: getComputedStyle(tab).backgroundColor,
     color: getComputedStyle(tab).color,
     border: getComputedStyle(tab).borderBottomColor,
   }));
-  await downloadTab.hover();
-  const hoverTabStyle = await downloadTab.evaluate((tab) => ({
+  await idleTab.hover();
+  const hoverTabStyle = await idleTab.evaluate((tab) => ({
     background: getComputedStyle(tab).backgroundColor,
     color: getComputedStyle(tab).color,
     border: getComputedStyle(tab).borderBottomColor,
@@ -476,64 +499,56 @@ test('homepage install tabs work with keyboard and copy only their command', asy
   expect(hoverTabStyle.background).toBe(idleTabStyle.background);
   expect(hoverTabStyle.color).toBe(idleTabStyle.color);
   expect(hoverTabStyle.border).not.toBe(idleTabStyle.border);
-  const homebrew = box.getByRole('tab', { name: 'Homebrew' });
-  await expect(homebrew).toHaveAttribute('aria-selected', 'true');
-  await box.getByRole('button', { name: 'Copy Homebrew command' }).click();
-  expect(
-    await page.evaluate(() => (window as unknown as { copied: string }).copied),
-  ).toBe('brew tap wcarhart/koi && brew install wcarhart/koi/koi');
-  await expect(box.getByRole('tab')).toHaveText([
-    'Homebrew',
-    'apt',
-    'pacman',
-    'dnf',
-    'apk',
-    'mise',
-    'Clone',
-    'Manual',
-  ]);
-  await homebrew.focus();
-  await page.keyboard.press('ArrowRight');
-  const cloneTab = box.getByRole('tab', { name: 'apt', exact: true });
-  await expect(cloneTab).toBeFocused();
-  await expect(cloneTab).toHaveAttribute('aria-selected', 'true');
-  const cloneBox = (await box.boundingBox())!;
-  expect(Math.abs(cloneBox.height - initialBox.height)).toBeLessThan(1);
-  expect(Math.abs(cloneBox.width - initialBox.width)).toBeLessThan(1);
-  await box.getByRole('button', { name: 'Copy apt command' }).click();
-  expect(
-    await page.evaluate(() => (window as unknown as { copied: string }).copied),
-  ).toBe('sudo apt install koi');
-  await cloneTab.press('ArrowRight');
-  await expect(downloadTab).toBeFocused();
-  const download = box.getByRole('tabpanel', { name: 'pacman', exact: true });
-  await expect(download).toContainText('sudo pacman -S koi');
-  await expect(download.getByRole('button')).toHaveCount(1);
-  const downloadBox = (await box.boundingBox())!;
-  expect(Math.abs(downloadBox.height - initialBox.height)).toBeLessThan(1);
-  expect(Math.abs(downloadBox.width - initialBox.width)).toBeLessThan(1);
-  await downloadTab.press('End');
-  const manualTab = box.getByRole('tab', { name: 'Manual', exact: true });
-  await expect(manualTab).toBeFocused();
-  const manual = box.getByRole('tabpanel', { name: 'Manual', exact: true });
-  const downloadLink = manual.getByRole('link', {
+  const commands = [
+    [
+      'brew',
+      'brew tap wcarhart/koi https://github.com/wcarhart/koi.git\nbrew install wcarhart/koi/koi',
+    ],
+    ['mise', 'mise use -g github:wcarhart/koi@latest'],
+    ['git', 'git clone git@github.com:wcarhart/koi.git'],
+    ['Manual', 'curl -fsSL https://get.koishell.com | sh'],
+  ];
+  await brew.focus();
+  for (const [index, [label, command]] of commands.entries()) {
+    const tab = box.getByRole('tab', { name: label, exact: true });
+    await expect(tab).toBeFocused();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+    const panel = box.getByRole('tabpanel', { name: label, exact: true });
+    await panel.getByRole('button', { name: `Copy ${label} command` }).click();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { copied: string }).copied,
+      ),
+    ).toBe(command);
+    const bounds = (await box.boundingBox())!;
+    expect(Math.abs(bounds.height - initialBox.height)).toBeLessThan(1);
+    expect(Math.abs(bounds.width - initialBox.width)).toBeLessThan(1);
+    if (index === 0) {
+      expect(await panel.locator('pre').textContent()).toBe(command);
+    }
+    await tab.focus();
+    await tab.press('ArrowRight');
+  }
+  const github = box.getByRole('tab', { name: 'GitHub', exact: true });
+  await expect(github).toBeFocused();
+  const download = box.getByRole('tabpanel', { name: 'GitHub', exact: true });
+  await expect(download.getByRole('button')).toHaveCount(0);
+  const link = download.getByRole('link', {
     name: 'Download from GitHub',
     exact: true,
   });
-  await expect(downloadLink).toHaveAttribute(
+  await expect(link).toHaveAttribute(
     'href',
     'https://github.com/wcarhart/koi/releases',
   );
-  await expect(downloadLink.locator('.cta-arrow')).toHaveCount(1);
-  await expect(manual.getByRole('button')).toHaveCount(0);
-  await manualTab.press('ArrowLeft');
-  const clone = box.getByRole('tabpanel', { name: 'Clone', exact: true });
-  await clone.getByRole('button', { name: 'Copy Clone command' }).click();
-  expect(
-    await page.evaluate(() => (window as unknown as { copied: string }).copied),
-  ).toBe('git clone git@github.com:wcarhart/koi.git');
-  await box.getByRole('tab', { name: 'Clone', exact: true }).press('Home');
-  await expect(homebrew).toBeFocused();
+  await expect(link.locator('.cta-arrow')).toHaveCount(1);
+  await github.press('Home');
+  await expect(brew).toBeFocused();
+  await brew.press('ArrowLeft');
+  await expect(github).toBeFocused();
+  await github.press('Home');
+  await brew.press('End');
+  await expect(github).toBeFocused();
 });
 
 test('shared header and hero use the requested branding and centered theme icons', async ({
@@ -659,7 +674,7 @@ test('homepage heading font, button fills, copy alignment, and window hover are 
     expect(after.transform).toBe('none');
     expect((await button.boundingBox())!.y).toBe(bounds.y);
   }
-  for (const tabName of ['Homebrew', 'apt']) {
+  for (const tabName of ['brew', 'mise']) {
     await page
       .locator('.hero .install-box')
       .getByRole('tab', { name: tabName, exact: true })
@@ -740,24 +755,23 @@ test('homepage sections, footer, and duplicated install boxes remain accessible'
   const hero = page.locator('.hero .install-box');
   const lower = page.locator('.landing-install .install-box');
   await expect(lower.getByRole('tab')).toHaveText([
-    'Homebrew',
-    'apt',
-    'pacman',
-    'dnf',
-    'apk',
+    'brew',
     'mise',
+    'git',
+    'Manual',
+    'GitHub',
   ]);
-  await lower.getByRole('tab', { name: 'apt', exact: true }).click();
+  await lower.getByRole('tab', { name: 'mise', exact: true }).click();
   await expect(
-    lower.getByRole('tabpanel', { name: 'apt', exact: true }),
+    lower.getByRole('tabpanel', { name: 'mise', exact: true }),
   ).toBeVisible();
-  await expect(hero.getByRole('tab', { name: 'Homebrew' })).toHaveAttribute(
+  await expect(hero.getByRole('tab', { name: 'brew' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await hero.getByRole('tab', { name: 'pacman', exact: true }).click();
+  await hero.getByRole('tab', { name: 'git', exact: true }).click();
   await expect(
-    lower.getByRole('tab', { name: 'apt', exact: true }),
+    lower.getByRole('tab', { name: 'mise', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
   const ids = await page
     .locator('.install-box [id]')
@@ -960,12 +974,13 @@ test('installation routes share content and tabs with a standalone-only bottom n
     });
   });
   const commands = [
-    ['Homebrew', 'brew tap wcarhart/koi && brew install wcarhart/koi/koi'],
-    ['apt', 'sudo apt install koi'],
-    ['pacman', 'sudo pacman -S koi'],
-    ['dnf', 'sudo dnf install koi'],
-    ['apk', 'sudo apk add koi'],
-    ['mise', 'mise use -g koi@latest'],
+    [
+      'brew',
+      'brew tap wcarhart/koi https://github.com/wcarhart/koi.git\nbrew install wcarhart/koi/koi',
+    ],
+    ['mise', 'mise use -g github:wcarhart/koi@latest'],
+    ['git', 'git clone git@github.com:wcarhart/koi.git'],
+    ['Manual', 'curl -fsSL https://get.koishell.com | sh'],
   ];
   let standaloneText = '';
   for (const route of ['/install', '/docs/install']) {
@@ -977,15 +992,18 @@ test('installation routes share content and tabs with a standalone-only bottom n
     await expect(content.locator('h2')).toHaveText([
       'Quick install',
       'Dependencies',
+      'Homebrew and mise',
       'Manual install',
+      'GitHub download',
       'Clone',
       'Older Bash versions',
     ]);
     await expect(content).not.toContainText('GET UP AND RUNNING');
     const quick = content.locator('.install-box').nth(0);
-    await expect(quick.getByRole('tab')).toHaveText(
-      commands.map(([label]) => label),
-    );
+    await expect(quick.getByRole('tab')).toHaveText([
+      ...commands.map(([label]) => label),
+      'GitHub',
+    ]);
     for (const [label, command] of commands) {
       await quick.getByRole('tab', { name: label, exact: true }).click();
       const panel = quick.getByRole('tabpanel', { name: label, exact: true });
@@ -997,6 +1015,15 @@ test('installation routes share content and tabs with a standalone-only bottom n
         ),
       ).toBe(command);
     }
+    await quick.getByRole('tab', { name: 'GitHub', exact: true }).click();
+    const githubPanel = quick.getByRole('tabpanel', {
+      name: 'GitHub',
+      exact: true,
+    });
+    await expect(
+      githubPanel.getByRole('link', { name: 'Download from GitHub' }),
+    ).toHaveAttribute('href', 'https://github.com/wcarhart/koi/releases');
+    await expect(githubPanel.getByRole('button')).toHaveCount(0);
     const bash = content.locator('.install-box').nth(1);
     for (const [label, command] of [
       ['Ubuntu/Debian', 'sudo apt-get install bash'],
@@ -1010,7 +1037,7 @@ test('installation routes share content and tabs with a standalone-only bottom n
       ).toHaveText(command);
     }
     await expect(
-      quick.getByRole('tab', { name: 'mise', exact: true }),
+      quick.getByRole('tab', { name: 'GitHub', exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
     const next = content.getByRole('link', {
       name: 'Next: Quickstart',

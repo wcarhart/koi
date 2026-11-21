@@ -20,5 +20,21 @@ jobs:
         shell: bash
         run: |
           bash -n koi scripts/test tests/fixtures/commands.sh
-          shellcheck koi scripts/test tests/fixtures/commands.sh
+          sh -n scripts/install.sh
+          shellcheck koi scripts/test scripts/install.sh tests/fixtures/commands.sh
           ./scripts/test
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - name: Install PNPM and run distribution tests
+        run: |
+          npm install --global "$(node -p 'require("./package.json").packageManager')"
+          pnpm test:distribution
+      - name: Install mise for local distribution fixtures
+        if: runner.os == 'macOS'
+        run: brew install mise
+      - name: Test release installation with Homebrew and mise
+        if: runner.os == 'macOS'
+        run: |
+          pnpm test:distribution:smoke brew
+          pnpm test:distribution:smoke mise

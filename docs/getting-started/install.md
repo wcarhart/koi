@@ -44,7 +44,60 @@ Koi supports running with `errexit` and `nounset` enabled, but neither is requir
 >
 > Bash 5.3 [removed the POSIX mode restriction](https://lists.gnu.org/archive/html/bug-bash/2025-07/msg00005.html) on namespaced functions, so `::` is supported in function names. If you're using Bash 5.3, you can use koi in normal mode or POSIX mode.
 
+## Homebrew and mise
+
+Both [Homebrew](https://brew.sh) and [mise](https://mise.jdx.dev/) use [wcarhart/koi](https://github.com/wcarhart/koi) as the upstream repository for installation and will install the latest released v2.x+ version unless otherwise specified. To install via Homebrew, use:
+
+```bash
+brew tap wcarhart/koi https://github.com/wcarhart/koi.git
+brew install wcarhart/koi/koi
+```
+
+The fully qualified `brew tap` syntax implicitly trusts the tap. Learn more about [trusted taps](https://docs.brew.sh/Tap-Trust).
+
+To install via mise, use:
+
+```bash
+mise use -g github:wcarhart/koi@latest
+```
+
+Mise will install koi in a directory on your `PATH`. In CI or shells using only mise shims, run your script with:
+
+```bash
+mise exec -- bash ./your-script.sh
+```
+
 ## Manual install
+
+If you'd prefer not to use a package manager, you can use koi's manually installer. The manual installer downloads the latest stable v2.x+ release and verifies its SHA-256 checksum. Use it via:
+
+```sh
+curl -fsSL https://get.koishell.com | sh
+```
+
+The manual installer will install koi to `$HOME/.local/bin/koi`. If that destination directory is missing from your `PATH`, you can add the following line to your `~/.bashrc` or similar shell startup file (the installer will also have hints for if this is necessary):
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Make sure your `PATH` is updated before you try to `source koi`.
+
+You can manually override the destination **path** during install via `KOI_INSTALL_PATH`. The installer will create this path if it does not exist upon install (`KOI_INSTALL_PATH` is the path to the _parent_ directory in which the `koi` source file will be installed). `KOI_INSTALL_PATH` must be writable by your user during install.
+
+```bash
+curl -fsSL https://get.koishell.com | KOI_INSTALL_PATH="$HOME/bin" sh
+```
+
+By default the manual installer will install the latest version of koi, but you can specify a version via `KOI_VERSION`:
+
+```bash
+curl -fsSL https://get.koishell.com | KOI_VERSION=v2.0.5 sh
+```
+
+`KOI_VERSION` must match a valid existing release version. See all versions available on [GitHub](https://github.com/wcarhart/koi/releases). You can use one, both, or neither of `KOI_INSTALL_PATH` and `KOI_VERSION` when using the manual installer.
+
+## GitHub download
 
 Navigate to koi's [GitHub releases](https://github.com/wcarhart/koi/releases) and download the version of koi you want. Note that modern versions of koi are 2.x+. Take the single sourceable `koi` file from that release and place it in your project alongside your script. Source it in your script:
 
@@ -56,11 +109,24 @@ Use `source ./koi` instead of `source koi` because the file is not on your `PATH
 
 ## Clone
 
-Clone the repository and move its sourceable `koi` file wherever you want to use it, replacing `/path/to/your-project` with your project's directory:
+Clone the [wcarhart/koi](https://github.com/wcarhart/koi) repository:
 
 ```bash
 git clone git@github.com:wcarhart/koi.git
-mv koi/koi /path/to/your-project/koi
+```
+
+Cloning checks out the latest on the default branch, which can contain unreleased changes. For a specific released version, checkout its tag inside the clone:
+
+```bash
+git clone git@github.com:wcarhart/koi.git
+cd koi
+git checkout v2.0.0
+```
+
+The clone does not add anything to `PATH`. Copy its root `koi` library file into your project, replacing `/path/to/your-project` with your project's directory:
+
+```bash
+cp koi/koi /path/to/your-project/koi
 ```
 
 Then source `koi` in your script:

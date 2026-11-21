@@ -9,14 +9,31 @@ export const installMethods: Record<InstallKind, InstallMethod[]> = {
   koi: [
     {
       id: 'homebrew',
-      label: 'Homebrew',
-      command: 'brew tap wcarhart/koi && brew install wcarhart/koi/koi',
+      label: 'brew',
+      command:
+        'brew tap wcarhart/koi https://github.com/wcarhart/koi.git\nbrew install wcarhart/koi/koi',
     },
-    { id: 'apt', label: 'apt', command: 'sudo apt install koi' },
-    { id: 'pacman', label: 'pacman', command: 'sudo pacman -S koi' },
-    { id: 'dnf', label: 'dnf', command: 'sudo dnf install koi' },
-    { id: 'apk', label: 'apk', command: 'sudo apk add koi' },
-    { id: 'mise', label: 'mise', command: 'mise use -g koi@latest' },
+    {
+      id: 'mise',
+      label: 'mise',
+      command: 'mise use -g github:wcarhart/koi@latest',
+    },
+    {
+      id: 'git',
+      label: 'git',
+      command: 'git clone git@github.com:wcarhart/koi.git',
+    },
+    {
+      id: 'manual',
+      label: 'Manual',
+      command: 'curl -fsSL https://get.koishell.com | sh',
+    },
+    {
+      id: 'github',
+      label: 'GitHub',
+      href: 'https://github.com/wcarhart/koi/releases',
+      text: 'Download from GitHub',
+    },
   ],
   bash: [
     {
