@@ -1,0 +1,345 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import SwimmingSurface from '../components/SwimmingSurface.astro';
+import RangeSlider from '../components/RangeSlider.astro';
+import Icon from '../components/Icon.astro';
+import ToggleSwitch from '../components/ToggleSwitch.astro';
+import {
+  createRoute,
+  defaultSwimmingRoute,
+  swimmingControls,
+  swimmingRoutes,
+} from '../lib/swimming-surface';
+import { defaultGlassTransparency } from '../lib/swim-glass';
+const routePreviews = swimmingRoutes.map((route) => ({
+  ...route,
+  path:
+    createRoute(240, 140, route.id)
+      .points.map(
+        (point, index) =>
+          `${index ? 'L' : 'M'}${point.x.toFixed(1)},${point.y.toFixed(1)}`,
+      )
+      .join(' ') + 'Z',
+}));
+---
+
+<Base title="Swim" description="A pond made of shell punctuation." noindex>
+  <Header />
+  <main id="main" class="swim-page">
+    <h1 class="swim-status" aria-label="Koi swim">
+      $ koi swim{' '}
+      <span data-playback-status aria-hidden="true">
+        waiting
+      </span>
+    </h1>
+    <section
+      class="surface-preview"
+      data-swimming-preview
+      aria-label="Swimming fin preview"
+    >
+      <SwimmingSurface />
+      <div class="glass-overlay" data-glass-overlay aria-hidden="true" hidden>
+        <div class="glass-squircle"></div>
+        <div class="glass-squircle"></div>
+        <div class="glass-squircle"></div>
+      </div>
+    </section>
+    <form data-swimming-controls>
+      <fieldset disabled>
+        <legend>Controls</legend>
+        <div class="controls-toolbar">
+          <div class="preview-options">
+            <ToggleSwitch id="swim-glass" name="glass" label="Show glass" />
+            <ToggleSwitch id="swim-route" name="showRoute" label="Show route" />
+            <ToggleSwitch id="swim-spine" name="showSpine" label="Show spine" />
+          </div>
+          <div class="playback-controls">
+            <button
+              class="button"
+              type="button"
+              data-pause
+              aria-label="Pause"
+              title="Pause"
+            >
+              <span data-pause-icon aria-hidden="true">
+                <Icon name="pause" />
+              </span>
+              <span data-play-icon aria-hidden="true" hidden>
+                <Icon name="play" />
+              </span>
+            </button>
+            <button
+              class="button"
+              type="reset"
+              aria-label="Reset defaults"
+              title="Reset defaults"
+            >
+              <span aria-hidden="true">
+                <Icon name="reset" />
+              </span>
+            </button>
+          </div>
+        </div>
+        <fieldset class="route-picker">
+          <legend>Route</legend>
+          <div class="route-grid">
+            {routePreviews.map((route) => (
+              <label class="route-option">
+                <input
+                  type="radio"
+                  name="route"
+                  value={route.id}
+                  checked={route.id === defaultSwimmingRoute}
+                  aria-label={route.label}
+                />
+                <svg viewBox="0 0 240 140" aria-hidden="true">
+                  <path d={route.path} />
+                </svg>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div class="control-grid">
+          {swimmingControls.map((control) => (
+            <RangeSlider
+              id={`swim-${control.key}`}
+              name={control.key}
+              label={control.label}
+              min={control.min}
+              max={control.max}
+              step={control.step}
+              value={control.value}
+              unit={control.unit}
+            />
+          ))}
+          <RangeSlider
+            id="swim-transparency"
+            name="transparency"
+            label="Glass transparency"
+            min={0}
+            max={100}
+            step={1}
+            value={defaultGlassTransparency}
+            unit="%"
+          />
+        </div>
+      </fieldset>
+    </form>
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  import '../scripts/swim';
+</script>
+
+<style>
+  .swim-page {
+    max-width: 1344px;
+    margin: auto;
+    padding: 20px 42px 64px;
+  }
+  .swim-status {
+    font: 400 11px var(--mono);
+    margin: 0 0 16px;
+  }
+  [data-playback-status] {
+    color: var(--muted);
+    margin-left: 12px;
+  }
+  .surface-preview {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    height: clamp(400px, 55vw, 620px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+  }
+  .glass-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .glass-overlay[hidden] {
+    display: none;
+  }
+  .glass-squircle {
+    position: absolute;
+    border: 1px solid var(--line);
+    border-radius: 28%;
+    corner-shape: squircle;
+    background: var(--code);
+    box-shadow: var(--shadow);
+  }
+  @supports (backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px)) {
+    .glass-squircle {
+      background: color-mix(
+        in srgb,
+        var(--code) calc(var(--glass-opacity, 0.35) * 100%),
+        transparent
+      );
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+    }
+  }
+  form {
+    margin-top: 28px;
+  }
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 24px 24px;
+  }
+  legend {
+    font: 12px var(--mono);
+    padding: 0 10px;
+  }
+  .controls-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 8px 0 24px;
+  }
+  .playback-controls {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .playback-controls .button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .playback-controls span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .playback-controls [hidden] {
+    display: none;
+  }
+  .playback-controls :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+  .playback-controls button[type='reset'] :global(svg) {
+    fill: currentColor;
+  }
+  .playback-controls [data-play-icon] :global(svg) {
+    fill: currentColor;
+    stroke: none;
+  }
+  .button:hover {
+    background: color-mix(in srgb, var(--surface) 88%, var(--ink));
+    color: var(--ink);
+    transform: none;
+    box-shadow: none;
+  }
+  .control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px 40px;
+  }
+  .route-picker {
+    border: 0;
+    padding: 0;
+    margin: 0 0 28px;
+  }
+  .route-picker legend {
+    padding: 0;
+    margin-bottom: 14px;
+  }
+  .route-grid {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(96px, 1fr));
+    gap: 10px;
+    overflow-x: auto;
+    padding: 4px;
+    margin: -4px;
+  }
+  .route-option {
+    --route-fill: var(--surface);
+    position: relative;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--route-fill);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .route-option:has(:checked) {
+    --route-fill: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .route-option:hover {
+    background: color-mix(in srgb, var(--route-fill) 88%, var(--ink));
+  }
+  .route-option:has(:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  /* The entire card remains a native radio target without a visible dot. */
+  .route-option input {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .route-option svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+  }
+  input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+  .preview-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 28px;
+    font-size: 13px;
+  }
+  .preview-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  @media (max-width: 800px) {
+    .control-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+  }
+  @media (max-width: 520px) {
+    .swim-page {
+      padding: 16px 18px 48px;
+    }
+    .surface-preview {
+      height: 460px;
+    }
+    fieldset {
+      padding: 8px 16px 20px;
+    }
+    .control-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

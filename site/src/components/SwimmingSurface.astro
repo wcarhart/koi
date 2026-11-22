@@ -1,0 +1,56 @@
+---
+import type {
+  SwimmingRouteId,
+  SwimmingSettings,
+} from '../lib/swimming-surface';
+
+interface Props {
+  route?: SwimmingRouteId;
+  settings?: Partial<SwimmingSettings>;
+  decorative?: boolean;
+}
+const { route, settings, decorative = false } = Astro.props;
+---
+
+<swimming-surface
+  data-state="unavailable"
+  data-initial-route={route}
+  data-settings={settings ? JSON.stringify(settings) : undefined}
+  aria-hidden={decorative ? 'true' : undefined}
+>
+  <canvas aria-hidden="true"></canvas>
+  {!decorative && (
+    <p class="surface-fallback" role="status">
+      Animation preview unavailable. Enable JavaScript and Canvas support to try
+      it.
+    </p>
+  )}
+</swimming-surface>
+
+<script>
+  import '../scripts/swimming-surface';
+</script>
+
+<style>
+  swimming-surface {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .surface-fallback {
+    position: absolute;
+    inset: 40% 24px auto;
+    text-align: center;
+    color: var(--muted);
+  }
+  swimming-surface:not([data-state='unavailable']) .surface-fallback {
+    display: none;
+  }
+</style>

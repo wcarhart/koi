@@ -1007,6 +1007,8 @@ kbd {
   font: 9px var(--mono);
 }
 .hero {
+  position: relative;
+  isolation: isolate;
   max-width: 1260px;
   padding: 70px 42px 82px;
   margin: auto;
@@ -1016,6 +1018,8 @@ kbd {
   align-items: center;
 }
 .hero > div {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 .hero-kicker {
@@ -3171,6 +3175,58 @@ body:has(.doc-action-menu:not([hidden])) .doc-control > .doc-tooltip {
 }
 .hero-skill-box .copy-button:not(:hover):not([data-copy-state]) {
   color: var(--ink);
+}
+
+.home-page .hero-terminal .terminal-output {
+  background: var(--code);
+}
+
+@supports (backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px)) {
+  .home-page .hero {
+    --hero-glass-surface: color-mix(in srgb, var(--surface) 35%, transparent);
+    --hero-glass-code: color-mix(in srgb, var(--code) 35%, transparent);
+    /* Compensate for the page showing through the primary button's dark fill. */
+    --hero-glass-primary: rgb(19 8 26 / 88%);
+  }
+  [data-theme='dark'] .home-page .hero {
+    --hero-glass-primary: rgb(253 246 255 / 90%);
+  }
+  .home-page .hero :is(.install-box, .hero-skill-box, .button-row > .button),
+  .home-page
+    .hero-terminal
+    .terminal-frame
+    > :is(.terminal-titlebar, .code-block, .terminal-output) {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    background: var(--hero-glass-surface);
+  }
+  /* Filter each terminal pane once; the frame and code must not mask the fish. */
+  .home-page .hero-terminal .terminal-frame {
+    background: transparent;
+  }
+  .home-page
+    .hero-terminal
+    .terminal-frame
+    > :is(.terminal-titlebar, .code-block, .terminal-output) {
+    background: var(--hero-glass-code);
+  }
+  .home-page .hero .button-row > .button.primary {
+    background: var(--hero-glass-primary);
+  }
+  .home-page .hero .button-row > .button:hover {
+    background: color-mix(
+      in srgb,
+      var(--hero-glass-surface) 88%,
+      var(--hero-glass-primary)
+    );
+  }
+  .home-page .hero .button-row > .button.primary:hover {
+    background: color-mix(
+      in srgb,
+      var(--hero-glass-primary) 88%,
+      var(--hero-glass-surface)
+    );
+  }
 }
 
 @container (max-width: 850px) {

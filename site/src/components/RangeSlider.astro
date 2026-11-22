@@ -1,0 +1,140 @@
+---
+import { toSliderValue } from '../lib/slider-values';
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  unit?: string;
+}
+const { id, name, label, min, max, step, value, unit = '' } = Astro.props;
+const progress = Math.max(0, Math.min(1, (value - min) / (max - min)));
+const displayValue = toSliderValue(value, { min, max, unit });
+---
+
+<range-slider data-unit={unit} style={`--slider-progress: ${progress}`}>
+  <div class="slider-heading">
+    <output for={id}>
+      {displayValue}
+      {unit}
+    </output>
+    <label for={id}>{label}</label>
+  </div>
+  <div class="slider-control">
+    <div class="slider-track" aria-hidden="true">
+      <span class="slider-before"></span>
+      <span class="slider-divider"></span>
+      <span class="slider-after"></span>
+    </div>
+    <input
+      {id}
+      {name}
+      type="range"
+      min={unit === '%' ? 0 : min}
+      max={unit === '%' ? 100 : max}
+      step={unit === '%' ? 1 : step}
+      value={displayValue}
+      aria-valuetext={`${displayValue}${unit}`}
+    />
+  </div>
+</range-slider>
+
+<script>
+  import '../scripts/range-slider';
+</script>
+
+<style>
+  range-slider {
+    display: block;
+    min-width: 0;
+  }
+  .slider-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+  }
+  output {
+    font: 500 24px/1.2 var(--mono);
+    color: var(--ink);
+  }
+  label {
+    font: 12px/1.5 var(--sans);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .slider-control {
+    position: relative;
+    height: 44px;
+    margin-top: 5px;
+  }
+  .slider-track {
+    --position: calc(2px + (100% - 4px) * var(--slider-progress));
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .slider-before,
+  .slider-after {
+    position: absolute;
+    top: 16px;
+    height: 12px;
+  }
+  .slider-before {
+    left: 0;
+    width: max(0px, calc(var(--position) - 7px));
+    border-radius: 8px 2px 2px 8px;
+    background: var(--accent);
+  }
+  .slider-after {
+    left: min(100%, calc(var(--position) + 7px));
+    right: 0;
+    border-radius: 2px 8px 8px 2px;
+    background: var(--line);
+  }
+  .slider-divider {
+    position: absolute;
+    top: 7px;
+    left: var(--position);
+    transform: translateX(-50%);
+    height: 30px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  /* Native range semantics and hit testing sit above the custom track and divider. */
+  input {
+    appearance: none;
+    -webkit-appearance: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  input::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 4px;
+    height: 44px;
+  }
+  input::-moz-range-thumb {
+    width: 4px;
+    height: 44px;
+    border: 0;
+  }
+  range-slider:has(input:focus-visible) .slider-track {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  range-slider:has(input:disabled) {
+    opacity: 0.55;
+  }
+</style>

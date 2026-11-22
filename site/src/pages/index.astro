@@ -9,6 +9,8 @@ import InstallBox from '../components/InstallBox.astro';
 import Icon from '../components/Icon.astro';
 import CtaArrow from '../components/CtaArrow.astro';
 import TerminalCommand from '../components/TerminalCommand.astro';
+import SwimmingSurface from '../components/SwimmingSurface.astro';
+import { heroSwimmingPreset } from '../lib/swimming-surface';
 import { copyIcon, docsRoot, renderMarkdown } from '../lib/content';
 const home = matter(readFileSync(path.join(docsRoot, 'pages/home.md'), 'utf8'));
 const panels = await Promise.all(
@@ -75,6 +77,11 @@ const helpCommand = readFileSync(
   <Header />
   <main id="main">
     <section class="hero">
+      <SwimmingSurface
+        route={heroSwimmingPreset.route}
+        settings={heroSwimmingPreset.settings}
+        decorative
+      />
       <div>
         <div class="hero-kicker">
           <span class="metadata-pill">Bash 5.2+</span>

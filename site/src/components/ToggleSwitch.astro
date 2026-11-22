@@ -1,0 +1,37 @@
+---
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+}
+const { id, name, label } = Astro.props;
+---
+
+<label class="toggle-label" for={id}>
+  <button
+    {id}
+    {name}
+    type="button"
+    class="argument-switch"
+    role="switch"
+    aria-checked="false"
+    aria-labelledby={`${id}-label`}
+  >
+    <span aria-hidden="true"></span>
+  </button>
+  <span id={`${id}-label`}>{label}</span>
+</label>
+
+<style>
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+</style>

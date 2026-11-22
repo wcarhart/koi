@@ -755,7 +755,7 @@ test('homepage sections, footer, and duplicated install boxes remain accessible'
     page
       .getByRole('navigation', { name: 'Footer navigation' })
       .getByRole('link'),
-  ).toHaveCount(4);
+  ).toHaveCount(5);
   const hero = page.locator('.hero .install-box');
   const lower = page.locator('.landing-install .install-box');
   await expect(lower.getByRole('tab')).toHaveText([
@@ -894,10 +894,21 @@ test('homepage anchors, shell prompts, and compact footer use the requested pres
       .boundingBox())!;
     expect(explore.y - terminal.y - terminal.height).toBeCloseTo(20, 0);
     for (const session of await page.locator('.terminal-session').all()) {
-      await expect(session).toHaveCSS(
-        'background-color',
-        theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(27, 21, 31)',
+      const glass = await session.evaluate((node) =>
+        Boolean(node.closest('.hero')),
       );
+      if (glass) {
+        const scriptFill = await page
+          .locator('.hero-terminal .code-block')
+          .evaluate((node) => getComputedStyle(node).backgroundColor);
+        await expect(session).toHaveCSS('background-color', scriptFill);
+        await expect(session).toHaveCSS('backdrop-filter', 'blur(6px)');
+      } else {
+        await expect(session).toHaveCSS(
+          'background-color',
+          theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(27, 21, 31)',
+        );
+      }
       await expect(session).toHaveCSS(
         'color',
         theme === 'light' ? 'rgb(107, 97, 113)' : 'rgb(184, 176, 191)',

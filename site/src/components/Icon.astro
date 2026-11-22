@@ -13,12 +13,16 @@ import markdownSvg from '../assets/icons/markdown.svg?raw';
 import agentSvg from '../assets/icons/agent.svg?raw';
 import lightModeSvg from '../assets/icons/light-mode.svg?raw';
 import nightModeSvg from '../assets/icons/night-mode.svg?raw';
+import resetSvg from '../assets/icons/reset.svg?raw';
 
 interface Props {
   name:
     | 'arrow'
     | 'sun'
     | 'moon'
+    | 'pause'
+    | 'play'
+    | 'reset'
     | 'search'
     | 'menu'
     | 'close'
@@ -40,6 +44,8 @@ interface Props {
 }
 const { name } = Astro.props;
 const paths = {
+  pause: 'M8 5v14M16 5v14',
+  play: 'M8 5l11 7-11 7Z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   warning: 'm12 3 10 18H2ZM12 9v5m0 3h.01',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
@@ -64,6 +70,7 @@ const customSvg = {
   agent: agentSvg,
   sun: lightModeSvg,
   moon: nightModeSvg,
+  reset: resetSvg,
 };
 const svg =
   name in customSvg ? customSvg[name as keyof typeof customSvg] : undefined;
