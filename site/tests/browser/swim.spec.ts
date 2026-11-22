@@ -43,7 +43,7 @@ test('the demo draws a fin, updates controls, and resets its appearance', async 
   ).toBe(true);
   const initial = await image(page);
   const depth = page.getByRole('slider', {
-    name: 'Surface depth',
+    name: 'Koi depth',
     exact: true,
   });
   await depth.fill('0');
@@ -166,11 +166,11 @@ test('both themes and the glass overlay are accessible and responsive', async ({
       })),
     ).toEqual([]);
   }
-  await page.getByRole('slider', { name: 'Swimming speed' }).focus();
+  await page.getByRole('slider', { name: 'Koi speed' }).focus();
   await page.keyboard.press('ArrowRight');
-  await expect(
-    page.getByRole('slider', { name: 'Swimming speed' }),
-  ).toHaveValue('1.45');
+  await expect(page.getByRole('slider', { name: 'Koi speed' })).toHaveValue(
+    '1.45',
+  );
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     'content',
     'noindex',
@@ -205,9 +205,9 @@ test('custom sliders align metadata and keep their divider, value, and simulatio
   page,
 }) => {
   await openPaused(page);
-  await expect(page.locator('range-slider')).toHaveCount(10);
+  await expect(page.locator('range-slider')).toHaveCount(11);
   const slider = page.getByRole('slider', {
-    name: 'Swimming speed',
+    name: 'Koi speed',
     exact: true,
   });
   const component = page.locator('range-slider').filter({ has: slider });
@@ -263,13 +263,13 @@ test('percentage sliders map the display scale to simulation values and reset or
   page,
 }) => {
   await openPaused(page);
-  await expect(page.getByRole('slider', { name: 'Fin length' })).toHaveValue(
+  await expect(page.getByRole('slider', { name: 'Koi length' })).toHaveValue(
     '65',
   );
-  await expect(page.getByRole('slider', { name: 'Fin width' })).toHaveValue(
+  await expect(page.getByRole('slider', { name: 'Koi width' })).toHaveValue(
     '70',
   );
-  const spacing = page.getByRole('slider', { name: 'Character spacing' });
+  const spacing = page.getByRole('slider', { name: 'Glyph spacing' });
   await expect(spacing).toHaveAttribute('min', '4');
   await expect(spacing).toHaveAttribute('max', '20');
   await expect(spacing).toHaveValue('8');
@@ -293,7 +293,7 @@ test('percentage sliders map the display scale to simulation values and reset or
   });
   for (const [label, key, samples] of [
     [
-      'Fin length',
+      'Koi length',
       'length',
       [
         [0, 15],
@@ -302,7 +302,7 @@ test('percentage sliders map the display scale to simulation values and reset or
       ],
     ],
     [
-      'Fin width',
+      'Koi width',
       'width',
       [
         [0, 1],
@@ -461,7 +461,157 @@ test('swim is a compact easter egg with shape-only keyboard-accessible routes', 
   expect(old.status()).toBe(404);
 });
 
-test('glass transparency updates without moving the three random non-overlapping squircles', async ({
+test('pane sliders hide their values when disabled, remember settings, and render one to five panes', async ({
+  page,
+}) => {
+  await openPaused(page);
+  const toggle = page.getByRole('switch', { name: 'Show glass', exact: true });
+  const frost = page.getByRole('slider', { name: 'Pane frost', exact: true });
+  const count = page.getByRole('slider', { name: 'Pane count', exact: true });
+  const components = [frost, count].map((input) =>
+    page.locator('range-slider').filter({ has: input }),
+  );
+  const checkDisabled = async () => {
+    for (const [i, input] of [frost, count].entries()) {
+      const component = components[i];
+      await expect(input).toBeDisabled();
+      const tooltip = `Enable glass to adjust pane ${i === 0 ? 'frost' : 'count'}.`;
+      await expect(component).not.toHaveAttribute('title');
+      const bubble = component.getByRole('tooltip', { includeHidden: true });
+      await expect(bubble).toHaveText(tooltip);
+      await component.hover();
+      // Check the style in the hover event's next frame without waiting for a delay.
+      expect(
+        await bubble.evaluate((node) => getComputedStyle(node).visibility),
+      ).toBe('visible');
+      await page.keyboard.press('Escape');
+      await expect(bubble).toBeHidden();
+      await page.mouse.move(0, 0);
+      await component.hover();
+      await expect(bubble).toBeVisible();
+      await page.mouse.move(0, 0);
+      await expect(bubble).toBeHidden();
+      await expect(input).toHaveAttribute('aria-description', tooltip);
+      for (const target of [
+        component,
+        component.locator('label'),
+        component.locator('output'),
+      ])
+        await expect(target).toHaveCSS('cursor', 'not-allowed');
+      await expect(component.locator('output')).toHaveCSS('font-size', '24px');
+      await expect(component.locator('output')).toHaveText('∅');
+      await expect(input).toHaveAttribute('aria-valuetext', '∅');
+      await expect(component.locator('.slider-divider')).toBeHidden();
+      await expect(component.locator('.slider-after')).toBeHidden();
+      const track = await component.evaluate((node) => {
+        const before = node.querySelector('.slider-before')!;
+        return {
+          fill: getComputedStyle(before).backgroundColor,
+          width: before.getBoundingClientRect().width,
+          trackWidth: node
+            .querySelector('.slider-track')!
+            .getBoundingClientRect().width,
+          line: getComputedStyle(document.documentElement)
+            .getPropertyValue('--line')
+            .trim(),
+        };
+      });
+      expect(track.width).toBe(track.trackWidth);
+      // Resolve the theme token through a color property before comparing.
+      const grey = await component.evaluate((node) => {
+        const probe = document.createElement('span');
+        probe.style.color = 'var(--line)';
+        node.append(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      });
+      expect(track.fill).toBe(grey);
+    }
+  };
+  await checkDisabled();
+  const emptyHeight = await components[0].locator('output').evaluate((node) => {
+    const context = document.createElement('canvas').getContext('2d')!;
+    context.font = getComputedStyle(node).font;
+    const glyph = context.measureText('∅');
+    return glyph.actualBoundingBoxAscent + glyph.actualBoundingBoxDescent;
+  });
+  await toggle.click();
+  const valueHeight = await components[0].locator('output').evaluate((node) => {
+    const context = document.createElement('canvas').getContext('2d')!;
+    context.font = getComputedStyle(node).font;
+    const glyph = context.measureText('0');
+    return glyph.actualBoundingBoxAscent + glyph.actualBoundingBoxDescent;
+  });
+  expect(Math.abs(emptyHeight - valueHeight)).toBeLessThan(1);
+  await expect(frost).toBeEnabled();
+  await expect(count).toBeEnabled();
+  await expect(count).toHaveValue('3');
+  await expect(count).toHaveAttribute('min', '1');
+  await expect(count).toHaveAttribute('max', '5');
+  for (const value of [1, 2, 3, 4, 5]) {
+    await count.fill(String(value));
+    await expect(page.locator('.glass-squircle')).toHaveCount(value);
+    await expect(components[1].locator('output')).toHaveText(String(value));
+  }
+  await frost.fill('72');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => {
+      document.documentElement.dataset.theme = value;
+    }, theme);
+    await toggle.click();
+    await checkDisabled();
+    await expect(page.locator('[data-glass-overlay]')).toBeHidden();
+    await expect(frost).toHaveValue('72');
+    await expect(count).toHaveValue('5');
+    await toggle.click();
+    for (const component of components) {
+      await expect(component).not.toHaveAttribute('title');
+      await component.hover();
+      await expect(
+        component.getByRole('tooltip', { includeHidden: true }),
+      ).toBeHidden();
+      await expect(component.locator('input')).not.toHaveAttribute(
+        'aria-description',
+      );
+      await expect(component.locator('input')).toHaveCSS('cursor', 'pointer');
+      await expect(component.locator('output')).toHaveCSS('font-size', '24px');
+    }
+    await expect(components[0].locator('output')).toHaveText('72%');
+    await expect(components[1].locator('output')).toHaveText('5');
+    await expect(components[0].locator('.slider-divider')).toBeVisible();
+    await expect(components[1].locator('.slider-divider')).toBeVisible();
+    await expect(page.locator('.glass-squircle')).toHaveCount(5);
+  }
+  await page.getByRole('button', { name: 'Reset defaults' }).click();
+  await checkDisabled();
+  await toggle.click();
+  await expect(frost).toHaveValue('35');
+  await expect(count).toHaveValue('3');
+  await expect(page.locator('.glass-squircle')).toHaveCount(3);
+});
+
+test('custom sliders react to inherited fieldset disabled state without losing their value', async ({
+  page,
+}) => {
+  await openPaused(page);
+  const speed = page.getByRole('slider', { name: 'Koi speed' });
+  const component = page.locator('range-slider').filter({ has: speed });
+  await speed.fill('1.75');
+  await speed.evaluate((node) => {
+    node.closest('fieldset')!.disabled = true;
+  });
+  await expect(component.locator('output')).toHaveText('∅');
+  await expect(component.locator('.slider-divider')).toBeHidden();
+  await speed.evaluate((node) => {
+    node.closest('fieldset')!.disabled = false;
+  });
+  await expect(component.locator('output')).toHaveText('1.75×');
+  await expect(component.locator('.slider-divider')).toBeVisible();
+  await expect(speed).toHaveValue('1.75');
+});
+
+test('glass frost updates without moving the three random non-overlapping squircles', async ({
   page,
 }) => {
   await openPaused(page);
@@ -511,12 +661,10 @@ test('glass transparency updates without moving the three random non-overlapping
     return panels;
   };
   const original = await validate();
-  const slider = page.getByRole('slider', { name: 'Glass transparency' });
-  await expect(slider).toHaveValue('65');
+  const slider = page.getByRole('slider', { name: 'Pane frost' });
+  await expect(slider).toHaveValue('35');
   await slider.fill('90');
-  await expect(page.locator('output[for="swim-transparency"]')).toHaveText(
-    '90%',
-  );
+  await expect(page.locator('output[for="swim-frost"]')).toHaveText('90%');
   expect(await layout()).toEqual(original);
   expect(
     await page
@@ -524,7 +672,7 @@ test('glass transparency updates without moving the three random non-overlapping
       .evaluate((node) =>
         getComputedStyle(node).getPropertyValue('--glass-opacity'),
       ),
-  ).toBe('0.1');
+  ).toBe('0.9');
   await slider.fill('0');
   expect(
     await page
@@ -532,7 +680,7 @@ test('glass transparency updates without moving the three random non-overlapping
       .evaluate((node) =>
         getComputedStyle(node).getPropertyValue('--glass-opacity'),
       ),
-  ).toBe('1');
+  ).toBe('0');
   await slider.fill('100');
   expect(
     await page
@@ -540,7 +688,7 @@ test('glass transparency updates without moving the three random non-overlapping
       .evaluate((node) =>
         getComputedStyle(node).getPropertyValue('--glass-opacity'),
       ),
-  ).toBe('0');
+  ).toBe('1');
   await toggle.click();
   await toggle.click();
   expect(await layout()).not.toEqual(original);
@@ -552,10 +700,308 @@ test('glass transparency updates without moving the three random non-overlapping
   await page.getByRole('button', { name: 'Reset defaults' }).click();
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await expect(page.locator('[data-glass-overlay]')).toBeHidden();
-  await expect(slider).toHaveValue('65');
-  await expect(page.locator('output[for="swim-transparency"]')).toHaveText(
-    '65%',
+  await expect(slider).toHaveValue('35');
+  await expect(page.locator('output[for="swim-frost"]')).toHaveText('∅');
+});
+
+test('glass panels drag independently, stay inside the preview, and stop on release', async ({
+  page,
+}) => {
+  await openPaused(page);
+  await page.getByRole('switch', { name: 'Show glass', exact: true }).click();
+  const panels = page.locator('.glass-squircle');
+  const panel = panels.first();
+  await panel.scrollIntoViewIfNeeded();
+  const original = (await panel.boundingBox())!;
+  const other = (await panels.nth(1).boundingBox())!;
+  const bounds = (await page.locator('[data-glass-overlay]').boundingBox())!;
+  await page.mouse.move(
+    original.x + original.width / 2,
+    original.y + original.height / 2,
   );
+  await page.mouse.down();
+  await expect(panel).toHaveCSS('cursor', 'grabbing');
+  await page.mouse.move(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / 2,
+  );
+  const moved = (await panel.boundingBox())!;
+  expect(moved.x).toBeCloseTo(
+    bounds.x + bounds.width / 2 - original.width / 2,
+    1,
+  );
+  expect(moved.y).toBeCloseTo(
+    bounds.y + bounds.height / 2 - original.height / 2,
+    1,
+  );
+  expect(await panels.nth(1).boundingBox()).toEqual(other);
+  await page.mouse.move(bounds.x - 50, bounds.y - 50);
+  const corner = (await panel.boundingBox())!;
+  expect(corner.x).toBeCloseTo(bounds.x + 16, 1);
+  expect(corner.y).toBeCloseTo(bounds.y + 16, 1);
+  await page.mouse.move(
+    bounds.x + bounds.width + 50,
+    bounds.y + bounds.height + 50,
+  );
+  const opposite = (await panel.boundingBox())!;
+  expect(opposite.x + opposite.width).toBeCloseTo(
+    bounds.x + bounds.width - 16,
+    1,
+  );
+  expect(opposite.y + opposite.height).toBeCloseTo(
+    bounds.y + bounds.height - 16,
+    1,
+  );
+  await page.mouse.up();
+  await expect(panel).toHaveCSS('cursor', 'grab');
+  await page.mouse.move(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / 2,
+  );
+  expect(await panel.boundingBox()).toEqual(opposite);
+});
+
+test('glass panels support touch dragging and cancel cleanly', async ({
+  page,
+}) => {
+  await openPaused(page);
+  await page.getByRole('switch', { name: 'Show glass', exact: true }).click();
+  const panel = page.locator('.glass-squircle').first();
+  await panel.scrollIntoViewIfNeeded();
+  const original = (await panel.boundingBox())!;
+  const bounds = (await page.locator('[data-glass-overlay]').boundingBox())!;
+  const client = await page.context().newCDPSession(page);
+  const touch = async (
+    type: 'touchStart' | 'touchMove' | 'touchCancel',
+    x = 0,
+    y = 0,
+  ) =>
+    client.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchCancel' ? [] : [{ x, y, id: 1 }],
+    });
+  await touch(
+    'touchStart',
+    original.x + original.width / 2,
+    original.y + original.height / 2,
+  );
+  await touch(
+    'touchMove',
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / 2,
+  );
+  await expect(panel).toHaveClass(/dragging/);
+  await expect
+    .poll(async () => (await panel.boundingBox())!.x)
+    .toBeCloseTo(bounds.x + bounds.width / 2 - original.width / 2, 1);
+  await touch('touchCancel');
+  await expect(panel).not.toHaveClass(/dragging/);
+  await client.detach();
+});
+
+async function cornerPoint(handle: import('@playwright/test').Locator) {
+  return handle.locator('.handle-bar').evaluate((node) => {
+    const path = node as SVGPathElement;
+    const point = path.getPointAtLength(path.getTotalLength() / 2);
+    const screen = point.matrixTransform(path.getScreenCTM()!);
+    return { x: screen.x, y: screen.y };
+  });
+}
+
+test('glass corner bars reveal on hover and resize freely around every opposite corner', async ({
+  page,
+}) => {
+  await openPaused(page);
+  await page.getByRole('switch', { name: 'Show glass', exact: true }).click();
+  const panel = page.locator('.glass-squircle').first();
+  const handles = panel.locator('.glass-resize');
+  await page.mouse.move(0, 0);
+  await expect(handles.first()).toHaveCSS('opacity', '0');
+  await panel.scrollIntoViewIfNeeded();
+  const initial = (await panel.boundingBox())!;
+  const bounds = (await page.locator('[data-glass-overlay]').boundingBox())!;
+  await page.mouse.move(
+    initial.x + initial.width / 2,
+    initial.y + initial.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / 2,
+  );
+  await page.mouse.up();
+  const other = await page.locator('.glass-squircle').nth(1).boundingBox();
+  for (const corner of ['nw', 'ne', 'se', 'sw']) {
+    const before = (await panel.boundingBox())!;
+    await panel.locator('.glass-material').hover();
+    const handle = panel.locator(`[data-corner="${corner}"]`);
+    await expect(handle).toHaveCSS('opacity', '1');
+    const point = await cornerPoint(handle);
+    await page.mouse.move(point.x, point.y);
+    await expect(handle).toHaveCSS('opacity', '1');
+    const cursor = await handle.evaluate(
+      (node) => getComputedStyle(node).cursor,
+    );
+    await page.mouse.down();
+    await expect(panel).toHaveCSS('cursor', cursor);
+    await expect(page.locator('html')).toHaveCSS('cursor', cursor);
+    await expect(handle).toHaveClass(/active/);
+    await expect(panel).toHaveClass(/resizing/);
+    await page.mouse.move(
+      point.x + (corner.includes('w') ? -20 : 20),
+      point.y + (corner.includes('n') ? -30 : 30),
+    );
+    const after = (await panel.boundingBox())!;
+    expect(after.width).toBeCloseTo(before.width + 20, 0);
+    expect(after.height).toBeCloseTo(before.height + 30, 0);
+    expect(corner.includes('w') ? after.x + after.width : after.x).toBeCloseTo(
+      corner.includes('w') ? before.x + before.width : before.x,
+      1,
+    );
+    expect(corner.includes('n') ? after.y + after.height : after.y).toBeCloseTo(
+      corner.includes('n') ? before.y + before.height : before.y,
+      1,
+    );
+    await page.mouse.up();
+    await expect(handle).not.toHaveClass(/active/);
+    await expect(page.locator('html')).not.toHaveAttribute('data-swim-resize');
+  }
+  expect(await page.locator('.glass-squircle').nth(1).boundingBox()).toEqual(
+    other,
+  );
+  const geometry = await panel.getAttribute('style');
+  await page.getByRole('slider', { name: 'Pane frost' }).fill('80');
+  expect(await panel.getAttribute('style')).toBe(geometry);
+  await page.mouse.move(0, 0);
+  await expect(handles.first()).toHaveCSS('opacity', '0');
+});
+
+test('glass resize handles support keyboard focus, step sizes, and minimum dimensions', async ({
+  page,
+}) => {
+  await openPaused(page);
+  await page.getByRole('switch', { name: 'Show glass', exact: true }).click();
+  const panel = page.locator('.glass-squircle').first();
+  const handle = panel.getByRole('button', {
+    name: 'Resize glass pane 1 from bottom right',
+  });
+  await panel.scrollIntoViewIfNeeded();
+  const start = (await panel.boundingBox())!;
+  const preview = (await page.locator('[data-glass-overlay]').boundingBox())!;
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    preview.x + preview.width / 2,
+    preview.y + preview.height / 2,
+  );
+  await page.mouse.up();
+  await handle.focus();
+  await expect(handle).toHaveCSS('opacity', '1');
+  const before = (await panel.boundingBox())!;
+  await handle.press('ArrowRight');
+  await handle.press('Shift+ArrowDown');
+  const after = (await panel.boundingBox())!;
+  expect(after.width).toBeCloseTo(before.width + 4, 1);
+  expect(after.height).toBeCloseTo(before.height + 16, 1);
+  for (let i = 0; i < 30; i++) {
+    await handle.press('Shift+ArrowLeft');
+    await handle.press('Shift+ArrowUp');
+  }
+  const minimum = (await panel.boundingBox())!;
+  expect(minimum.width).toBe(48);
+  expect(minimum.height).toBe(48);
+});
+
+test('touch reveals glass resize bars, supports resizing, and dismisses outside the pane', async ({
+  page,
+}) => {
+  await openPaused(page);
+  await page.getByRole('switch', { name: 'Show glass', exact: true }).click();
+  const panel = page.locator('.glass-squircle').first();
+  await panel.scrollIntoViewIfNeeded();
+  const before = (await panel.boundingBox())!;
+  const client = await page.context().newCDPSession(page);
+  const touch = (
+    type: 'touchStart' | 'touchMove' | 'touchEnd' | 'touchCancel',
+    x = 0,
+    y = 0,
+  ) =>
+    client.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints:
+        type === 'touchEnd' || type === 'touchCancel' ? [] : [{ x, y, id: 1 }],
+    });
+  await touch(
+    'touchStart',
+    before.x + before.width / 2,
+    before.y + before.height / 2,
+  );
+  await touch('touchEnd');
+  await expect(panel).toHaveClass(/selected/);
+  const handle = panel.locator('[data-corner="se"]');
+  await expect(handle).toHaveCSS('opacity', '1');
+  const point = await cornerPoint(handle);
+  await touch('touchStart', point.x, point.y);
+  await touch('touchMove', point.x + 20, point.y + 25);
+  await expect(panel).toHaveClass(/resizing/);
+  await expect
+    .poll(async () => (await panel.boundingBox())!.width)
+    .toBeCloseTo(before.width + 20, 0);
+  await touch('touchCancel');
+  await expect(panel).not.toHaveClass(/resizing/);
+  await expect(handle).not.toHaveClass(/active/);
+  const bounds = (await page.locator('[data-glass-overlay]').boundingBox())!;
+  await touch('touchStart', bounds.x + 2, bounds.y + 2);
+  await touch('touchEnd');
+  await expect(panel).not.toHaveClass(/selected/);
+  await expect(handle).toHaveCSS('opacity', '0');
+  await client.detach();
+});
+
+test('glass resize tint responds to press in both themes and hiding cancels capture', async ({
+  page,
+}) => {
+  await openPaused(page);
+  const toggle = page.getByRole('switch', { name: 'Show glass', exact: true });
+  await toggle.click();
+  const panel = page.locator('.glass-squircle').first();
+  const handle = panel.locator('[data-corner="se"]');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => {
+      document.documentElement.dataset.theme = value;
+    }, theme);
+    await panel.scrollIntoViewIfNeeded();
+    await panel.locator('.glass-material').hover();
+    const point = await cornerPoint(handle);
+    await page.mouse.move(point.x, point.y);
+    const hoverColor = await handle.evaluate(
+      (node) => getComputedStyle(node).color,
+    );
+    await page.mouse.down();
+    const activeColor = await handle.evaluate(
+      (node) => getComputedStyle(node).color,
+    );
+    expect(activeColor).not.toBe(hoverColor);
+    const bounds = (await page.locator('[data-glass-overlay]').boundingBox())!;
+    await page.mouse.move(bounds.x - 100, bounds.y - 100);
+    let rect = (await panel.boundingBox())!;
+    expect(rect.width).toBe(48);
+    expect(rect.height).toBe(48);
+    await page.mouse.move(
+      bounds.x + bounds.width + 100,
+      bounds.y + bounds.height + 100,
+    );
+    rect = (await panel.boundingBox())!;
+    expect(rect.x + rect.width).toBeCloseTo(bounds.x + bounds.width - 16, 1);
+    expect(rect.y + rect.height).toBeCloseTo(bounds.y + bounds.height - 16, 1);
+    // Hide programmatically while the pointer is captured by a resizing pane.
+    await toggle.evaluate((node) => (node as HTMLButtonElement).click());
+    await expect(panel).not.toHaveClass(/resizing/);
+    await expect(handle).not.toHaveClass(/active/);
+    await expect(page.locator('[data-glass-overlay]')).toBeHidden();
+    await page.mouse.up();
+    await toggle.click();
+  }
 });
 
 test('control and route hover changes only the fill in both themes', async ({
@@ -614,21 +1060,21 @@ test('route cards switch the preview without changing tuning or playback and res
       'data-state',
       'paused',
     );
-    await expect(
-      page.getByRole('slider', { name: 'Swimming speed' }),
-    ).toHaveValue('1.4');
-    await expect(page.getByRole('slider', { name: 'Fin width' })).toHaveValue(
+    await expect(page.getByRole('slider', { name: 'Koi speed' })).toHaveValue(
+      '1.4',
+    );
+    await expect(page.getByRole('slider', { name: 'Koi width' })).toHaveValue(
       '70',
     );
     expect(await image(page)).not.toBe(original);
   }
   await page.getByRole('switch', { name: 'Show route', exact: true }).click();
-  await page.getByRole('slider', { name: 'Fin length' }).fill('25');
+  await page.getByRole('slider', { name: 'Koi length' }).fill('25');
   await page.getByRole('button', { name: 'Reset defaults' }).click();
   await expect(
     page.getByRole('radio', { name: 'Pond loop', exact: true }),
   ).toBeChecked();
-  await expect(page.getByRole('slider', { name: 'Fin length' })).toHaveValue(
+  await expect(page.getByRole('slider', { name: 'Koi length' })).toHaveValue(
     '65',
   );
   await expect(page.locator('output[for="swim-length"]')).toHaveText('65%');
@@ -673,5 +1119,5 @@ test('unavailable Canvas leaves a readable fallback', async ({ page }) => {
   await expect(
     page.locator('swimming-surface').getByRole('status'),
   ).toContainText('Animation preview unavailable');
-  await expect(page.getByRole('slider', { name: 'Fin length' })).toBeDisabled();
+  await expect(page.getByRole('slider', { name: 'Koi length' })).toBeDisabled();
 });

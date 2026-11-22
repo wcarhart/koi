@@ -12,7 +12,11 @@ import {
   swimmingControls,
   swimmingRoutes,
 } from '../lib/swimming-surface';
-import { defaultGlassTransparency } from '../lib/swim-glass';
+import {
+  defaultGlassFrost,
+  defaultPaneCount,
+  glassCorners,
+} from '../lib/swim-glass';
 const routePreviews = swimmingRoutes.map((route) => ({
   ...route,
   path:
@@ -40,11 +44,20 @@ const routePreviews = swimmingRoutes.map((route) => ({
       aria-label="Swimming fin preview"
     >
       <SwimmingSurface />
-      <div class="glass-overlay" data-glass-overlay aria-hidden="true" hidden>
-        <div class="glass-squircle"></div>
-        <div class="glass-squircle"></div>
-        <div class="glass-squircle"></div>
-      </div>
+      <div class="glass-overlay" data-glass-overlay hidden></div>
+      <template data-glass-pane>
+        <div class="glass-squircle" role="group">
+          <div class="glass-material" aria-hidden="true"></div>
+          {glassCorners.map((corner) => (
+            <button type="button" class="glass-resize" data-corner={corner}>
+              <svg aria-hidden="true">
+                <path class="handle-hit" />
+                <path class="handle-bar" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </template>
     </section>
     <form data-swimming-controls>
       <fieldset disabled>
@@ -115,14 +128,27 @@ const routePreviews = swimmingRoutes.map((route) => ({
             />
           ))}
           <RangeSlider
-            id="swim-transparency"
-            name="transparency"
-            label="Glass transparency"
+            id="swim-frost"
+            name="frost"
+            label="Pane frost"
+            disabledTooltip="Enable glass to adjust pane frost."
             min={0}
             max={100}
             step={1}
-            value={defaultGlassTransparency}
+            value={defaultGlassFrost}
+            disabled
             unit="%"
+          />
+          <RangeSlider
+            id="swim-pane-count"
+            name="paneCount"
+            label="Pane count"
+            disabledTooltip="Enable glass to adjust pane count."
+            min={1}
+            max={5}
+            step={1}
+            value={defaultPaneCount}
+            disabled
           />
         </div>
       </fieldset>
@@ -158,6 +184,10 @@ const routePreviews = swimmingRoutes.map((route) => ({
     border-radius: 12px;
     background: var(--bg);
   }
+  :global(html[data-swim-resize]),
+  :global(html[data-swim-resize] *) {
+    cursor: var(--swim-resize-cursor) !important;
+  }
   .glass-overlay {
     position: absolute;
     inset: 0;
@@ -169,14 +199,81 @@ const routePreviews = swimmingRoutes.map((route) => ({
   }
   .glass-squircle {
     position: absolute;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+  }
+  .glass-material {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
     border: 1px solid var(--line);
     border-radius: 28%;
     corner-shape: squircle;
     background: var(--code);
     box-shadow: var(--shadow);
   }
+  .glass-squircle.dragging {
+    cursor: grabbing;
+  }
+  .glass-resize {
+    position: absolute;
+    inset: -16px;
+    padding: 0;
+    border: 0;
+    background: none;
+    outline: none;
+    pointer-events: none;
+    touch-action: none;
+    opacity: 0;
+    color: var(--muted);
+  }
+  .glass-resize svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .glass-resize path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .handle-hit {
+    stroke: transparent;
+    stroke-width: 20px;
+  }
+  .handle-bar {
+    stroke: currentColor;
+    stroke-width: 4px;
+  }
+  .glass-squircle:is(:hover, :focus-within, .selected, .resizing)
+    .glass-resize {
+    opacity: 1;
+  }
+  .glass-squircle:is(:hover, :focus-within, .selected, .resizing) .handle-hit {
+    pointer-events: stroke;
+  }
+  .glass-resize[data-corner='nw'],
+  .glass-resize[data-corner='se'] {
+    cursor: nwse-resize;
+  }
+  .glass-resize[data-corner='ne'],
+  .glass-resize[data-corner='sw'] {
+    cursor: nesw-resize;
+  }
+  .glass-resize:hover {
+    color: color-mix(in srgb, var(--muted) 65%, var(--ink));
+  }
+  .glass-resize:is(:focus-visible, .active) {
+    color: var(--ink);
+  }
+  .glass-resize:is(:focus-visible, .active) .handle-bar {
+    stroke-width: 5px;
+  }
   @supports (backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px)) {
-    .glass-squircle {
+    .glass-material {
       background: color-mix(
         in srgb,
         var(--code) calc(var(--glass-opacity, 0.35) * 100%),

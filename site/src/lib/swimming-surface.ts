@@ -1,7 +1,7 @@
 export const swimmingControls = [
   {
     key: 'speed',
-    label: 'Swimming speed',
+    label: 'Koi speed',
     min: 0.25,
     max: 2,
     step: 0.05,
@@ -10,7 +10,7 @@ export const swimmingControls = [
   },
   {
     key: 'length',
-    label: 'Fin length',
+    label: 'Koi length',
     min: 15,
     max: 55,
     step: 1,
@@ -19,7 +19,7 @@ export const swimmingControls = [
   },
   {
     key: 'width',
-    label: 'Fin width',
+    label: 'Koi width',
     min: 1,
     max: 8,
     step: 0.1,
@@ -28,7 +28,7 @@ export const swimmingControls = [
   },
   {
     key: 'depth',
-    label: 'Surface depth',
+    label: 'Koi depth',
     min: 0,
     max: 100,
     step: 1,
@@ -64,7 +64,7 @@ export const swimmingControls = [
   },
   {
     key: 'spacing',
-    label: 'Character spacing',
+    label: 'Glyph spacing',
     min: 4,
     max: 20,
     step: 1,

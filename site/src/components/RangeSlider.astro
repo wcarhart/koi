@@ -9,18 +9,32 @@ interface Props {
   step: number;
   value: number;
   unit?: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
-const { id, name, label, min, max, step, value, unit = '' } = Astro.props;
+const {
+  id,
+  name,
+  label,
+  min,
+  max,
+  step,
+  value,
+  unit = '',
+  disabled = false,
+  disabledTooltip,
+} = Astro.props;
 const progress = Math.max(0, Math.min(1, (value - min) / (max - min)));
 const displayValue = toSliderValue(value, { min, max, unit });
 ---
 
-<range-slider data-unit={unit} style={`--slider-progress: ${progress}`}>
+<range-slider
+  data-unit={unit}
+  data-disabled-tooltip={disabledTooltip}
+  style={`--slider-progress: ${progress}`}
+>
   <div class="slider-heading">
-    <output for={id}>
-      {displayValue}
-      {unit}
-    </output>
+    <output for={id}>{disabled ? '∅' : `${displayValue}${unit}`}</output>
     <label for={id}>{label}</label>
   </div>
   <div class="slider-control">
@@ -32,14 +46,20 @@ const displayValue = toSliderValue(value, { min, max, unit });
     <input
       {id}
       {name}
+      {disabled}
       type="range"
       min={unit === '%' ? 0 : min}
       max={unit === '%' ? 100 : max}
       step={unit === '%' ? 1 : step}
       value={displayValue}
-      aria-valuetext={`${displayValue}${unit}`}
+      aria-valuetext={disabled ? '∅' : `${displayValue}${unit}`}
     />
   </div>
+  {disabledTooltip && (
+    <span class="slider-tooltip" role="tooltip">
+      {disabledTooltip}
+    </span>
+  )}
 </range-slider>
 
 <script>
@@ -48,6 +68,7 @@ const displayValue = toSliderValue(value, { min, max, unit });
 
 <style>
   range-slider {
+    position: relative;
     display: block;
     min-width: 0;
   }
@@ -134,7 +155,54 @@ const displayValue = toSliderValue(value, { min, max, unit });
     outline-offset: 3px;
     border-radius: 6px;
   }
-  range-slider:has(input:disabled) {
+  .slider-tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max-content;
+    max-width: min(250px, 100%);
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 11px/1.5 var(--sans);
+    box-shadow: 0 4px 16px #0002;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 3;
+  }
+  range-slider:has(input:disabled):hover:not([data-tooltip-dismissed])
+    .slider-tooltip {
+    visibility: visible;
+  }
+  range-slider:has(input:disabled) > :is(.slider-heading, .slider-control) {
     opacity: 0.55;
+  }
+  range-slider:has(input:disabled) :is(output, label) {
+    color: var(--muted);
+  }
+  /* Satoshi's empty-set glyph matches the visible height of the numeric values. */
+  range-slider:has(input:disabled) output {
+    font-family: var(--sans);
+  }
+  range-slider:has(input:disabled),
+  range-slider:has(input:disabled) * {
+    cursor: not-allowed;
+  }
+  range-slider:has(input:disabled) input {
+    pointer-events: none;
+  }
+  range-slider:has(input:disabled) .slider-before {
+    width: 100%;
+    border-radius: 8px;
+    background: var(--line);
+  }
+  range-slider:has(input:disabled) :is(.slider-divider, .slider-after) {
+    display: none;
+  }
+  range-slider:has(input:disabled) .slider-track {
+    outline: none;
   }
 </style>
