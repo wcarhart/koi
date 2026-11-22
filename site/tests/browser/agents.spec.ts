@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { agentPrompt } from '../../src/lib/agent-guidance';
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const source = readFileSync(
-  new URL('../../../docs/llms.md', import.meta.url),
-  'utf8',
-);
+const source = agentPrompt;
 
 test('homepage and shared navigation expose the agent guidance destinations', async ({
   page,
@@ -40,7 +37,7 @@ test('homepage and shared navigation expose the agent guidance destinations', as
     page.getByRole('heading', { name: 'Koi for agents', exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('link', { name: 'llms.txt', exact: true }),
+    page.getByRole('link', { name: 'llms.txt', exact: true }).first(),
   ).toHaveAttribute('href', '/llms.txt');
   expect(
     await page.evaluate(
@@ -76,7 +73,7 @@ test('agent tooltip appears on hover and focus and dismisses with Escape', async
   ).toBeFocused();
 });
 
-test('agent page, clipboard, and raw endpoint contain identical Markdown', async ({
+test('agent page copies the project prompt and exposes a separate documentation index', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -94,7 +91,8 @@ test('agent page, clipboard, and raw endpoint contain identical Markdown', async
   const raw = await page.request.get('/llms.txt');
   expect(raw.status()).toBe(200);
   expect(raw.headers()['content-type']).toContain('text/plain');
-  expect(await raw.text()).toBe(source);
+  expect(await raw.text()).toContain('# Koi\n');
+  expect(await raw.text()).not.toBe(source);
   const button = page.getByRole('button', { name: 'Copy agent guidance' });
   await button.click();
   await expect(button).toHaveAttribute('data-copy-state', 'success');
@@ -193,8 +191,108 @@ test('agent guidance is readable without JavaScript', async ({ browser }) => {
   await expect(
     page.getByRole('button', { name: 'Copy agent guidance' }),
   ).not.toBeVisible();
-  await page.getByRole('link', { name: 'llms.txt', exact: true }).click();
+  await page
+    .getByRole('link', { name: 'llms.txt', exact: true })
+    .first()
+    .click();
   await expect(page).toHaveURL('/llms.txt');
-  await expect(page.locator('body')).toContainText('# Koi agent guidance');
+  await expect(page.locator('body')).toContainText('# Koi');
   await context.close();
+});
+
+test('hero places actions before a themed skill command with agent icons and inline copying', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: async (text: string) => {
+          (window as unknown as { copied: string }).copied = text;
+        },
+      },
+    });
+  });
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme });
+    await page.goto('/');
+    await page.evaluate(() => document.fonts.ready);
+    const install = page.locator('.hero-actions > .install-box');
+    const buttons = page.locator('.hero-actions > .button-row');
+    const skill = page.locator('.hero-skill-box');
+    const installBounds = (await install.boundingBox())!;
+    const buttonsBounds = (await buttons.boundingBox())!;
+    const skillBounds = (await skill.boundingBox())!;
+    const guidanceBounds = (await page
+      .locator('.agent-skill-install')
+      .boundingBox())!;
+    expect(
+      buttonsBounds.y - installBounds.y - installBounds.height,
+    ).toBeCloseTo(12, 0);
+    expect(
+      guidanceBounds.y - buttonsBounds.y - buttonsBounds.height,
+    ).toBeCloseTo(72, 0);
+    expect(buttonsBounds.y).toBeGreaterThanOrEqual(
+      installBounds.y + installBounds.height,
+    );
+    expect(skillBounds.y).toBeGreaterThan(
+      buttonsBounds.y + buttonsBounds.height,
+    );
+    await expect(page.locator('.agent-skill-install > span')).toHaveText(
+      'Using agents? See agent guidance',
+    );
+    await expect(
+      page
+        .locator('.agent-skill-install')
+        .getByRole('link', { name: 'agent guidance' }),
+    ).toHaveAttribute('href', '/agents');
+    for (const name of [
+      'Codex',
+      'Claude Code',
+      'OpenCode',
+      'Cursor',
+      'GitHub Copilot',
+      'Antigravity',
+      'Goose',
+    ]) {
+      await expect(skill.getByRole('img', { name, exact: true })).toBeVisible();
+    }
+    const installColor = await install.evaluate(
+      (node) => getComputedStyle(node).backgroundColor,
+    );
+    await expect(skill).toHaveCSS('background-color', installColor);
+    const copy = skill.getByRole('button', {
+      name: 'Copy skill install command',
+    });
+    await page.mouse.move(0, 0);
+    const installCopy = install.locator(
+      '.install-panel:not([hidden]) .copy-button',
+    );
+    await expect(copy).toHaveCSS(
+      'color',
+      await installCopy.evaluate((node) => getComputedStyle(node).color),
+    );
+    const command = skill.locator('pre');
+    await copy.scrollIntoViewIfNeeded();
+    const commandBounds = (await command.boundingBox())!;
+    const copyBounds = (await copy.boundingBox())!;
+    expect(
+      Math.abs(
+        commandBounds.y +
+          commandBounds.height / 2 -
+          copyBounds.y -
+          copyBounds.height / 2,
+      ),
+    ).toBeLessThan(1);
+    await copy.click();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { copied: string }).copied,
+      ),
+    ).toBe('npx skills add wcarhart/koi --skill koi -g');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
 });

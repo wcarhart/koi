@@ -826,6 +826,7 @@ kbd {
   font-size: 12px;
 }
 .docs-footer {
+  border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1064,6 +1065,7 @@ kbd {
   max-width: 100%;
 }
 .hero-actions .install-box {
+  margin-bottom: 12px;
   width: 100%;
   contain: inline-size;
 }
@@ -1848,7 +1850,7 @@ html:not(.js) [data-open-menu] {
   color: var(--muted);
 }
 .hero-agent-link a {
-  color: var(--muted);
+  color: var(--accent);
   text-decoration: none;
   text-underline-offset: 3px;
 }
@@ -2227,6 +2229,7 @@ html:not(.js) [data-open-menu] {
 /* Index pages share the docs shell without joining the continuous article flow. */
 .docs-page {
   --docs-header-height: 0px;
+  --doc-toolbar-height: 74px;
 }
 .nav-group-link {
   display: block;
@@ -2920,4 +2923,335 @@ html:not(.js) [data-open-menu] {
   border-right: 5px solid transparent;
   border-top: 7px solid var(--muted);
   transform: translateX(-50%);
+}
+
+/* Article bars stay within their section so the following bar pushes them away. */
+.doc-section:has(.article-toolbar) {
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+  container-type: inline-size;
+}
+.doc-toolbar-anchor {
+  height: 0;
+}
+.article-toolbar {
+  position: sticky;
+  top: var(--docs-header-height);
+  z-index: 10;
+  min-height: var(--doc-toolbar-height);
+  margin: 0 -40px 28px;
+  padding: 16px 40px;
+  border-block: 1px solid var(--line);
+  background: var(--bg);
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.doc-section:has(.article-toolbar) > .doc-grid {
+  padding-bottom: 65px;
+}
+.article-toolbar .section-number {
+  min-width: 0;
+  max-width: none;
+}
+.article-toolbar .doc-toolbar-context {
+  min-width: 0;
+  gap: 8px;
+}
+.doc-breadcrumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.article-toolbar .doc-actions {
+  gap: 4px;
+  flex-shrink: 0;
+}
+.doc-control {
+  position: relative;
+  display: inline-flex;
+}
+.article-toolbar .doc-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+}
+.article-toolbar .doc-action:is(:hover, [aria-expanded='true']) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.doc-action svg {
+  width: 20px;
+  height: 20px;
+}
+.doc-progress {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ink);
+}
+.doc-progress svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke-width: 2;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+.progress-track {
+  stroke: var(--line);
+}
+.progress-arc {
+  stroke: var(--accent);
+  stroke-dasharray: var(--progress, 0) 100;
+}
+.doc-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: max-content;
+  max-width: min(250px, 80vw);
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 11px/1.5 var(--sans);
+  box-shadow: 0 4px 16px #0002;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.doc-control[data-tooltip-align='center'] > .doc-tooltip {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+.doc-control:is(:hover, :has(> :focus-visible)):not([data-tooltip-dismissed])
+  > .doc-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+body:has(.doc-action-menu:not([hidden])) .doc-control > .doc-tooltip {
+  visibility: hidden;
+  opacity: 0;
+}
+.doc-action-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #0002;
+}
+.doc-action-menu[hidden] {
+  display: none;
+}
+.article-toolbar .doc-action-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  font: 12px var(--sans);
+}
+.doc-action-menu a:is(:hover, :focus-visible) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.doc-action-menu svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.example-sticky {
+  top: calc(var(--docs-header-height) + 96px);
+}
+.docs-main {
+  transition: margin-right 220ms ease;
+}
+.ask-koi-pane {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 360px;
+  z-index: 30;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 220ms ease,
+    visibility 220ms;
+}
+.ask-koi-open .ask-koi-pane {
+  transform: translateX(0);
+  visibility: visible;
+}
+.ask-koi-open .docs-main {
+  margin-right: 360px;
+}
+.ask-koi-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--doc-toolbar-height);
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.ask-koi-heading h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.ask-koi-heading button {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.ask-koi-heading button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ask-koi-placeholder {
+  padding: 60px 28px;
+  text-align: center;
+  color: var(--muted);
+}
+.ask-koi-placeholder h3 {
+  color: var(--ink);
+}
+.ask-koi-placeholder p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.agent-skill-install {
+  margin-top: 72px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.hero-skill-box {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.hero-skill-agents {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 39px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.hero-skill-agents > span {
+  display: inline-flex;
+}
+.hero-skill-agents svg {
+  width: 17px;
+  height: 17px;
+}
+.hero-skill-box .install-command {
+  padding: 14px;
+}
+.hero-skill-box .copy-button:not(:hover):not([data-copy-state]) {
+  color: var(--ink);
+}
+
+@container (max-width: 850px) {
+  .doc-grid {
+    display: block;
+  }
+  .doc-example {
+    margin-top: 30px;
+  }
+  .example-sticky {
+    position: static;
+  }
+}
+@media (min-width: 1600px) {
+  .article-toolbar {
+    margin-inline: -60px;
+    padding-inline: 60px;
+  }
+}
+@media (max-width: 1199px) {
+  .ask-koi-open .docs-main {
+    margin-right: 0;
+  }
+  .ask-koi-open {
+    overflow: hidden;
+  }
+  .ask-koi-pane {
+    width: min(420px, 100%);
+    box-shadow: -20px 0 80px #0003;
+  }
+}
+@media (max-width: 1150px) {
+  .article-toolbar {
+    margin-inline: -28px;
+    padding-inline: 28px;
+  }
+}
+@media (max-width: 650px) {
+  .docs-page {
+    --doc-toolbar-height: 64px;
+  }
+  .article-toolbar {
+    margin-inline: -22px;
+    padding-block: 14px;
+    padding-inline: 12px;
+    gap: 6px;
+  }
+  .article-toolbar .section-number {
+    gap: 5px;
+  }
+  .article-toolbar .doc-actions {
+    gap: 0;
+  }
+  .article-toolbar .doc-action {
+    width: 32px;
+  }
+  .ask-koi-pane {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .docs-main,
+  .ask-koi-pane {
+    transition: none;
+  }
+}
+@media print {
+  .article-toolbar,
+  .ask-koi-pane {
+    display: none;
+  }
+  .ask-koi-open .docs-main {
+    margin-right: 0;
+  }
+}
+
+html:not(.js)
+  :is([data-ask-koi], [data-more-doc], [data-copy-markdown], .doc-progress) {
+  display: none;
+}
+
+html:has(.docs-page) {
+  scroll-padding-top: 0;
 }

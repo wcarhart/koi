@@ -33,7 +33,7 @@ test('standalone indexes resolve links and discovery without joining continuous 
   assert.equal(reference.at(-1)!.slug, 'reference/conventions');
   assert.equal(indexDocs('examples', docs).length, 3);
   const entries = await (await searchIndex()).json();
-  const xml = await sitemap().text();
+  const xml = await (await sitemap()).text();
   for (const index of docsIndexes) {
     assert.ok(
       entries.some((entry: { url: string }) => entry.url === index.url),

@@ -151,6 +151,7 @@ test('installation exports include every tab command and the shared installation
     doc.headings.map((heading) => heading.title),
     [
       'Quick install',
+      'Agent skill',
       'Dependencies',
       'Homebrew and mise',
       'Manual install',

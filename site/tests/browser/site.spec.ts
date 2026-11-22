@@ -271,7 +271,8 @@ test('copy buttons use Markdown response, checkmark feedback, and failure feedba
   expect(
     await page.evaluate(() => (window as unknown as { copied: string }).copied),
   ).toBe(markdown);
-  await expect(copy).toHaveText('Copy for LLM');
+  await expect(copy).not.toHaveAttribute('data-copy-state', 'success');
+  await expect(copy).toHaveAccessibleName('Copy doc as Markdown');
   const codeCopy = section
     .locator('.doc-example')
     .getByRole('button', { name: 'Copy code' })
@@ -426,7 +427,7 @@ test('Markdown routes open as raw text and drafts stay unpublished', async ({
   await page.goto('/docs/reference/add_arg');
   await page
     .locator('#doc-reference-add_arg')
-    .getByRole('link', { name: 'View as Markdown' })
+    .getByRole('link', { name: 'View doc as Markdown' })
     .click();
   await expect(page).toHaveURL(/\/docs\/reference\/add_arg\.md$/);
   await expect(page.locator('body')).toContainText("title: 'koi::add_arg'");
@@ -449,7 +450,9 @@ test('Markdown routes open as raw text and drafts stay unpublished', async ({
     'Koi is a lightweight, 100% Bash-native argument parser.',
   );
   const quickstart = await page.request.get('/docs/quickstart.md');
-  expect(quickstart.headers()['content-type']).toContain('text/plain');
+  expect(quickstart.headers()['content-type']).toMatch(
+    /^text\/(plain|markdown)/,
+  );
   expect(matter(await quickstart.text()).data).toEqual({
     title: 'Quickstart',
     subtitle: 'Write your first koi-powered script',
@@ -666,6 +669,7 @@ test('homepage heading font, button fills, copy alignment, and window hover are 
   for (const button of await page.locator('.hero .button-row .button').all()) {
     await page.mouse.move(0, 0);
     const before = await button.evaluate(css);
+    await button.scrollIntoViewIfNeeded();
     const bounds = (await button.boundingBox())!;
     await button.hover();
     const after = await button.evaluate(css);
@@ -991,6 +995,7 @@ test('installation routes share content and tabs with a standalone-only bottom n
         : page.locator('#doc-install .doc-prose');
     await expect(content.locator('h2')).toHaveText([
       'Quick install',
+      'Agent skill',
       'Dependencies',
       'Homebrew and mise',
       'Manual install',

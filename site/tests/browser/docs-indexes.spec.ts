@@ -284,7 +284,7 @@ test('Reference links to the glossary beside its title and places Conventions be
   await expect(page.locator('#doc-reference-glossary h1')).toBeInViewport();
   await expect(page.locator('link[rel=canonical]')).toHaveAttribute(
     'href',
-    'https://koishell.com/docs',
+    'https://koishell.com/docs/reference/glossary',
   );
   const markdown = await page.request.get('/docs/reference/glossary.md');
   expect(markdown.ok()).toBe(true);

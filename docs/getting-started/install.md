@@ -14,6 +14,16 @@ Once installed, just `source` koi to use it:
 source koi
 ```
 
+## Agent skill
+
+Install the [Koi skill](/skill.md) to help your coding agent use koi:
+
+```bash
+npx skills add wcarhart/koi --skill koi -g
+```
+
+This installs agent instructions separately from koi itself. See [agent guidance](/agents) for a copyable project prompt and [llms.txt](/llms.txt).
+
 ## Dependencies
 
 Koi requires **Bash 5.2 or newer**. You can check your current Bash version via:

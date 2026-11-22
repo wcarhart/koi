@@ -11,7 +11,7 @@ test('validator lifecycle and shell transcript render in both themes', async ({
   const stages = diagram.locator('li');
   await expect(stages).toHaveCount(3);
   await expect(stages.nth(0)).toHaveText(
-    'Token parsingRequiredness checksCheck groupsCheck dependenciesDefault resolutionDestination-type-specific checks',
+    'Token parsingRequiredness checksCheck groupsCheck dependenciesDefault resolutionDestination-type checks',
   );
   await expect(stages.nth(1).locator('strong')).toHaveText('Validation');
   await expect(stages.nth(2)).toHaveText('Destination assignmentDispatch');
@@ -86,7 +86,7 @@ test('detailed parsing lifecycle reads left to right in five-plus-four neutral s
     'Destination-type checks',
     'Validation',
     'Destination assignment',
-    'Dispatch, if selected',
+    'Dispatch(if selected)',
   ]);
   await expect(
     diagram.locator('.validation-lifecycle-check, strong'),

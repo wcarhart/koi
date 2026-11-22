@@ -10,9 +10,8 @@ import { docsIndexes } from '../lib/docs-indexes';
 import { getDocs } from '../lib/content';
 interface Props {
   selected: { id: string; title: string; description: string; url: string };
-  canonical?: string;
 }
-const { selected, canonical = selected.url } = Astro.props;
+const { selected } = Astro.props;
 const docs = await getDocs();
 const groups = [...new Set(docs.map((d) => d.group))];
 ---
@@ -20,7 +19,6 @@ const groups = [...new Set(docs.map((d) => d.group))];
 <Base
   title={`${selected.title} — Documentation`}
   description={selected.description}
-  canonical={canonical}
   class="docs-page"
 >
   <div class="docs-mobile-bar">
@@ -149,6 +147,29 @@ const groups = [...new Set(docs.map((d) => d.group))];
       <KoiMark variant="filled" />
     </footer>
   </main>
+  <aside
+    id="ask-koi"
+    class="ask-koi-pane"
+    aria-labelledby="ask-koi-title"
+    inert
+  >
+    <div class="ask-koi-heading">
+      <h2 id="ask-koi-title">Ask koi</h2>
+      <button
+        type="button"
+        class="icon-button"
+        data-close-ask
+        aria-label="Close Ask koi"
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <div class="ask-koi-placeholder">
+      <Icon name="chat" />
+      <h3>Coming soon</h3>
+      <p>Ask koi is under construction. A chat interface is on its way.</p>
+    </div>
+  </aside>
   <Search />
   <script>
     import '../scripts/docs';

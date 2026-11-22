@@ -9,7 +9,7 @@ import InstallBox from '../components/InstallBox.astro';
 import Icon from '../components/Icon.astro';
 import CtaArrow from '../components/CtaArrow.astro';
 import TerminalCommand from '../components/TerminalCommand.astro';
-import { docsRoot, renderMarkdown } from '../lib/content';
+import { copyIcon, docsRoot, renderMarkdown } from '../lib/content';
 const home = matter(readFileSync(path.join(docsRoot, 'pages/home.md'), 'utf8'));
 const panels = await Promise.all(
   home.content
@@ -107,6 +107,51 @@ const helpCommand = readFileSync(
             <a class="button" href="/playground">
               Try it yourself <CtaArrow />
             </a>
+          </div>
+          <div class="agent-skill-install">
+            <span>
+              Using agents? See <a href="/agents">agent guidance</a>
+            </span>
+            <div class="hero-skill-box">
+              <div class="hero-skill-agents">
+                <span role="img" aria-label="Codex" title="Codex">
+                  <Icon name="codex" />
+                </span>
+                <span role="img" aria-label="Claude Code" title="Claude Code">
+                  <Icon name="claude-code" />
+                </span>
+                <span role="img" aria-label="OpenCode" title="OpenCode">
+                  <Icon name="opencode" />
+                </span>
+                <span role="img" aria-label="Cursor" title="Cursor">
+                  <Icon name="cursor" />
+                </span>
+                <span
+                  role="img"
+                  aria-label="GitHub Copilot"
+                  title="GitHub Copilot"
+                >
+                  <Icon name="copilot" />
+                </span>
+                <span role="img" aria-label="Antigravity" title="Antigravity">
+                  <Icon name="antigravity" />
+                </span>
+                <span role="img" aria-label="Goose" title="Goose">
+                  <Icon name="goose" />
+                </span>
+              </div>
+              <div class="install-command code-block">
+                <pre><code>npx skills add wcarhart/koi --skill koi -g</code></pre>
+                <button
+                  type="button"
+                  class="copy-button"
+                  data-copy-code
+                  aria-label="Copy skill install command"
+                >
+                  <Fragment set:html={copyIcon} />
+                </button>
+              </div>
+            </div>
           </div>
           <p class="hero-agent-link">
             LLM? Read <a href="/llms.txt">llms.txt</a>

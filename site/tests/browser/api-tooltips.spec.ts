@@ -92,7 +92,7 @@ test('cards support keyboard navigation, dismissal, and both documentation colum
   await prose.evaluate((element) => (element as HTMLElement).blur());
   await prose.focus();
   await expect(card).toBeVisible();
-  await page.locator('h1').last().click({ force: true });
+  await page.locator('#doc-reference-add_arg h1').click();
   await expect(card).toBeHidden();
   await demo.focus();
   await expect(card).toBeVisible();

@@ -1,3 +1,5 @@
+import { pageMetadata } from '../lib/page-metadata';
+import { setupDocToolbars } from './doc-toolbar';
 import { setupHumanNote } from './human-note';
 
 const sections = [
@@ -10,14 +12,22 @@ const links = [
 const routeMap = new Map(
   sections.map((section) => [section.dataset.url!, section]),
 );
+setupDocToolbars();
 let locked = false;
 let frame = 0;
 function currentSection(): HTMLElement {
   return (
     [...sections]
       .reverse()
-      .find((section) => section.getBoundingClientRect().top <= 170) ||
-    sections[0]
+      .find(
+        (section) =>
+          (
+            section.querySelector('.doc-toolbar-anchor') || section
+          ).getBoundingClientRect().top <=
+          document.querySelector('.docs-mobile-bar')!.getBoundingClientRect()
+            .height +
+            1,
+      ) || sections[0]
   );
 }
 function select(section: HTMLElement) {
@@ -29,6 +39,18 @@ function select(section: HTMLElement) {
       );
     else link.removeAttribute('aria-current');
   });
+  const metadata = pageMetadata(
+    section.dataset.url!,
+    sections.map((section) => ({ url: section.dataset.url! })),
+  );
+  const canonical = document.querySelector<HTMLLinkElement>(
+    'link[rel="canonical"]',
+  );
+  if (canonical) canonical.href = metadata.canonical;
+  const alternate = document.querySelector<HTMLLinkElement>(
+    'link[rel="alternate"][type="text/markdown"]',
+  );
+  if (alternate && metadata.markdownUrl) alternate.href = metadata.markdownUrl;
   document.title = `${section.dataset.title} — Documentation · koi`;
 }
 function savePosition(
@@ -91,7 +113,11 @@ function go(url: URL, push: boolean, savedY?: number) {
   else {
     const header = document.querySelector<HTMLElement>('.docs-mobile-bar')!;
     const headerHeight = header.getBoundingClientRect().height;
-    const inset = target === section ? headerHeight : headerHeight + 24;
+    const toolbarHeight =
+      section.querySelector<HTMLElement>('[data-doc-toolbar]')?.offsetHeight ||
+      0;
+    const inset =
+      target === section ? headerHeight : headerHeight + toolbarHeight + 24;
     window.scrollTo({
       top: target.getBoundingClientRect().top + window.scrollY - inset,
       behavior: 'instant',

@@ -1,22 +1,23 @@
 ---
 import '../styles/global.css';
 import { getDocs } from '../lib/content';
+import { pageMetadata } from '../lib/page-metadata';
 import { apiReferences } from '../lib/api-references';
-const references = apiReferences(await getDocs());
+const docs = await getDocs();
+const references = apiReferences(docs);
 interface Props {
   title: string;
   description: string;
-  canonical?: string;
   noindex?: boolean;
   class?: string;
 }
 const {
   title,
   description,
-  canonical = Astro.url.pathname,
   noindex = false,
   class: className = '',
 } = Astro.props;
+const metadata = pageMetadata(Astro.url.pathname, docs);
 ---
 
 <!doctype html>
@@ -28,11 +29,17 @@ const {
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="canonical" href={new URL(canonical, Astro.site)} />
+    <link rel="canonical" href={metadata.canonical} />
+    {metadata.markdownUrl && (
+      <link rel="alternate" type="text/markdown" href={metadata.markdownUrl} />
+    )}
+    {metadata.describedBy && (
+      <link rel="describedby" href={metadata.describedBy} />
+    )}
     <meta property="og:title" content={`${title} · koi`} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    {noindex && <meta name="robots" content="noindex" />}
+    {(noindex || metadata.noindex) && <meta name="robots" content="noindex" />}
     <script is:inline>
       (() => {
         document.documentElement.classList.add('js');

@@ -1,4 +1,5 @@
 ---
+import DocToolbar from './DocToolbar.astro';
 import DocsShell from './DocsShell.astro';
 import Builder from './Builder.astro';
 import InstallationContent from './InstallationContent.astro';
@@ -12,7 +13,7 @@ const docs = await getDocs();
 const selected = docs.find((d) => d.slug === slug)!;
 ---
 
-<DocsShell selected={selected} canonical="/docs">
+<DocsShell selected={selected}>
   {docs.map((doc, index) => (
     <section
       id={doc.id}
@@ -21,29 +22,7 @@ const selected = docs.find((d) => d.slug === slug)!;
       data-url={doc.url}
       data-title={doc.title}
     >
-      <div class="section-toolbar">
-        <span class="section-number">
-          <span class="section-number-badge">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <span>
-            <span class="section-number-prefix">{doc.group} /</span>{' '}
-            {doc.navTitle ?? doc.title}
-          </span>
-        </span>
-        <div>
-          <button
-            type="button"
-            class="markdown-copy"
-            data-copy-markdown={`${doc.url}.md`}
-          >
-            Copy for LLM
-          </button>
-          <a href={`${doc.url}.md`}>
-            View as Markdown <span aria-hidden="true">↗</span>
-          </a>
-        </div>
-      </div>
+      <DocToolbar doc={doc} index={index} />
       <div class="doc-grid">
         <div class="doc-prose prose">
           <h1>{doc.title}</h1>

@@ -350,6 +350,10 @@ export function validateLinks(docs: Doc[]): void {
     '/playground',
     '/agents',
     '/llms.txt',
+    '/llms-full.txt',
+    '/skill.md',
+    '/agents.md',
+    '/install.md',
     ...docsIndexes.map((index) => index.url),
   ]);
   for (const doc of docs) {

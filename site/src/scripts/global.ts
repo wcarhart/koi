@@ -66,9 +66,11 @@ document.addEventListener('click', async (event) => {
     }
     await navigator.clipboard.writeText(text);
     clearTimeout(timers.get(button));
-    button.innerHTML = button.hasAttribute('data-copy-markdown')
-      ? `${check}<span>Copied</span>`
-      : check;
+    button.innerHTML =
+      button.hasAttribute('data-copy-markdown') &&
+      !button.classList.contains('doc-action')
+        ? `${check}<span>Copied</span>`
+        : check;
     button.dataset.copyState = 'success';
     announce('Copied to clipboard.');
     timers.set(

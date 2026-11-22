@@ -188,13 +188,13 @@ test('sample and help remain pinned until the argument card reaches the top', as
         .poll(() =>
           demo.evaluate((node) => Math.round(node.getBoundingClientRect().top)),
         )
-        .toBe(24);
+        .toBe(96);
     }
     await page.evaluate(() =>
       window.scrollBy({ top: 160, behavior: 'instant' }),
     );
     await expect
       .poll(() => demo.evaluate((node) => node.getBoundingClientRect().top))
-      .toBeLessThan(24);
+      .toBeLessThan(96);
   }
 });
