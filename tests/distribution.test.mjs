@@ -20,7 +20,7 @@ import {
   sha256,
   updateFormula,
 } from '../scripts/release.mjs';
-import { exec, mkdir, releaseFixture, root } from './distribution-fixture.mjs';
+import { exec, mkdir, releaseFixture, root } from './fixtures/distribution.mjs';
 
 async function result(command, args, options) {
   try {

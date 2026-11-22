@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { exec, mkdir, releaseFixture, root } from './distribution-fixture.mjs';
+import { exec, mkdir, releaseFixture, root } from './fixtures/distribution.mjs';
 import { sha256, updateFormula } from '../scripts/release.mjs';
 
 async function run(command, args, env, cwd) {

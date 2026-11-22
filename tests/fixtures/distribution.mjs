@@ -4,9 +4,9 @@ import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { build, sha256 } from '../scripts/release.mjs';
+import { build, sha256 } from '../../scripts/release.mjs';
 
-export const root = fileURLToPath(new URL('../', import.meta.url));
+export const root = fileURLToPath(new URL('../../', import.meta.url));
 export const exec = promisify(execFile);
 
 // All release discovery and downloads stay on a temporary local HTTP server

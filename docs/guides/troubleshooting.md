@@ -57,3 +57,4 @@ layout: article
 - TODO: Explain strict surplus positionals and invocation-local `koi::config ignore-unknown-positionals true`, including required arguments and unknown command/option exclusions.
 - TODO: "How can I turn off automatic -h/--help?" --&gt; you can't
 - TODO: limitation of koi on `--option -h` - you can't ever pass a prefixed value to an option
+- TODO: "Can I use another function to register common arguments?" Yes, but need to consider when the registration block is opened and closed
