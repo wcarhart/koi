@@ -18,7 +18,7 @@ In the context of koi, **a [destination](#destination) that holds multiple value
 
 ## Author error
 
-**An error in the script's use of koi,** such as an invalid argument declaration, an incompatible [destination](#destination), or a missing [handler](#handler). Author errors cannot be suppressed or customized, unlike [user errors](#user-error). See [errors](/docs/concepts/errors).
+**An error in the script's use of koi,** such as an invalid argument declaration, an incompatible [destination](#destination), or a missing [handler](#handler). Author errors cannot be suppressed, and, unlike [user errors](#user-error), author error prefixes cannot be customized. You _can_ configure whether or not author errors include a source location via [koi::config author-error-location false](/docs/reference/config). See [errors](/docs/concepts/errors).
 
 ## Branch
 

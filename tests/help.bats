@@ -157,15 +157,15 @@ run_help() {
         "
         [ "$status" -eq 2 ]
         if [[ $declaration == 'koi::config description A; koi::config description B' ]]; then
-            [ "$stderr" = 'koi: koi::config: repeated config key: description' ]
+            [ "${stderr%%$'\n'*}" = 'koi: koi::config: repeated config key: description' ]
         else
-            [ "$stderr" = 'koi: koi::config: KEY and nonempty VALUE required' ]
+            [ "${stderr%%$'\n'*}" = 'koi: koi::config: KEY and nonempty VALUE required' ]
         fi
         [[ "$output" != *BAD* ]]
     done
     run_help 'koi::config description Root; koi::run --help'
     [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: koi::config: repeated config key: description' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::config: repeated config key: description' ]
 }
 
 @test "direct descriptions are rebuilt and routed descriptions take precedence" {

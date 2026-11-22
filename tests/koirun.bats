@@ -183,7 +183,7 @@ Options:
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::run: missing handler 'absent_z' for command 'z'" ]
+        [ "${stderr%%$'\n'*}" = "koi: koi::run: missing handler 'absent_z' for command 'z'" ]
     done
 }
 
@@ -296,7 +296,7 @@ Options:
         ' "$arg"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [[ "$stderr" == *'koi::run: call only once per script, koi::run has already been called' ]]
+        [[ "${stderr%%$'\n'*}" == *'koi::run: call only once per script, koi::run has already been called' ]]
     done
 }
 
@@ -336,7 +336,7 @@ Options:
     ' -m safe
     [ "$status" -eq 0 ]
     [ "$output" = safe ]
-    [ "$stderr" = 'koi: koi::parse: must be called inside a function, use koi::run at top level' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::parse: must be called inside a function, use koi::run at top level' ]
 }
 
 @test "root help and errors return without terminating the sourcing shell" {

@@ -17,7 +17,7 @@ scenario() {
 
 @test "boolean configuration validates exact values and permits both values at script scope" {
     local key value
-    for key in help-subcommand verbose-help help-hints help-on-unknown-commands use-single-pipe-for-or-groups ignore-unknown-positionals error-on-scalar-duplicates; do
+    for key in author-error-location help-subcommand verbose-help help-hints help-on-unknown-commands use-single-pipe-for-or-groups ignore-unknown-positionals error-on-scalar-duplicates; do
         for value in true false; do
             scenario "koi::config $key $value"
             [ "$status" -eq 0 ]
@@ -26,7 +26,7 @@ scenario() {
         for value in TRUE False 1 0 yes no; do
             scenario "koi::config $key $value"
             [ "$status" -eq 2 ]
-            [ "$stderr" = "koi: koi::config: $key must be true or false" ]
+            [ "${stderr%%$'\n'*}" = "koi: koi::config: $key must be true or false" ]
         done
     done
 }
@@ -55,6 +55,7 @@ scenario() {
     done <<'KEYS'
 name app
 help-width 80
+author-error-location false
 help-subcommand true
 verbose-help false
 help-hints true
@@ -229,7 +230,7 @@ KEYS
         scenario "$declarations; koi::run --help"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: koi::run: verbose-help requires help-subcommand true' ]
+        [ "${stderr%%$'\n'*}" = 'koi: koi::run: verbose-help requires help-subcommand true' ]
     done
 }
 

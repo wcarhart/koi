@@ -100,7 +100,8 @@ fi
 # consumed with the spec, repeated keys invalidate the block.
 # Usage: koi::config KEY VALUE
 #   KEY    name, help-width, help-subcommand, verbose-help, help-hints,
-#          missing-command-message, help-on-unknown-commands (script only), or
+#          missing-command-message, help-on-unknown-commands,
+#          author-error-location (script only), or
 #          description, epilog, use-single-pipe-for-or-groups, ignore-unknown-positionals,
 #          error-on-scalar-duplicates (script or function), or missing-command (function only)
 #   VALUE  nonempty text, positive help-width (at most nine digits), true/false,
@@ -142,7 +143,7 @@ koi::config() {
                 return 2
             fi
             ;;
-        help-subcommand|verbose-help|help-hints|help-on-unknown-commands)
+        help-subcommand|verbose-help|help-hints|help-on-unknown-commands|author-error-location)
             __koi_config_boolean=1
             ;;
         use-single-pipe-for-or-groups|ignore-unknown-positionals|error-on-scalar-duplicates)
@@ -167,7 +168,7 @@ koi::config() {
 
     local __koi_config_storage="${__koi_buffer}_meta"
     case $1 in
-        name|help-width)
+        name|help-width|author-error-location)
             __koi_config_storage=__koi_config
             ;;
         description)
@@ -1345,10 +1346,49 @@ koi::internal::parse_spec() {
 # Usage: koi::internal::author_error API MESSAGE
 #   API      public API responsible for the failure
 #   MESSAGE  literal diagnostic text
-# Writes to stderr and returns 2
+# Writes to stderr with an application location by default and returns 2
 koi::internal::author_error() {
     printf 'koi: %s: %s\n' "$1" "$2" >&2
+    if [[ ${__koi_config[author-error-location]-true} == true ]]; then
+        koi::internal::author_error_location
+    fi
     return 2
+}
+
+# Print the application call site of the nearest active public koi
+# API. Writes one location to stderr when Bash provides a source
+# file and positive line.
+# Usage: koi::internal::author_error_location
+koi::internal::author_error_location() {
+    local __koi_location_frame __koi_location_file __koi_location_line __koi_location_function
+    for ((__koi_location_frame=1; __koi_location_frame<${#FUNCNAME[@]}; __koi_location_frame++)); do
+        case ${FUNCNAME[__koi_location_frame]} in
+            koi::config|koi::add_command|koi::add_arg|koi::add_validator|koi::add_group|koi::add_dependency|koi::parse|koi::run)
+                __koi_location_file=${BASH_SOURCE[__koi_location_frame+1]-}
+                __koi_location_line=${BASH_LINENO[__koi_location_frame]-0}
+                __koi_location_function=${FUNCNAME[__koi_location_frame+1]-}
+                if [[ -n $__koi_location_file ]] && (( __koi_location_line > 0 )); then
+                    printf '  at %s:%s' "$__koi_location_file" "$__koi_location_line" >&2
+                    case $__koi_location_function in
+                        ''|source)
+                            ;;
+                        main)
+                            # Bash's script entry has no calling line while a function named main does
+                            if (( ${BASH_LINENO[__koi_location_frame+1]-0} > 0 )); then
+                                printf ' (%s)' "$__koi_location_function" >&2
+                            fi
+                            ;;
+                        *)
+                            printf ' (%s)' "$__koi_location_function" >&2
+                            ;;
+                    esac
+                    printf '\n' >&2
+                fi
+                return 0
+                ;;
+        esac
+    done
+    return 0
 }
 
 # Report a script-user error with the configured application name

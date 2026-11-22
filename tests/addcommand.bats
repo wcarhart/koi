@@ -72,7 +72,7 @@ reject_registration() {
     run --separate-stderr reject_registration
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_command: command name required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: command name required' ]
 }
 
 @test "invalid command names fail without registration" {
@@ -80,7 +80,7 @@ reject_registration() {
         run --separate-stderr reject_registration "$name" -f handler -d Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::add_command: invalid command name: '$name'" ]
+        [ "${stderr%%$'\n'*}" = "koi: koi::add_command: invalid command name: '$name'" ]
     done
 }
 
@@ -89,22 +89,22 @@ reject_registration() {
         run --separate-stderr reject_registration deploy -f "$handler" -d Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: koi::add_command: handler identifier required' ]
+        [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: handler identifier required' ]
     done
     run --separate-stderr reject_registration deploy -d Description
     [ "$status" -eq 2 ]
-    [ "$stderr" = 'koi: koi::add_command: handler identifier required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: handler identifier required' ]
 }
 
 @test "missing or empty description fails without registration" {
     run --separate-stderr reject_registration deploy -f handler
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_command: nonempty description required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: nonempty description required' ]
     run --separate-stderr reject_registration deploy -f handler -d ''
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_command: nonempty description required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: nonempty description required' ]
 }
 
 @test "options missing a value fail without registration" {
@@ -112,13 +112,13 @@ reject_registration() {
         run --separate-stderr reject_registration deploy "$option"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: koi::add_command: invalid --function' ]
+        [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: invalid --function' ]
     done
     for option in -d --description; do
         run --separate-stderr reject_registration deploy -f handler "$option"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = 'koi: koi::add_command: invalid --description' ]
+        [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: invalid --description' ]
     done
 }
 
@@ -128,7 +128,7 @@ reject_registration() {
             run --separate-stderr reject_registration deploy "$first" handler "$second" other -d Description
             [ "$status" -eq 2 ]
             [ -z "$output" ]
-            [ "$stderr" = 'koi: koi::add_command: invalid --function' ]
+            [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: invalid --function' ]
         done
     done
 }
@@ -139,7 +139,7 @@ reject_registration() {
             run --separate-stderr reject_registration deploy -f handler "$first" Description "$second" Other
             [ "$status" -eq 2 ]
             [ -z "$output" ]
-            [ "$stderr" = 'koi: koi::add_command: invalid --description' ]
+            [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: invalid --description' ]
         done
     done
 }
@@ -149,7 +149,7 @@ reject_registration() {
     run --separate-stderr reject_registration deploy -f replacement -d Replacement
     [ "$status" -eq 2 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_command: duplicate command: deploy' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: duplicate command: deploy' ]
 }
 
 @test "unknown options including reserved help flags are rejected" {
@@ -157,7 +157,7 @@ reject_registration() {
         run --separate-stderr reject_registration deploy -f handler "$option" Description
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::add_command: unknown registration parameter: $option" ]
+        [ "${stderr%%$'\n'*}" = "koi: koi::add_command: unknown registration parameter: $option" ]
     done
 }
 
@@ -173,7 +173,7 @@ reject_registration() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_command: command name required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_command: command name required' ]
 }
 
 @test "handler names accept namespaces and single colons with either declaration alias" {

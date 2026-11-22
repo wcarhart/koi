@@ -190,9 +190,9 @@ scenario() {
         ' yarf "$callback_status"
         [ "$status" -eq 2 ]
         if [ "$callback_status" -eq 1 ]; then
-            [[ "$stderr" == "koi: koi::parse: invalid default for argument 'count': reason" ]]
+            [[ "${stderr%%$'\n'*}" == "koi: koi::parse: invalid default for argument 'count': reason" ]]
         else
-            [[ "$stderr" == *"koi: koi::parse: argument 'count': callback 'predicate' failed with status $callback_status" ]]
+            [[ "${stderr%%$'\n'*}" == *"koi: koi::parse: argument 'count': callback 'predicate' failed with status $callback_status" ]]
         fi
         [[ "$stderr" != *secret* ]]
     done
@@ -246,7 +246,7 @@ scenario() {
             main "$@"
         ' yarf $request
         [ "$status" -eq 2 ]
-        [[ "$stderr" == *"koi::add_validator: argument 'count': callback 'ns::missing' is not a Bash function" ]]
+        [[ "${stderr%%$'\n'*}" == *"koi::add_validator: argument 'count': callback 'ns::missing' is not a Bash function" ]]
     done
 }
 
@@ -375,7 +375,7 @@ scenario() {
         if [ "$callback_status" -eq 1 ]; then
             [ "$stderr" = "yarf: invalid argument 'value': allowed choices only" ]
         else
-            [[ "$stderr" == *"koi::parse: argument 'value': callback 'predicate' failed with status $callback_status" ]]
+            [[ "${stderr%%$'\n'*}" == *"koi::parse: argument 'value': callback 'predicate' failed with status $callback_status" ]]
         fi
         [[ "$stderr" != *private-value* ]]
     done

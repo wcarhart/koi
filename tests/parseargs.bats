@@ -297,7 +297,7 @@ parse_without_mutation() {
 }
 
 @test "readonly destinations fail before earlier destinations are assigned" {
-    local name=original result
+    local name=original result diagnostic
     local -r quiet=original
     if koi::parse -n Alice -q > "$BATS_TEST_TMPDIR/out" 2> "$BATS_TEST_TMPDIR/err"; then
         return 1
@@ -307,7 +307,8 @@ parse_without_mutation() {
     [ "$result" -eq 2 ]
     [ "$koi_status" -eq 2 ]
     [ ! -s "$BATS_TEST_TMPDIR/out" ]
-    [ "$(cat "$BATS_TEST_TMPDIR/err")" = "koi: koi::parse: incompatible destination: 'quiet'" ]
+    IFS= read -r diagnostic < "$BATS_TEST_TMPDIR/err"
+    [ "$diagnostic" = "koi: koi::parse: incompatible destination: 'quiet'" ]
     [ "$name" = original ]
     [ "$quiet" = original ]
 }
@@ -333,7 +334,7 @@ parse_without_mutation() {
         ' bash "$declaration"
         [ "$status" -eq 2 ]
         [ -z "$output" ]
-        [ "$stderr" = "koi: koi::parse: incompatible destination: 'second'" ]
+        [ "${stderr%%$'\n'*}" = "koi: koi::parse: incompatible destination: 'second'" ]
     done
 }
 

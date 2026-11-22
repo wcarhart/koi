@@ -299,7 +299,7 @@ setup() {
             demo "$1"
         ' test "$order"
         [ "$status" -eq 2 ]
-        [[ "$stderr" == 'koi: koi::add_dependency:'*'same XOR group' ]]
+        [[ "${stderr%%$'\n'*}" == 'koi: koi::add_dependency:'*'same XOR group' ]]
     done
 }
 
@@ -424,7 +424,7 @@ koi: 'a' requires 'c'" ]
         demo
     '
     [ "$status" -eq 2 ]
-    [[ "$stderr" == 'koi: koi::config: repeated config key: use-single-pipe-for-or-groups' ]]
+    [[ "${stderr%%$'\n'*}" == 'koi: koi::config: repeated config key: use-single-pipe-for-or-groups' ]]
     run bash -c '
         source "$KOI_LIBRARY"
         demo() {

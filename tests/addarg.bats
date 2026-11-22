@@ -312,7 +312,7 @@ assert_invalid() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_arg: destination required' ]
 }
 
 @test "execution continues without errexit while each declaration failure reports immediately" {
@@ -352,7 +352,7 @@ assert_invalid() {
     '
     [ "$status" -eq 0 ]
     [ "$output" = continued ]
-    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_arg: destination required' ]
 }
 
 @test "long spelling reservations use the shared list" {

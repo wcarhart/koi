@@ -186,7 +186,7 @@ setup() {
     '
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ "$stderr" = 'koi: koi::add_arg: destination required' ]
+    [ "${stderr%%$'\n'*}" = 'koi: koi::add_arg: destination required' ]
 }
 
 @test "runtime defines only canonical public APIs and namespaced internal functions" {

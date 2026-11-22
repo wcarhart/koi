@@ -104,13 +104,13 @@
     "group": "Reference"
   },
   {
-    "file": "reference/parse.md",
-    "slug": "reference/parse",
+    "file": "reference/config.md",
+    "slug": "reference/config",
     "group": "Reference"
   },
   {
-    "file": "reference/config.md",
-    "slug": "reference/config",
+    "file": "reference/parse.md",
+    "slug": "reference/parse",
     "group": "Reference"
   },
   {

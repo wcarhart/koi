@@ -20,6 +20,7 @@ koi::config KEY VALUE
 | `description` | string | ∅ | Script or function | Root help description at script scope, direct-call help description inside a function. |
 | `epilog` | string | ∅ | Script or function | Closing text below the current context's help menu. |
 | `help-width` | integer | `100` | Script only | The word-wrap width for all help menus. |
+| `author-error-location` | boolean | `true` | Script only | Append an application source location to [author errors](/docs/reference/glossary#author-error) throughout the script when available. |
 | `help-subcommand` | boolean | `true` | Script only | Support the builtin `help` subcommand where applicable throughout the routed command tree. Does not disable `-h`/`--help`. |
 | `verbose-help` | boolean | `false` | Script only | Support root `help -v` / `help --verbose`. Requires `help-subcommand true`. |
 | `help-hints` | boolean | `false` | Script only | Append available hints to ordinary top command-level help. |
@@ -34,7 +35,7 @@ Both `KEY` and `VALUE` are required. Supply one setting per call and quote text 
 
 ## Scope and lifecycle
 
-Script declaration scope does not necessarily imply script-wide effect, only at what level you can modify that policy via `koi::config`. For example, script-level duplicate checking and surplus-positional handling apply only to root parsing. Functions declare their own policies. Script identity and help width persist across direct calls and routing.
+Script declaration scope does not necessarily imply script-wide effect, only at what level you can modify that policy via `koi::config`. For example, script-level duplicate checking and surplus-positional handling apply only to root parsing. Functions declare their own policies. Script identity, help width, and author-error locations persist across direct calls and routing.
 
 Function settings are consumed and cleared with that invocation's [spec](/docs/concepts/lifecycle), including after help or errors, same as with arguments in the spec. Each call rebuilds its settings. A function may declare configuration without declaring arguments. Configuration follows the same uninterrupted registration rules as argument declarations (see [completing a function's registration block](/docs/concepts/lifecycle#completing-a-functions-registration-block)).
 
@@ -106,6 +107,8 @@ deploy() {
 ## Error prefixes
 
 [User errors](/docs/reference/glossary#user-error) use the configured `name` across root parsing, routed commands, and direct function calls, e.g. `koi::config name my-script-name`. This allows you to brand your script or CLI so you don't need to expose that it's koi-powered. Without a provided `name`, user errors use the prefix `koi` and help uses the script's basename. [Author errors](/docs/reference/glossary#author-error) cannot be customized in this fashion. See [errors](/docs/concepts/errors).
+
+Author errors include a source location by default when Bash provides one. Use `koi::config author-error-location false` at script scope to keep author errors. This setting does not change user errors.
 
 For example, without a `koi::config name` statement:
 

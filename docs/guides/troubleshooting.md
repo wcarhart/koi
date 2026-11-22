@@ -53,7 +53,7 @@ layout: article
 ## Misc
 
 - koi not found error - did you do `source ./koi` or `source koi` incorrectly based on how you installed koi?
-- TODO: Explain user errors (`NAME: MESSAGE`, default name `koi`) and author errors (`koi: API: MESSAGE`). `koi::config name` changes only user-error branding and help naming.
+- TODO: Explain user errors (`NAME: MESSAGE`, default name `koi`) and author errors (`koi: API: MESSAGE`, followed by an application source location when available). `koi::config name` changes only user-error branding and help naming. Author locations default to enabled; `koi::config author-error-location false` at script scope omits them. Distinguish immediate declaration locations from deferred parse/run detection locations.
 - TODO: Explain strict surplus positionals and invocation-local `koi::config ignore-unknown-positionals true`, including required arguments and unknown command/option exclusions.
 - TODO: "How can I turn off automatic -h/--help?" --&gt; you can't
 - TODO: limitation of koi on `--option -h` - you can't ever pass a prefixed value to an option
