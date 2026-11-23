@@ -139,11 +139,17 @@ Root dispatch through an unconditional `koi::run "$@"` preserves normal `errexit
 
 Koi uses returns for routine help and errors, so it can be used in sourced scripts without exiting the caller's shell. Your own `exit` calls and applicable shell options still affect that shell.
 
-> [!NOTE] What changes if I run koi with `set -e`?
+### What changes if I run koi with `set -e`?
+
+Koi works with both `set -e` and `set +e`. When `errexit` applies, an invalid argument declaration can stop execution mid-registration rather than waiting for parsing to reject the block. Failures in business logic can also stop execution immediately. Conditional calls and children dispatched by `koi::parse` suppress `errexit`, so explicit failure handling is still needed.
+
+With a bare, unguarded parse, `set -e` can exit on the parser's `1` for successful help. That turns a successful help request into a failed script, and conditional calls can let business logic run anyway. Always use the guard regardless of shell options.
+
+> [!NOTE] Did you know?
 >
-> Koi works with both `set -e` and `set +e`. When `errexit` applies, an invalid argument declaration can stop execution mid-registration rather than waiting for parsing to reject the block. Failures in business logic can also stop execution immediately. Conditional calls and children dispatched by `koi::parse` suppress `errexit`, so explicit failure handling is still needed.
-> 
-> With a bare, unguarded parse, `set -e` can exit on the parser's `1` for successful help. That turns a successful help request into a failed script, and conditional calls can let business logic run anyway. Always use the guard regardless of shell options.
+> Koi v1 actually [enabled `set -e` itself](https://github.com/wcarhart/koi/blob/8d030a8a43b71072c7ff3e932cf260aa7b7e00da/koi#L2), and required `errexit` to be set in order for control flow to function properly. This made it much simpler for invalid argument registration, parsing errors, and help rendering to stop execution. However, it imposed `set -e` on every script using koi, and conditional calling contexts could still suppress it and cause issues.
+>
+> In Koi v2, the choice of using `errexit` is up to you. Modern Koi works both with and without it set.
 
 ## Validation
 
