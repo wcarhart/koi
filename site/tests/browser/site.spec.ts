@@ -559,7 +559,27 @@ test('shared header and hero use the requested branding and centered theme icons
 }) => {
   await page.goto('/');
   await expect(page.locator('.brand')).toHaveText('');
-  await expect(page.locator('.brand img')).toBeVisible();
+  const brandMark = page.locator('.brand .koi-mark');
+  const brandImage = brandMark.locator('img');
+  const brandSize = page.viewportSize()!.width <= 650 ? '29px' : '36px';
+  await expect(brandImage).toHaveCount(1);
+  await expect(brandImage).toHaveAttribute('src', '/brand/koi-original.svg');
+  await expect(brandImage).toHaveAttribute('width', '36');
+  await expect(brandImage).toHaveAttribute('height', '36');
+  await expect(brandImage).toHaveAttribute('alt', '');
+  await expect(brandMark).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('.brand')).toHaveAccessibleName('koi home');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(
+      (value) => (document.documentElement.dataset.theme = value),
+      theme,
+    );
+    await expect(brandImage).toBeVisible();
+    await expect(brandMark).toHaveCSS('width', brandSize);
+    await expect(brandMark).toHaveCSS('height', brandSize);
+    await expect(brandImage).toHaveCSS('width', brandSize);
+    await expect(brandImage).toHaveCSS('height', brandSize);
+  }
   await expect(page.locator('.hero-kicker')).toHaveText(
     /Bash 5\.2\+\s*MIT licensed/,
   );
@@ -786,9 +806,12 @@ test('homepage sections, footer, and duplicated install boxes remain accessible'
       (value) => (document.documentElement.dataset.theme = value),
       theme,
     );
-    await expect(
-      page.locator(`.footer-brand .koi-mark-${theme}`),
-    ).toBeVisible();
+    const footerImage = page.locator('.footer-brand img');
+    await expect(footerImage).toHaveCount(1);
+    await expect(footerImage).toHaveAttribute('src', '/brand/koi-original.svg');
+    await expect(footerImage).toBeVisible();
+    await expect(footerImage).toHaveCSS('width', '28px');
+    await expect(footerImage).toHaveCSS('height', '28px');
     expect(
       await page.evaluate(
         () =>

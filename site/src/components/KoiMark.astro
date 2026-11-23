@@ -1,24 +1,45 @@
 ---
 interface Props {
-  variant: 'outline' | 'filled' | 'grid';
+  variant: 'original' | 'outline' | 'filled' | 'grid';
   class?: string;
+  width?: number;
+  height?: number;
 }
-const { variant, class: className = '' } = Astro.props;
+const { variant, class: className = '', width, height } = Astro.props;
 ---
 
-<span class:list={['koi-mark', className]} aria-hidden="true">
-  <img
-    class="koi-mark-light"
-    src={`/brand/koi-${variant}.svg`}
-    width="20"
-    height="20"
-    alt=""
-  />
-  <img
-    class="koi-mark-dark"
-    src={`/brand/koi-${variant}-dark.svg`}
-    width="20"
-    height="20"
-    alt=""
-  />
+<span
+  class:list={['koi-mark', className]}
+  style={{
+    '--koi-mark-width': width === undefined ? undefined : `${width}px`,
+    '--koi-mark-height': height === undefined ? undefined : `${height}px`,
+  }}
+  aria-hidden="true"
+>
+  {variant === 'original' ? (
+    <img
+      class="koi-mark-original"
+      src="/brand/koi-original.svg"
+      width={width ?? 20}
+      height={height ?? 20}
+      alt=""
+    />
+  ) : (
+    <>
+      <img
+        class="koi-mark-light"
+        src={`/brand/koi-${variant}.svg`}
+        width={width ?? 20}
+        height={height ?? 20}
+        alt=""
+      />
+      <img
+        class="koi-mark-dark"
+        src={`/brand/koi-${variant}-dark.svg`}
+        width={width ?? 20}
+        height={height ?? 20}
+        alt=""
+      />
+    </>
+  )}
 </span>

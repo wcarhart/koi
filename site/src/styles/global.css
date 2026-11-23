@@ -1424,7 +1424,7 @@ kbd {
     font-size: 29px;
     gap: 4px;
   }
-  .header-inner .brand img {
+  .header-inner .brand .koi-mark {
     width: 29px;
     height: 29px;
   }
@@ -2083,8 +2083,8 @@ html:not(.js) [data-open-menu] {
 }
 .koi-mark {
   display: inline-block;
-  width: 1.3em;
-  height: 1.3em;
+  width: var(--koi-mark-width, 1.3em);
+  height: var(--koi-mark-height, 1.3em);
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -3152,6 +3152,10 @@ body:has(.doc-action-menu:not([hidden])) .doc-control > .doc-tooltip {
   padding: 60px 28px;
   text-align: center;
   color: var(--muted);
+}
+.ask-koi-placeholder .koi-mark {
+  width: 64px;
+  height: 64px;
 }
 .ask-koi-placeholder h3 {
   color: var(--ink);
