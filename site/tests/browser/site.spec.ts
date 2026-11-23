@@ -1007,11 +1007,11 @@ test('installation routes share content and tabs with a standalone-only bottom n
     await expect(content.locator('h2')).toHaveText([
       'Quick install',
       'Agent skill',
-      'Dependencies',
       'Homebrew and mise',
       'Manual install',
       'GitHub download',
       'Clone',
+      'Dependencies',
       'Older Bash versions',
     ]);
     await expect(content).not.toContainText('GET UP AND RUNNING');
@@ -1059,22 +1059,43 @@ test('installation routes share content and tabs with a standalone-only bottom n
       name: 'Next: Quickstart',
       exact: true,
     });
-    await expect(next).toHaveCount(route === '/install' ? 2 : 1);
+    await expect(next).toHaveCount(route === '/install' ? 6 : 5);
     for (const button of await next.all()) {
       await expect(button).toHaveAttribute('href', '/docs/quickstart');
       await expect(button.locator('.cta-arrow')).toHaveCount(1);
     }
+    expect(
+      await content.locator('.install-next').evaluateAll((buttons) =>
+        buttons.map((button) => {
+          let heading = button.previousElementSibling;
+          while (heading && heading.tagName !== 'H2') {
+            heading = heading.previousElementSibling;
+          }
+          return {
+            section: heading?.textContent,
+            next: button.nextElementSibling?.tagName ?? null,
+          };
+        }),
+      ),
+    ).toEqual([
+      { section: 'Quick install', next: 'H2' },
+      { section: 'Homebrew and mise', next: 'H2' },
+      { section: 'Manual install', next: 'H2' },
+      { section: 'GitHub download', next: 'H2' },
+      { section: 'Clone', next: 'H2' },
+      ...(route === '/install'
+        ? [{ section: 'Older Bash versions', next: null }]
+        : []),
+    ]);
     const quickBounds = (await quick.boundingBox())!;
     const nextBounds = (await next.first().boundingBox())!;
-    const dependencies = (await content
-      .locator('#doc-install-dependencies')
+    const agentSkill = (await content
+      .locator('#doc-install-agent-skill')
       .boundingBox())!;
     expect(nextBounds.y).toBeGreaterThanOrEqual(
       quickBounds.y + quickBounds.height,
     );
-    expect(nextBounds.y + nextBounds.height).toBeLessThanOrEqual(
-      dependencies.y,
-    );
+    expect(nextBounds.y + nextBounds.height).toBeLessThanOrEqual(agentSkill.y);
     expect(nextBounds.x + nextBounds.width).toBeCloseTo(
       quickBounds.x + quickBounds.width,
       0,

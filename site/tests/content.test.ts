@@ -152,11 +152,12 @@ test('installation exports include every tab command and the shared installation
     [
       'Quick install',
       'Agent skill',
-      'Dependencies',
       'Homebrew and mise',
       'Manual install',
       'GitHub download',
       'Clone',
+      'Dependencies',
+      'What if I use Zsh or Fish?',
       'Older Bash versions',
     ],
   );

@@ -226,6 +226,9 @@ test.describe('stable documentation links', () => {
       page.getByRole('link', { name: /^Read the docs/ }),
     ).toHaveAttribute('href', base);
     await page.goto('/install');
+    await expect(
+      page.getByRole('link', { name: /^Next: Quickstart/ }),
+    ).toHaveCount(6);
     for (const link of await page
       .getByRole('link', { name: /^Next: Quickstart/ })
       .all())
@@ -238,15 +241,51 @@ test.describe('stable documentation links', () => {
     if (process.env.KOI_TEST_VERSIONS) {
       await expect(page.locator('main')).toContainText('stableinstallprose');
       expect(markdown).toContain('stableinstallprose');
-      await page.goto('/docs/v2.0.4/install');
-      await expect(
-        page.getByRole('link', { name: /^Next: Quickstart/ }),
-      ).toHaveAttribute('href', '/docs/v2.0.4/quickstart');
+      await expect(page.locator('main > .install-next:last-child')).toHaveCount(
+        1,
+      );
+      expect(
+        await page
+          .locator('main > .install-next:last-child')
+          .evaluate((button) => button.previousElementSibling?.textContent),
+      ).toBe('stableinstallprose');
     }
-    await page.goto('/docs/install');
-    await expect(
-      page.getByRole('link', { name: /^Next: Quickstart/ }),
-    ).toHaveAttribute('href', '/docs/quickstart');
+    for (const prefix of [
+      ...(process.env.KOI_TEST_VERSIONS ? ['/docs/v2.0.4'] : []),
+      '/docs',
+    ]) {
+      await page.goto(`${prefix}/install`);
+      const content = page.locator('#doc-install .doc-prose');
+      const next = content.getByRole('link', { name: /^Next: Quickstart/ });
+      await expect(next).toHaveCount(5);
+      for (const link of await next.all()) {
+        await expect(link).toHaveAttribute('href', `${prefix}/quickstart`);
+        await expect(link.locator('.cta-arrow')).toHaveCount(1);
+      }
+      expect(
+        await content.locator('.install-next').evaluateAll((buttons) =>
+          buttons.map((button) => {
+            let heading = button.previousElementSibling;
+            while (heading && heading.tagName !== 'H2') {
+              heading = heading.previousElementSibling;
+            }
+            return {
+              section: heading?.textContent,
+              next: button.nextElementSibling?.tagName,
+            };
+          }),
+        ),
+      ).toEqual([
+        { section: 'Quick install', next: 'H2' },
+        { section: 'Homebrew and mise', next: 'H2' },
+        { section: 'Manual install', next: 'H2' },
+        { section: 'GitHub download', next: 'H2' },
+        { section: 'Clone', next: 'H2' },
+      ]);
+      if (prefix === '/docs/v2.0.4') {
+        await expect(content.locator('h2').first()).toHaveText('Dependencies');
+      }
+    }
   });
 
   test('stable aliases redirect HTML, Markdown, and aggregates without caching or missing-page fallback', async ({

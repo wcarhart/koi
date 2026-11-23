@@ -26,36 +26,6 @@ npx skills add wcarhart/koi --skill koi -g
 
 This installs agent instructions separately from koi itself. See [agent guidance](/agents) for a copyable project prompt and [llms.txt](/llms.txt).
 
-## Dependencies
-
-Koi requires **Bash 5.2 or newer**. You can check your current Bash version via:
-
-```bash
-bash --version
-```
-
-Koi only works in Bash, not Zsh, Fish, or any other shells. On macOS, the system `/bin/bash` is usually pinned to Bash 3.2 due to [GPLv3 license concerns](https://news.ycombinator.com/item?id=38132066), which is too outdated to use with koi. You can upgrade your Bash version to 5.2+ on macOS via Homebrew:
-
-```bash
-brew install bash
-echo '/opt/homebrew/bin/bash' | sudo tee -a /etc/shells
-chsh -s '/opt/homebrew/bin/bash'
-# then open a new terminal
-```
-
-If you don't have Bash installed, you can install it via:
-
-<!-- koi:install bash -->
-
-Koi supports running with `errexit` and `nounset` enabled, but neither is required. You can run koi with any of `set -e`, `set +e`, `set -u`, `set +u`. For more details, see [control flow](/docs/concepts/control-flow).
-
-> [!NOTE] Bash POSIX mode
-> Koi cannot use Bash 5.2 in [POSIX mode](https://www.gnu.org/software/bash/manual/html_node/Bash-POSIX-Mode.html). POSIX mode in Bash 5.2 restricts the use of `::` in function names, so the namespaced function convention is not supported. Koi uses namespaced functions (e.g. `koi::parse`), which will fail in Bash 5.2 POSIX mode.
->
-> If you're using Bash 5.2, don't run your shell via `bash --posix` or use `set -o posix` in your script if you'd like to use koi.
->
-> Bash 5.3 [removed the POSIX mode restriction](https://lists.gnu.org/archive/html/bug-bash/2025-07/msg00005.html) on namespaced functions, so `::` is supported in function names. If you're using Bash 5.3, you can use koi in normal mode or POSIX mode.
-
 ## Homebrew and mise
 
 Both [Homebrew](https://brew.sh) and [mise](https://mise.jdx.dev/) use [wcarhart/koi](https://github.com/wcarhart/koi) as the upstream repository for installation and will install the latest released v2.x+ version unless otherwise specified. To install via Homebrew, use:
@@ -148,6 +118,47 @@ source ./koi
 ```
 
 Use `source ./koi` instead of `source koi` because the file is not on your `PATH`. The `./` path is relative to your current working directory.
+
+## Dependencies
+
+Koi requires **Bash 5.2 or newer**. You can check your current Bash version via:
+
+```bash
+bash --version
+```
+
+Koi only works in Bash, not Zsh, Fish, or any other shells. On macOS, the system `/bin/bash` is usually pinned to Bash 3.2 due to [GPLv3 license concerns](https://news.ycombinator.com/item?id=38132066), which is too outdated to use with koi. You can upgrade your Bash version to 5.2+ on macOS via Homebrew:
+
+```bash
+brew install bash
+echo '/opt/homebrew/bin/bash' | sudo tee -a /etc/shells
+chsh -s '/opt/homebrew/bin/bash'
+# then open a new terminal
+```
+
+If you don't have Bash installed, you can install it via:
+
+<!-- koi:install bash -->
+
+Koi supports running with `errexit` and `nounset` enabled, but neither is required. You can run koi with any of `set -e`, `set +e`, `set -u`, `set +u`. For more details, see [control flow](/docs/concepts/control-flow).
+
+> [!NOTE] Bash POSIX mode
+> Koi cannot use Bash 5.2 in [POSIX mode](https://www.gnu.org/software/bash/manual/html_node/Bash-POSIX-Mode.html). POSIX mode in Bash 5.2 restricts the use of `::` in function names, so the namespaced function convention is not supported. Koi uses namespaced functions (e.g. `koi::parse`), which will fail in Bash 5.2 POSIX mode.
+>
+> If you're using Bash 5.2, don't run your shell via `bash --posix` or use `set -o posix` in your script if you'd like to use koi.
+>
+> Bash 5.3 [removed the POSIX mode restriction](https://lists.gnu.org/archive/html/bug-bash/2025-07/msg00005.html) on namespaced functions, so `::` is supported in function names. If you're using Bash 5.3, you can use koi in normal mode or POSIX mode.
+
+### What if I use Zsh or Fish?
+
+Koi requires Bash 5.2+, but that doesn't mean you can't use koi if you use [Zsh](https://www.zsh.org/), [Fish](https://fishshell.com/), or another shell as your [login shell](https://unix.stackexchange.com/questions/38175/difference-between-login-shell-and-non-login-shell). If you have Bash 5.2+ installed, just make sure your shebang uses the path to that version of Bash:
+
+```bash
+#!/usr/bin/env bash
+source koi
+```
+
+Then when you run your script via `./myscript.sh`, the shebang will select Bash regardless of your login shell. The path in your shebang must be on your `PATH`. The shebang won't work if you `source` or invoke the script manually with a non-Bash shell, like `zsh myscript.sh`. _There are no plans to port koi to Zsh or Fish in the future._
 
 ## Older Bash versions
 

@@ -44,6 +44,14 @@ try {
         '',
       ),
     );
+    if (id === 'v2.0.4') {
+      const sections = readFileSync(installation, 'utf8').split(/(?=^## )/m);
+      const dependencies = sections.findIndex((section) =>
+        section.startsWith('## Dependencies\n'),
+      );
+      sections.splice(1, 0, ...sections.splice(dependencies, 1));
+      writeFileSync(installation, sections.join(''));
+    }
     const introduction = path.join(snapshot, 'docs/introduction.md');
     writeFileSync(
       introduction,
@@ -54,7 +62,8 @@ try {
       const install = path.join(snapshot, 'docs/getting-started/install.md');
       writeFileSync(
         install,
-        readFileSync(install, 'utf8') + '\nstableinstallprose\n',
+        readFileSync(install, 'utf8') +
+          '\n## Installation notes\n\nstableinstallprose\n',
       );
     }
     if (id === 'v2.0.5') {

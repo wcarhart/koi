@@ -8,20 +8,30 @@ interface Props {
   nextAtBottom?: boolean;
 }
 const { html, nextAtBottom = false, version } = Astro.props;
-const quickEnd = html.indexOf('<h2 id="doc-install-dependencies"');
+const nextSections = new Set([
+  'doc-install-quick-install',
+  'doc-install-homebrew-and-mise',
+  'doc-install-manual-install',
+  'doc-install-github-download',
+  'doc-install-clone',
+]);
+const sections = html.split(/(?=<h2\b)/).map((section) => ({
+  html: section,
+  next: nextSections.has(section.match(/^<h2 id="([^"]+)"/)?.[1] || ''),
+}));
+if (nextAtBottom) sections.push({ html: '', next: true });
+const quickstartUrl = await docsUrl('quickstart', version);
 ---
 
-<Fragment set:html={html.slice(0, quickEnd)} />
-<div class="install-next">
-  <a class="button" href={await docsUrl('quickstart', version)}>
-    Next: Quickstart <CtaArrow />
-  </a>
-</div>
-<Fragment set:html={html.slice(quickEnd)} />
-{nextAtBottom && (
-  <div class="install-next">
-    <a class="button" href={await docsUrl('quickstart', version)}>
-      Next: Quickstart <CtaArrow />
-    </a>
-  </div>
-)}
+{sections.map((section) => (
+  <Fragment>
+    <Fragment set:html={section.html} />
+    {section.next && (
+      <div class="install-next">
+        <a class="button" href={quickstartUrl}>
+          Next: Quickstart <CtaArrow />
+        </a>
+      </div>
+    )}
+  </Fragment>
+))}
