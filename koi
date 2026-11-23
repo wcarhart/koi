@@ -2127,7 +2127,7 @@ koi::internal::print_help() {
     local __koi_help_dest __koi_help_spelling __koi_help_usage __koi_help_width
     local __koi_help_value __koi_help_description __koi_help_indent
     local -a __koi_help_labels=('-h, --help')
-    __koi_help_width=${#__koi_help_labels[0]}
+    local __koi_help_options_width=${#__koi_help_labels[0]} __koi_help_positionals_width=0
     local __koi_help_index=1 __koi_help_positional_section=0
     local -a __koi_help_order=()
     local -n __koi_help_groups="${1}_arg_groups"
@@ -2229,10 +2229,14 @@ koi::internal::print_help() {
             __koi_help_spelling+=" $__koi_help_value"
         fi
 
-        # save the label and track the widest row for description alignment
+        # track each section's widest label for description alignment
         __koi_help_labels+=("$__koi_help_spelling")
-        if (( ${#__koi_help_spelling} > __koi_help_width )); then
-            __koi_help_width=${#__koi_help_spelling}
+        if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]]; then
+            if (( ${#__koi_help_spelling} > __koi_help_positionals_width )); then
+                __koi_help_positionals_width=${#__koi_help_spelling}
+            fi
+        elif (( ${#__koi_help_spelling} > __koi_help_options_width )); then
+            __koi_help_options_width=${#__koi_help_spelling}
         fi
     done
 
@@ -2244,6 +2248,7 @@ koi::internal::print_help() {
         fi
     fi
 
+    __koi_help_width=$__koi_help_options_width
     printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
     if (( ${#__koi_commands[@]} || __koi_help_meta[builtin] )); then
         koi::internal::print_commands "$__koi_help_prefix"
@@ -2257,6 +2262,8 @@ koi::internal::print_help() {
         if [[ ${__koi_arg_kinds[$__koi_help_dest]} == positional ]] && (( ! __koi_help_positional_section )); then
             printf '\nPositionals:\n'
             __koi_help_positional_section=1
+            __koi_help_width=$__koi_help_positionals_width
+            printf -v __koi_help_indent '%*s' "$((__koi_help_width + 4))" ''
         fi
 
         __koi_help_description=${__koi_arg_descriptions[$__koi_help_dest]}

@@ -263,6 +263,67 @@ main'
     [[ "$output" != *Commands:* ]]
 }
 
+@test "long option labels do not widen positional help columns" {
+    run_positional '
+        koi::add_arg source -p -r -d "Source label to process"
+        koi::add_arg environment -o -l environment -n ENV -d Environment
+        koi::add_arg files -p -a -n FILE -d "Zero or more input files"
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'Positionals:\n  SOURCE   Source label to process (required)\n  FILE...  Zero or more input files' ]]
+    [[ "$output" == *$'  -h, --help         Show this help\n  --environment ENV  Environment\n'* ]]
+}
+
+@test "long positional labels do not widen option help columns" {
+    run_positional '
+        koi::add_arg input -p -n INPUT_DIRECTORY_PATH -d "Input directory"
+        koi::add_arg output -o -s o -l output -n FILE -d "Output file"
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'Options:\n  -h, --help         Show this help\n  -o, --output FILE  Output file\n'* ]]
+    [[ "$output" == *$'Positionals:\n  INPUT_DIRECTORY_PATH  Input directory' ]]
+}
+
+@test "direct help wraps descriptions at each section's own column" {
+    run_positional '
+        koi::config help-width 40
+        main() {
+            koi::add_arg source -p -r -d "Source label"
+            koi::add_arg output -o -s o -l output -n FILE -d "Write a report with extra details"
+            koi::add_arg files -p -a -n FILE -d "Read input files and print a detailed summary"
+            koi::parse "$@" || return "$koi_status"
+            echo BAD
+        }
+        main --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'  -o, --output FILE  Write a report with\n                     extra details\n'* ]]
+    [[ "$output" == *$'Positionals:\n  SOURCE   Source label (required)\n  FILE...  Read input files and print a\n           detailed summary' ]]
+    [[ "$output" != *BAD* ]]
+}
+
+@test "positional only help does not use the built in help label width" {
+    run_positional '
+        koi::add_arg item -p -n X -d Item
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'Options:\n  -h, --help  Show this help\n\nPositionals:\n  X  Item' ]]
+}
+
+@test "options only help retains label alignment without a positional section" {
+    run_positional '
+        koi::add_arg verbose -f -s v -l verbose -d Verbose
+        koi::add_arg output -o -s o -l output -n FILE -d Output
+        koi::run --help
+    '
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'Options:\n  -h, --help         Show this help\n  -v, --verbose      Verbose\n  -o, --output FILE  Output' ]]
+    [[ "$output" != *Positionals:* ]]
+}
+
 @test "repeated nested and recursive calls isolate positional cursors and defaults" {
     run_positional '
         leaf() {
