@@ -1,4 +1,5 @@
 ---
+import { docsUrl } from '../lib/documentation';
 import Brand from './Brand.astro';
 import ThemeToggle from './ThemeToggle.astro';
 import Icon from './Icon.astro';
@@ -9,7 +10,7 @@ import Icon from './Icon.astro';
     <Brand />
     <nav aria-label="Main navigation">
       <a href="/install">Install</a>
-      <a href="/docs">Docs</a>
+      <a href={await docsUrl()}>Docs</a>
       <a href="/playground">Terminal</a>
     </nav>
     <div class="header-actions">

@@ -1,8 +1,12 @@
 import { highlightScript } from './highlight';
-import { helpScript, helpErrors, type HelpSettings } from '../lib/builders';
+import { type HelpSettings } from '../lib/builders';
+import { getBuilderProfile } from '../lib/builder-profiles';
 for (const form of document.querySelectorAll<HTMLFormElement>(
   '[data-builder]',
 )) {
+  const profile = getBuilderProfile(form.dataset.builderProfile);
+  if (!profile) continue;
+  const { helpScript, helpErrors } = profile;
   const output = form
     .closest('[data-doc-section]')
     ?.querySelector<HTMLElement>('.doc-example .code-block code');

@@ -1,67 +1,76 @@
 ---
 import ArgumentExplorer from './ArgumentExplorer.astro';
-import { defaultHelp as help } from '../lib/builders';
+import {
+  getBuilderProfile,
+  type BuilderProfileId,
+} from '../lib/builder-profiles';
 interface Props {
   kind: 'addarg' | 'help';
+  profile?: BuilderProfileId;
 }
-const { kind } = Astro.props;
+const { kind, profile } = Astro.props;
+const selectedProfile = getBuilderProfile(profile);
+const help = selectedProfile?.defaultHelp;
 const prefix = `builder-${kind}`;
 ---
 
-{kind === 'addarg' ? (
-  <ArgumentExplorer />
-) : (
-  <form
-    class="builder"
-    data-builder={kind}
-    aria-label="Help configuration code builder"
-  >
-    <div class="builder-heading">
-      <span class="eyebrow">MAKE IT YOURS</span>
-      <button type="reset" class="text-button">
-        Reset
-      </button>
-    </div>
-    <label for={`${prefix}-name`}>Script name</label>
-    <input id={`${prefix}-name`} name="name" value={help.name} />
-    <label for={`${prefix}-description`}>Description</label>
-    <textarea
-      id={`${prefix}-description`}
-      name="description"
-      rows="2"
-    >{help.description}</textarea>
-    <label for={`${prefix}-width`}>Help width</label>
-    <input
-      id={`${prefix}-width`}
-      name="width"
-      inputmode="numeric"
-      value={help.width}
-    />
-    <label class="checkbox">
-      <input type="checkbox" name="helpCommand" checked={help.helpCommand} />
-      Built-in branch help commands
-    </label>
-    <label class="checkbox">
-      <input type="checkbox" name="verbose" checked={help.verbose} />
-      Root verbose help
-    </label>
-    <label class="checkbox">
-      <input type="checkbox" name="hints" checked={help.hints} />
-      Root help hints
-    </label>
-    <label class="checkbox">
-      <input type="checkbox" name="unknownHelp" checked={help.unknownHelp} />
-      Help on unknown commands
-    </label>
-    <label for={`${prefix}-missing`}>
-      Missing-command error <span class="muted">(optional)</span>
-    </label>
-    <input
-      id={`${prefix}-missing`}
-      name="missingMessage"
-      value={help.missingMessage}
-    />
-    <p class="builder-error" role="status" aria-live="polite"></p>
-    <p class="builder-note">Updates the code. No commands are executed.</p>
-  </form>
-)}
+{selectedProfile &&
+  help &&
+  (kind === 'addarg' ? (
+    <ArgumentExplorer profile={profile!} />
+  ) : (
+    <form
+      class="builder"
+      data-builder={kind}
+      data-builder-profile={profile}
+      aria-label="Help configuration code builder"
+    >
+      <div class="builder-heading">
+        <span class="eyebrow">MAKE IT YOURS</span>
+        <button type="reset" class="text-button">
+          Reset
+        </button>
+      </div>
+      <label for={`${prefix}-name`}>Script name</label>
+      <input id={`${prefix}-name`} name="name" value={help.name} />
+      <label for={`${prefix}-description`}>Description</label>
+      <textarea
+        id={`${prefix}-description`}
+        name="description"
+        rows="2"
+      >{help.description}</textarea>
+      <label for={`${prefix}-width`}>Help width</label>
+      <input
+        id={`${prefix}-width`}
+        name="width"
+        inputmode="numeric"
+        value={help.width}
+      />
+      <label class="checkbox">
+        <input type="checkbox" name="helpCommand" checked={help.helpCommand} />
+        Built-in branch help commands
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="verbose" checked={help.verbose} />
+        Root verbose help
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="hints" checked={help.hints} />
+        Root help hints
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="unknownHelp" checked={help.unknownHelp} />
+        Help on unknown commands
+      </label>
+      <label for={`${prefix}-missing`}>
+        Missing-command error <span class="muted">(optional)</span>
+      </label>
+      <input
+        id={`${prefix}-missing`}
+        name="missingMessage"
+        value={help.missingMessage}
+      />
+      <p class="builder-error" role="status" aria-live="polite"></p>
+      <p class="builder-note">Updates the code. No commands are executed.</p>
+    </form>
+  ))}

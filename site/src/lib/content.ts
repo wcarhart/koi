@@ -1,3 +1,4 @@
+import { getVersion, versionedDocUrl, type KoiVersion } from './versions';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -9,7 +10,7 @@ import { usageLanguage } from './usage-language';
 import { shellLanguage } from './shell-language';
 import { copyIcon, escapeHtml } from './html';
 import {
-  installMethods,
+  versionInstallMethods,
   renderInstallBox,
   installMarkdown,
   type InstallKind,
@@ -47,15 +48,15 @@ export interface Doc extends ManifestEntry {
 export function sectionId(slug: string): string {
   return `doc-${slug.replaceAll('/', '-') || 'introduction'}`;
 }
-export function sectionUrl(slug: string): string {
-  return slug ? `/docs/${slug}` : '/docs';
+export function sectionUrl(slug: string, version = getVersion()): string {
+  return slug ? `${version.base}/${slug}` : version.base;
 }
-export function cleanMarkdown(body: string): string {
+export function cleanMarkdown(body: string, version?: KoiVersion): string {
   return (
     body
       .replaceAll(exampleMarker, '')
       .replace(/<!-- koi:install (koi|bash) -->/g, (_, kind: InstallKind) =>
-        installMarkdown(installMethods[kind]),
+        installMarkdown(versionInstallMethods(version)[kind]),
       )
       .trim() + '\n'
   );
@@ -67,6 +68,8 @@ export function validateManifest(entries: ManifestEntry[]): void {
   for (const entry of entries) {
     if (
       (entry.slug && !/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/.test(entry.slug)) ||
+      entry.slug === 'stable' ||
+      entry.slug.startsWith('stable/') ||
       slugs.has(entry.slug) ||
       ids.has(sectionId(entry.slug))
     )
@@ -98,6 +101,7 @@ export async function renderMarkdown(
   prefix: string,
   docLinks: Map<string, string> = new Map(),
   options: {
+    version?: KoiVersion;
     copy?: boolean;
     route?: string;
     anchors?: boolean;
@@ -118,7 +122,7 @@ export async function renderMarkdown(
           /<!-- koi:install (koi|bash) -->/g,
           (_, kind: InstallKind) =>
             renderInstallBox(
-              installMethods[kind],
+              versionInstallMethods(options.version)[kind],
               `${prefix || 'install'}-${kind}`,
               kind === 'bash'
                 ? 'Bash installation platform'
@@ -219,11 +223,11 @@ export async function renderMarkdown(
   });
   return { html: await md.parse(body), headings };
 }
-export function expandIncludes(body: string): string {
+export function expandIncludes(body: string, directory = docsRoot): string {
   return body.replace(
     /<!-- koi:include ([a-z0-9-]+\.(?:sh|txt))(?: (line-numbers(?:=(?:true|false))?))? -->/g,
     (_, file: string, metadata?: string) => {
-      const source = path.join(docsRoot, 'examples', file);
+      const source = path.join(directory, 'examples', file);
       if (!existsSync(source))
         throw new Error(`Missing example include: ${file}`);
       return `\n\`\`\`${file.endsWith('.sh') ? 'bash' : 'text'}${metadata ? ` ${metadata}` : ''}\n${readFileSync(source, 'utf8').trimEnd()}\n\`\`\`\n`;
@@ -238,16 +242,30 @@ function plainText(markdown: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
-let docsPromise: Promise<Doc[]> | undefined;
-export function getDocs(): Promise<Doc[]> {
-  return (docsPromise ??= loadDocs());
+const docsPromises = new Map<string, Promise<Doc[]>>();
+export function getDocs(version: KoiVersion = getVersion()): Promise<Doc[]> {
+  const key = version.docsRoot + version.base;
+  if (!docsPromises.has(key)) docsPromises.set(key, loadDocs(version));
+  return docsPromises.get(key)!;
 }
-async function loadDocs(): Promise<Doc[]> {
+async function loadDocs(version: KoiVersion): Promise<Doc[]> {
+  const docsRoot = version.docsRoot;
   const entries = JSON.parse(
     readFileSync(path.join(docsRoot, 'navigation.json'), 'utf8'),
   ) as ManifestEntry[];
   validateManifest(entries);
   const docs: Doc[] = [];
+  const docLinks = new Map(
+    entries.flatMap((entry) => {
+      const url = sectionUrl(entry.slug);
+      return [
+        [url, sectionUrl(entry.slug, version)],
+        [url + '.md', sectionUrl(entry.slug, version) + '.md'],
+      ];
+    }),
+  );
+  for (const index of docsIndexes)
+    docLinks.set(index.url, versionedDocUrl(index.url, version));
   for (const entry of entries) {
     const { data, content } = matter(
       readFileSync(path.join(docsRoot, entry.file), 'utf8'),
@@ -262,7 +280,7 @@ async function loadDocs(): Promise<Doc[]> {
     )
       throw new Error(`Invalid frontmatter: ${entry.file}`);
     if (data.draft) continue;
-    const body = expandIncludes(content);
+    const body = expandIncludes(content, docsRoot);
     const pieces = body.split(exampleMarker);
     if (
       pieces.length > 2 ||
@@ -273,19 +291,21 @@ async function loadDocs(): Promise<Doc[]> {
     const id = sectionId(entry.slug);
     const reference = entry.slug.startsWith('reference/');
     const slugger = new GithubSlugger();
-    const prose = await renderMarkdown(pieces[0], id, new Map(), {
-      route: sectionUrl(entry.slug),
+    const prose = await renderMarkdown(pieces[0], id, docLinks, {
+      route: sectionUrl(entry.slug, version),
       slugger,
+      version,
     });
     const example = pieces[1]
-      ? await renderMarkdown(pieces[1], `${id}-example`, new Map(), {
+      ? await renderMarkdown(pieces[1], `${id}-example`, docLinks, {
           anchors: !reference,
-          route: sectionUrl(entry.slug),
+          route: sectionUrl(entry.slug, version),
           slugger,
+          version,
         })
       : { html: '', headings: [] };
-    const url = sectionUrl(entry.slug);
-    const markdown = cleanMarkdown(body);
+    const url = sectionUrl(entry.slug, version);
+    const markdown = rewriteDocLinks(cleanMarkdown(body, version), version);
     const headings = [...prose.headings, ...example.headings];
     const search: SearchEntry[] = [
       {
@@ -334,10 +354,10 @@ async function loadDocs(): Promise<Doc[]> {
       allIds.add(id);
     }
   }
-  validateLinks(docs);
+  validateLinks(docs, version);
   return docs;
 }
-export function validateLinks(docs: Doc[]): void {
+export function validateLinks(docs: Doc[], version = getVersion()): void {
   const routes = new Map(
     docs.map((d) => [
       d.url,
@@ -354,7 +374,7 @@ export function validateLinks(docs: Doc[]): void {
     '/skill.md',
     '/agents.md',
     '/install.md',
-    ...docsIndexes.map((index) => index.url),
+    ...docsIndexes.map((index) => versionedDocUrl(index.url, version)),
   ]);
   for (const doc of docs) {
     const tokens = new Marked().lexer(doc.markdown);
@@ -378,6 +398,43 @@ export function validateLinks(docs: Doc[]): void {
         throw new Error(`Broken internal link ${href} in ${doc.file}`);
     });
   }
+}
+export function rewriteDocLinks(markdown: string, version: KoiVersion): string {
+  const parser = new Marked();
+  const tokens = parser.lexer(markdown);
+  const edits = new Map<string, string>();
+  const code: string[] = [];
+  parser.walkTokens(tokens, (token: Token) => {
+    if (token.type === 'code' || token.type === 'codespan')
+      code.push(token.raw);
+    if (token.type !== 'link' && token.type !== 'image' && token.type !== 'def')
+      return;
+    const link = token as Tokens.Link;
+    const destination = versionedDocUrl(link.href, version);
+    const boundary = token.raw.indexOf(token.type === 'def' ? ']:' : '](') + 2;
+    if (boundary > 1 && destination !== link.href) {
+      edits.set(
+        token.raw,
+        token.raw.slice(0, boundary) +
+          token.raw.slice(boundary).replace(link.href, destination),
+      );
+    }
+  });
+  // Protect literal code before replacing parsed Markdown destinations, including inline examples.
+  const protectedCode: string[] = [];
+  for (const raw of code.sort((a, b) => b.length - a.length)) {
+    markdown = markdown.replaceAll(raw, () => {
+      const marker = `\u0000koi-code-${protectedCode.length}\u0000`;
+      protectedCode.push(raw);
+      return marker;
+    });
+  }
+  for (const [before, after] of edits)
+    markdown = markdown.replaceAll(before, after);
+  return markdown.replace(
+    /\u0000koi-code-(\d+)\u0000/g,
+    (_, index: string) => protectedCode[Number(index)],
+  );
 }
 export function exportMarkdown(doc: Doc): string {
   // Make root-relative Markdown destinations useful outside the site as well.

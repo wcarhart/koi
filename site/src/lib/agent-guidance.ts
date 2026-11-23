@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
-import { docsRoot, exportMarkdown, getDocs, root } from './content';
+import {
+  documentationResourceUrl,
+  getVersion,
+  type KoiVersion,
+} from './versions';
+import { exportMarkdown, getDocs, root } from './content';
 
 export const agentPrompt = `Use Koi for Bash argument parsing in this project.
 
@@ -9,14 +14,28 @@ Read https://koishell.com/llms.txt and follow the relevant documentation links b
 
 Use the documented API for the installed Koi version. Preserve existing behavior when migrating code.`;
 
-export async function getAgentGuidance(): Promise<string> {
-  const source = readFileSync(path.join(docsRoot, 'llms.md'), 'utf8');
+export async function getAgentGuidance(
+  version: KoiVersion = getVersion(),
+): Promise<string> {
+  const source = readFileSync(path.join(version.docsRoot, 'llms.md'), 'utf8');
   const optionalStart = source.indexOf('\n## Optional\n');
   if (optionalStart < 0)
     throw new Error('Missing Optional section in docs/llms.md');
-  const intro = source.slice(0, optionalStart).trimEnd();
-  const optional = source.slice(optionalStart).trim();
-  const docs = await getDocs();
+  const intro = source
+    .slice(0, optionalStart)
+    .trimEnd()
+    .replaceAll(
+      'https://koishell.com/docs',
+      `https://koishell.com${version.base}`,
+    );
+  const optional = source
+    .slice(optionalStart)
+    .trim()
+    .replaceAll(
+      'https://koishell.com/llms-full.txt',
+      `https://koishell.com${documentationResourceUrl('llms-full.txt', version)}`,
+    );
+  const docs = await getDocs(version);
   const groups = [...new Set(docs.map((doc) => doc.group))];
   return (
     intro +
@@ -38,8 +57,10 @@ export async function getAgentGuidance(): Promise<string> {
   );
 }
 
-export async function getFullDocumentation(): Promise<string> {
-  const docs = await getDocs();
+export async function getFullDocumentation(
+  version: KoiVersion = getVersion(),
+): Promise<string> {
+  const docs = await getDocs(version);
   return (
     docs
       .map((doc) => {

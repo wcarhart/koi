@@ -13,10 +13,13 @@
     "test:site": "pnpm --filter @koi/site test",
     "test:browser": "pnpm --filter @koi/site test:browser",
     "test:examples": "pnpm --filter @koi/site test:examples",
-    "format": "pnpm --filter @koi/site exec prettier --write src tests astro.config.mjs playwright.config.ts \"../scripts/*.mjs\" \"../tests/**/*.mjs\" ../package.json",
-    "format:check": "pnpm --filter @koi/site exec prettier --check src tests astro.config.mjs playwright.config.ts \"../scripts/*.mjs\" \"../tests/**/*.mjs\" ../package.json",
+    "format": "pnpm --filter @koi/site exec prettier --write src tests astro.config.mjs playwright.config.ts stable-redirects.mjs stable-preview.mjs \"../scripts/*.mjs\" \"../tests/**/*.mjs\" ../package.json",
+    "format:check": "pnpm --filter @koi/site exec prettier --check src tests astro.config.mjs playwright.config.ts stable-redirects.mjs stable-preview.mjs \"../scripts/*.mjs\" \"../tests/**/*.mjs\" ../package.json",
     "release": "node scripts/release.mjs",
     "test:distribution": "node --test tests/distribution.test.mjs",
-    "test:distribution:smoke": "node tests/distribution-smoke.mjs"
+    "test:distribution:smoke": "node tests/distribution-smoke.mjs",
+    "docs:prepare": "pnpm --filter @koi/site exec tsx src/scripts/prepare-versions.ts",
+    "build:production": "pnpm docs:prepare && KOI_REQUIRE_VERSIONS=1 pnpm build",
+    "test:versions": "pnpm --filter @koi/site test:versions"
   }
 }

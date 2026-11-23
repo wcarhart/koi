@@ -1,15 +1,18 @@
 ---
+import { docsUrl } from '../lib/documentation';
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import TerminalCommand from '../components/TerminalCommand.astro';
 import CtaArrow from '../components/CtaArrow.astro';
+import { getVersion } from '../lib/versions';
 ---
 
 <Base
   title="Page not found"
   description="This koi page could not be found."
   noindex
+  documentationVersion={getVersion()}
 >
   <Header />
   <main id="main" class="error-page">
@@ -29,7 +32,7 @@ import CtaArrow from '../components/CtaArrow.astro';
         </span>{' '}
         Back home
       </a>
-      <a class="button" href="/docs">
+      <a class="button" href={await docsUrl()}>
         Read the docs <CtaArrow />
       </a>
     </div>

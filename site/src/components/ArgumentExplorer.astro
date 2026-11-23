@@ -1,9 +1,22 @@
 ---
+import {
+  getBuilderProfile,
+  type BuilderProfileId,
+} from '../lib/builder-profiles';
+interface Props {
+  profile?: BuilderProfileId;
+}
+const { profile = 'v2-initial' } = Astro.props;
+const settings = getBuilderProfile(profile)!;
 import Dropdown from './Dropdown.astro';
 import resetIcon from '../assets/icons/reset.svg?raw';
 ---
 
-<div class="builder argument-explorer" data-argument-explorer>
+<div
+  class="builder argument-explorer"
+  data-argument-explorer
+  data-builder-profile={profile}
+>
   <div data-argument-list>
     <div class="builder-heading">
       <span class="argument-subtitle">Registered arguments</span>
@@ -58,20 +71,13 @@ import resetIcon from '../assets/icons/reset.svg?raw';
     <Dropdown
       id="argument-kind"
       label="Kind"
-      options={[
-        { value: 'flag', label: 'Flag' },
-        { value: 'option', label: 'Option' },
-        { value: 'positional', label: 'Positional' },
-      ]}
+      options={settings.argumentKinds}
     />
     <div data-cardinality>
       <Dropdown
         id="argument-cardinality"
         label="Cardinality"
-        options={[
-          { value: 'scalar', label: 'Scalar' },
-          { value: 'array', label: 'Array' },
-        ]}
+        options={settings.cardinalities}
       />
     </div>
     <div class="field-pair" data-spellings>

@@ -4,19 +4,20 @@ import path from 'node:path';
 import DocsShell from './DocsShell.astro';
 import CtaArrow from './CtaArrow.astro';
 import KoiMark from './KoiMark.astro';
-import { docsRoot, getDocs, renderMarkdown } from '../lib/content';
-import {
-  docsIndexes,
-  indexDocs,
-  type DocsIndexKind,
-} from '../lib/docs-indexes';
+import { getDocs, renderMarkdown } from '../lib/content';
+import { indexDocs, type DocsIndexKind } from '../lib/docs-indexes';
 
+import { getVersion, type KoiVersion } from '../lib/versions';
+import { versionIndexes } from '../lib/documentation';
 interface Props {
+  version?: KoiVersion;
   kind: DocsIndexKind;
 }
-const { kind } = Astro.props;
+const { kind, version = getVersion() } = Astro.props;
+const docsIndexes = versionIndexes(version);
+const docsRoot = version.docsRoot;
 const selected = docsIndexes.find((index) => index.slug === kind)!;
-const entries = indexDocs(kind, await getDocs());
+const entries = indexDocs(kind, await getDocs(version));
 const glossary =
   kind === 'reference'
     ? entries.find((doc) => doc.slug === 'reference/glossary')
@@ -58,7 +59,7 @@ const albums =
     : [];
 ---
 
-<DocsShell selected={selected}>
+<DocsShell selected={selected} version={version}>
   <section
     id={selected.id}
     class={`doc-section docs-index docs-index-${kind}`}

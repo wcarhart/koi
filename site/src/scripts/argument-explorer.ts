@@ -1,17 +1,20 @@
-import {
-  argumentScript,
-  argumentHelp,
-  argumentFieldErrors,
-  argumentCollectionErrors,
-  defaultArgument,
-  type ArgumentSettings,
-} from '../lib/builders';
+import { type ArgumentSettings } from '../lib/builders';
+import { getBuilderProfile } from '../lib/builder-profiles';
 import { highlightScript } from './highlight';
 import { initDropdown } from './dropdown';
 
 for (const explorer of document.querySelectorAll<HTMLElement>(
   '[data-argument-explorer]',
 )) {
+  const profile = getBuilderProfile(explorer.dataset.builderProfile);
+  if (!profile) continue;
+  const {
+    argumentScript,
+    argumentHelp,
+    argumentFieldErrors,
+    argumentCollectionErrors,
+    defaultArgument,
+  } = profile;
   const section = explorer.closest('[data-doc-section]')!;
   const outputs = section.querySelectorAll<HTMLElement>(
     '.doc-example [data-argument-sample] .code-block code',

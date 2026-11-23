@@ -20,10 +20,18 @@ export function publishedPagePaths(docs: readonly PublishedDoc[]): string[] {
 
 export function pageMetadata(pathname: string, docs: readonly PublishedDoc[]) {
   const path = new URL(pathname, siteOrigin).pathname.replace(/\/$/, '') || '/';
-  const covered = publishedPagePaths(docs).includes(path);
+  const versionBase = /^\/docs\/v\d+\.\d+\.\d+(?=\/|$)/.exec(path)?.[0];
+  const index = versionBase
+    ? `${siteOrigin}${versionBase}/llms.txt`
+    : documentationIndex;
+  const covered =
+    publishedPagePaths(docs).includes(path) ||
+    (!!versionBase &&
+      (path === versionBase ||
+        docsIndexes.some((entry) => path === versionBase + '/' + entry.slug)));
   return {
     canonical: `${siteOrigin}${path}`,
-    describedBy: covered ? documentationIndex : undefined,
+    describedBy: covered ? index : undefined,
     markdownUrl:
       covered && path !== '/' ? `${siteOrigin}${path}.md` : undefined,
     noindex: path === '/playground' || path === '/404' || path === '/404.html',
@@ -31,7 +39,9 @@ export function pageMetadata(pathname: string, docs: readonly PublishedDoc[]) {
 }
 
 export function markdownLink(htmlPath: string): string {
-  return `<${new URL(htmlPath, siteOrigin).href}>; rel="canonical", <${documentationIndex}>; rel="describedby"`;
+  const base = /^\/docs\/v\d+\.\d+\.\d+(?=\/|$)/.exec(htmlPath)?.[0];
+  const index = base ? `${siteOrigin}${base}/llms.txt` : documentationIndex;
+  return `<${new URL(htmlPath, siteOrigin).href}>; rel="canonical", <${index}>; rel="describedby"`;
 }
 
 export function markdownHeaders(

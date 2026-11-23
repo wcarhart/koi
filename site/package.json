@@ -10,7 +10,8 @@
     "check": "astro check && tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:browser": "playwright test",
-    "test:examples": "tsx src/scripts/verify-examples.ts"
+    "test:examples": "tsx src/scripts/verify-examples.ts",
+    "test:versions": "tsx tests/fixtures/version-site.ts"
   },
   "dependencies": {
     "astro": "7.4.11",

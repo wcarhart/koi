@@ -1,23 +1,26 @@
 ---
+import { docsUrl } from '../lib/documentation';
+import type { KoiVersion } from '../lib/versions';
 import CtaArrow from './CtaArrow.astro';
 interface Props {
   html: string;
+  version?: KoiVersion;
   nextAtBottom?: boolean;
 }
-const { html, nextAtBottom = false } = Astro.props;
+const { html, nextAtBottom = false, version } = Astro.props;
 const quickEnd = html.indexOf('<h2 id="doc-install-dependencies"');
 ---
 
 <Fragment set:html={html.slice(0, quickEnd)} />
 <div class="install-next">
-  <a class="button" href="/docs/quickstart">
+  <a class="button" href={await docsUrl('quickstart', version)}>
     Next: Quickstart <CtaArrow />
   </a>
 </div>
 <Fragment set:html={html.slice(quickEnd)} />
 {nextAtBottom && (
   <div class="install-next">
-    <a class="button" href="/docs/quickstart">
+    <a class="button" href={await docsUrl('quickstart', version)}>
       Next: Quickstart <CtaArrow />
     </a>
   </div>

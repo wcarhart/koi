@@ -1,4 +1,5 @@
 ---
+import { docsUrl } from '../lib/documentation';
 import Icon from './Icon.astro';
 import KoiMark from './KoiMark.astro';
 ---
@@ -9,7 +10,7 @@ import KoiMark from './KoiMark.astro';
       <KoiMark variant="grid" class="footer-brand" />
       <nav aria-label="Footer navigation">
         <a href="/install">Install</a>
-        <a href="/docs">Docs</a>
+        <a href={await docsUrl()}>Docs</a>
         <a href="/playground">Terminal</a>
         <a href="/agents">Agents</a>
         <a href="/swim">Swim</a>

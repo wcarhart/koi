@@ -1,10 +1,8 @@
 import { markdownHeaders } from '../lib/page-metadata';
-import { exportMarkdown, getDocs } from '../lib/content';
+import { exportMarkdown } from '../lib/content';
+import { getStandaloneInstallation } from '../lib/documentation';
 export async function GET() {
-  return new Response(
-    exportMarkdown((await getDocs()).find((doc) => doc.slug === 'install')!),
-    {
-      headers: markdownHeaders('/install', 'text/markdown; charset=utf-8'),
-    },
-  );
+  return new Response(exportMarkdown(await getStandaloneInstallation()), {
+    headers: markdownHeaders('/install', 'text/markdown; charset=utf-8'),
+  });
 }

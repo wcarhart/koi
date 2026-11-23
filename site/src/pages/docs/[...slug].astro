@@ -1,12 +1,38 @@
 ---
 import Docs from '../../components/Docs.astro';
+import DocsIndex from '../../components/DocsIndex.astro';
 import { getDocs } from '../../lib/content';
+import { versionIndexes } from '../../lib/documentation';
+import { getVersions } from '../../lib/versions';
 export async function getStaticPaths() {
-  return (await getDocs())
-    .filter((d) => d.slug)
-    .map((d) => ({ params: { slug: d.slug } }));
+  return (
+    await Promise.all(
+      getVersions().map(async (version) => {
+        const docs = await getDocs(version);
+        const prefix = version.id === 'unreleased' ? '' : version.id;
+        return [
+          ...docs
+            .filter((doc) => prefix || doc.slug)
+            .map((doc) => ({
+              params: { slug: [prefix, doc.slug].filter(Boolean).join('/') },
+              props: { version, slug: doc.slug, kind: undefined },
+            })),
+          ...(prefix
+            ? versionIndexes(version).map((index) => ({
+                params: { slug: `${prefix}/${index.slug}` },
+                props: { version, slug: '', kind: index.slug },
+              }))
+            : []),
+        ];
+      }),
+    )
+  ).flat();
 }
-const { slug } = Astro.params;
+const { version, slug, kind } = Astro.props;
 ---
 
-<Docs slug={slug} />
+{kind ? (
+  <DocsIndex kind={kind} version={version} />
+) : (
+  <Docs slug={slug} version={version} />
+)}

@@ -1,4 +1,8 @@
 ---
+import VersionSelector from './VersionSelector.astro';
+import { getVersion, getVersions, type KoiVersion } from '../lib/versions';
+import { versionIndexes, versionDestinations } from '../lib/documentation';
+import { versionDestination } from '../lib/version-navigation';
 import Base from '../layouts/Base.astro';
 import Brand from './Brand.astro';
 import ThemeToggle from './ThemeToggle.astro';
@@ -6,24 +10,56 @@ import Icon from './Icon.astro';
 import Search from './Search.astro';
 import KoiMark from './KoiMark.astro';
 import HumanNote from './HumanNote.astro';
-import { docsIndexes } from '../lib/docs-indexes';
 import { getDocs } from '../lib/content';
 interface Props {
+  version?: KoiVersion;
   selected: { id: string; title: string; description: string; url: string };
 }
-const { selected } = Astro.props;
-const docs = await getDocs();
+const { selected, version = getVersion() } = Astro.props;
+const docsIndexes = versionIndexes(version);
+const destinations = await versionDestinations();
+const source = destinations.find((entry) => entry.id === version.id)!;
+const options = getVersions().map((target) => ({
+  id: target.id,
+  label: target.label,
+  href: versionDestination(
+    source,
+    destinations.find((entry) => entry.id === target.id)!,
+    selected.url,
+  ),
+  tooltip:
+    target.id === 'unreleased'
+      ? 'Subject to change without notice. Use at your own risk.'
+      : undefined,
+}));
+const versionOptions = [
+  ...options,
+  {
+    id: 'legacy',
+    label: 'v1.x',
+    href: 'https://old.willcarhart.dev/docs/koi',
+    external: true,
+    tooltip: 'Koi v1 is no longer supported.',
+  },
+];
+const docs = await getDocs(version);
 const groups = [...new Set(docs.map((d) => d.group))];
 ---
 
 <Base
+  documentationVersion={version}
   title={`${selected.title} — Documentation`}
   description={selected.description}
   class="docs-page"
 >
   <div class="docs-mobile-bar">
     <Brand />
-    <span class="preview-tag">v2 preview</span>
+    <VersionSelector
+      id="mobile-version"
+      align="end"
+      value={version.id}
+      options={versionOptions}
+    />
     <button
       type="button"
       class="icon-button"
@@ -60,8 +96,12 @@ const groups = [...new Set(docs.map((d) => d.group))];
       </button>
     </div>
     <div class="sidebar-label">
-      <span class="eyebrow">DOCUMENTATION</span>
-      <span class="preview-tag">v2</span>
+      <VersionSelector
+        id="sidebar-version"
+        align="end"
+        value={version.id}
+        options={versionOptions}
+      />
     </div>
     <button class="search-trigger" type="button" data-open-search>
       <Icon name="search" />
@@ -170,8 +210,20 @@ const groups = [...new Set(docs.map((d) => d.group))];
       <p>Ask koi is under construction. A chat interface is on its way.</p>
     </div>
   </aside>
-  <Search />
+  <Search
+    indexUrl={
+      version.id === 'unreleased'
+        ? '/search.json'
+        : `${version.base}/search.json`
+    }
+  />
+  <script
+    id="documentation-versions"
+    type="application/json"
+    set:html={JSON.stringify(destinations).replaceAll('<', '\\u003c')}
+  />
   <script>
     import '../scripts/docs';
+    import '../scripts/docs-versions';
   </script>
 </Base>

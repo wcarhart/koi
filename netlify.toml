@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm build"
+  command = "pnpm build:production"
   publish = "site/dist"
 
 [build.environment]
@@ -33,6 +33,12 @@
 
 [[headers]]
   for = "/llms.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/versions/*"
   [headers.values]
     Content-Type = "text/plain; charset=utf-8"
     X-Content-Type-Options = "nosniff"

@@ -71,7 +71,7 @@ To install via mise, use:
 mise use -g github:wcarhart/koi@latest
 ```
 
-Mise will install koi in a directory on your `PATH`. In CI or shells using only mise shims, run your script with:
+By default mise will install koi so it's accessible via your `PATH`. In CI or shells using only mise shims, run your script with:
 
 ```bash
 mise exec -- bash ./your-script.sh

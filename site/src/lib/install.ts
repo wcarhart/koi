@@ -1,3 +1,4 @@
+import type { KoiVersion } from './versions';
 import { copyIcon, ctaArrow, escapeHtml } from './html';
 
 export type InstallMethod = {
@@ -50,6 +51,40 @@ export const installMethods: Record<InstallKind, InstallMethod[]> = {
     { id: 'macos', label: 'macOS', command: 'brew install bash' },
   ],
 };
+
+export function versionInstallMethods(
+  version?: KoiVersion,
+): Record<InstallKind, InstallMethod[]> {
+  if (!version || version.id === 'unreleased') return installMethods;
+  return {
+    ...installMethods,
+    koi: installMethods.koi
+      .filter((method) => method.id !== 'homebrew')
+      .map((method) => {
+        if (method.id === 'mise')
+          return {
+            ...method,
+            command: `mise use -g github:wcarhart/koi@${version.id}`,
+          };
+        if (method.id === 'git')
+          return {
+            ...method,
+            command: `git clone --branch ${version.id} --depth 1 git@github.com:wcarhart/koi.git`,
+          };
+        if (method.id === 'manual')
+          return {
+            ...method,
+            command: `curl -fsSL https://get.koishell.com | KOI_VERSION=${version.id} sh`,
+          };
+        if (method.id === 'github')
+          return {
+            ...method,
+            href: `https://github.com/wcarhart/koi/releases/tag/${version.id}`,
+          };
+        return method;
+      }),
+  };
+}
 
 export function installMarkdown(methods: InstallMethod[]): string {
   return methods

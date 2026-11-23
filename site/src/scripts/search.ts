@@ -62,7 +62,9 @@ async function open() {
   if (!loading)
     loading = (async () => {
       try {
-        const response = await fetch('/search.json');
+        const response = await fetch(
+          dialog.dataset.searchIndex || '/search.json',
+        );
         if (!response.ok) throw new Error('Search unavailable');
         entries = await response.json();
         render();

@@ -100,12 +100,16 @@ function go(url: URL, push: boolean, savedY?: number) {
   locked = true;
   if (push) {
     history.replaceState(savePosition(), '');
-    history.pushState({ koiY: null }, '', section.dataset.url! + heading);
+    history.pushState(
+      { koiY: null },
+      '',
+      section.dataset.url! + url.search + heading,
+    );
   } else {
     history.replaceState(
       { ...history.state },
       '',
-      section.dataset.url! + heading,
+      section.dataset.url! + url.search + heading,
     );
   }
   if (savedY !== undefined)
@@ -162,7 +166,9 @@ window.addEventListener(
       history.replaceState(
         savePosition(section),
         '',
-        section.dataset.url! + (sameSection ? location.hash : ''),
+        section.dataset.url! +
+          location.search +
+          (sameSection ? location.hash : ''),
       );
     });
   },

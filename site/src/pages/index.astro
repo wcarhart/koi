@@ -1,4 +1,6 @@
 ---
+import { docsUrl } from '../lib/documentation';
+import { getDefaultVersion } from '../lib/versions';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
@@ -70,6 +72,7 @@ const helpCommand = readFileSync(
 ---
 
 <Base
+  documentationVersion={getDefaultVersion()}
   title="Bashful argument parsing"
   description={home.data.description}
   class="home-page"
@@ -105,7 +108,7 @@ const helpCommand = readFileSync(
         <div class="hero-actions">
           <InstallBox idPrefix="hero-install" />
           <div class="button-row">
-            <a class="button primary" href="/docs">
+            <a class="button primary" href={await docsUrl()}>
               Read the docs <CtaArrow />
             </a>
             <a class="button" href="/install">
@@ -206,10 +209,10 @@ const helpCommand = readFileSync(
         </div>
         <div class="landing-copy prose" set:html={panels[0].html} />
         <div class="button-row landing-actions">
-          <a class="button primary" href="/docs/concepts/lifecycle">
+          <a class="button primary" href={await docsUrl('concepts/lifecycle')}>
             Get started <CtaArrow />
           </a>
-          <a class="button" href="/docs/examples">
+          <a class="button" href={await docsUrl('examples')}>
             More examples <CtaArrow />
           </a>
         </div>
@@ -258,10 +261,10 @@ const helpCommand = readFileSync(
           </div>
         </div>
         <div class="button-row landing-actions">
-          <a class="button primary" href="/docs/guides/commands">
+          <a class="button primary" href={await docsUrl('guides/commands')}>
             Explore commands <CtaArrow />
           </a>
-          <a class="button" href="/docs/examples">
+          <a class="button" href={await docsUrl('examples')}>
             More examples <CtaArrow />
           </a>
         </div>
@@ -275,10 +278,10 @@ const helpCommand = readFileSync(
         </div>
         <div class="landing-copy prose" set:html={panels[2].html} />
         <div class="button-row landing-actions">
-          <a class="button primary" href="/docs/concepts/routing">
+          <a class="button primary" href={await docsUrl('concepts/routing')}>
             Explore direct calls <CtaArrow />
           </a>
-          <a class="button" href="/docs/examples">
+          <a class="button" href={await docsUrl('examples')}>
             More examples <CtaArrow />
           </a>
         </div>
@@ -302,10 +305,10 @@ const helpCommand = readFileSync(
         </div>
         <div class="landing-copy prose" set:html={panels[3].html} />
         <div class="button-row landing-actions">
-          <a class="button primary" href="/docs/guides/help">
+          <a class="button primary" href={await docsUrl('guides/help')}>
             Explore help <CtaArrow />
           </a>
-          <a class="button" href="/docs/examples">
+          <a class="button" href={await docsUrl('examples')}>
             More examples <CtaArrow />
           </a>
         </div>

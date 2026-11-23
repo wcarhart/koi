@@ -1,6 +1,10 @@
 export const productionSite = 'https://koishell.com';
 
 export function docActionLinks(docPath: string) {
+  const base = /^\/docs\/v\d+\.\d+\.\d+(?=\/|$)/.exec(docPath)?.[0];
+  const index = base
+    ? `${productionSite}${base}/llms.txt`
+    : `${productionSite}/llms.txt`;
   const markdown = `${productionSite}${docPath}.md`;
   const prompt = `I'm using Koi, a Bash argument parsing library.
 
@@ -10,7 +14,7 @@ or use the functionality it describes:
 ${markdown}
 
 Use the official Koi documentation at
-https://koishell.com/llms.txt for any additional context.
+${index} for any additional context.
 Don't invent APIs or syntax that aren't documented.`;
   const chatgpt = new URL('https://chat.openai.com/');
   chatgpt.searchParams.set('q', prompt);

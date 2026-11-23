@@ -5,15 +5,17 @@ import Builder from './Builder.astro';
 import InstallationContent from './InstallationContent.astro';
 import KoiMark from './KoiMark.astro';
 import { getDocs } from '../lib/content';
+import { getVersion, type KoiVersion } from '../lib/versions';
 interface Props {
+  version?: KoiVersion;
   slug?: string;
 }
-const { slug = '' } = Astro.props;
-const docs = await getDocs();
+const { slug = '', version = getVersion() } = Astro.props;
+const docs = await getDocs(version);
 const selected = docs.find((d) => d.slug === slug)!;
 ---
 
-<DocsShell selected={selected}>
+<DocsShell selected={selected} version={version}>
   {docs.map((doc, index) => (
     <section
       id={doc.id}
@@ -28,14 +30,16 @@ const selected = docs.find((d) => d.slug === slug)!;
           <h1>{doc.title}</h1>
           <p class="doc-description">{doc.description}</p>
           {doc.slug === 'install' ? (
-            <InstallationContent html={doc.prose} />
+            <InstallationContent html={doc.prose} version={version} />
           ) : (
             <Fragment set:html={doc.prose} />
           )}
           {doc.slug === '' && (
             <KoiMark variant="filled" class="intro-signoff" />
           )}
-          {doc.interactive && <Builder kind={doc.interactive} />}
+          {doc.interactive && (
+            <Builder kind={doc.interactive} profile={version.builderProfile} />
+          )}
         </div>
         {doc.example && (
           <aside class="doc-example" aria-label={`${doc.title} examples`}>

@@ -1,23 +1,31 @@
 ---
 import '../styles/global.css';
+import { versionForPath, getVersions, type KoiVersion } from '../lib/versions';
 import { getDocs } from '../lib/content';
 import { pageMetadata } from '../lib/page-metadata';
 import { apiReferences } from '../lib/api-references';
-const docs = await getDocs();
-const references = apiReferences(docs);
 interface Props {
   title: string;
   description: string;
   noindex?: boolean;
   class?: string;
+  documentationVersion?: KoiVersion;
 }
 const {
   title,
   description,
   noindex = false,
   class: className = '',
+  documentationVersion,
 } = Astro.props;
+const version = documentationVersion ?? versionForPath(Astro.url.pathname);
+const docs = await getDocs(version);
+const references = apiReferences(docs);
 const metadata = pageMetadata(Astro.url.pathname, docs);
+const unreleasedNoindex =
+  version.id === 'unreleased' &&
+  getVersions().length > 1 &&
+  /^\/docs(?:\/|$)/.test(Astro.url.pathname);
 ---
 
 <!doctype html>
@@ -39,7 +47,9 @@ const metadata = pageMetadata(Astro.url.pathname, docs);
     <meta property="og:title" content={`${title} · koi`} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    {(noindex || metadata.noindex) && <meta name="robots" content="noindex" />}
+    {(noindex || metadata.noindex || unreleasedNoindex) && (
+      <meta name="robots" content="noindex" />
+    )}
     <script is:inline>
       (() => {
         document.documentElement.classList.add('js');

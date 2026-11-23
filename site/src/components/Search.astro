@@ -1,9 +1,18 @@
 ---
 import Icon from './Icon.astro';
 import KoiMark from './KoiMark.astro';
+interface Props {
+  indexUrl?: string;
+}
+const { indexUrl = '/search.json' } = Astro.props;
 ---
 
-<dialog id="search-dialog" class="search-dialog" aria-labelledby="search-title">
+<dialog
+  data-search-index={indexUrl}
+  id="search-dialog"
+  class="search-dialog"
+  aria-labelledby="search-title"
+>
   <div class="search-input-row">
     <Icon name="search" />
     <label id="search-title" class="sr-only" for="docs-search">

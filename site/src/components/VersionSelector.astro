@@ -1,0 +1,179 @@
+---
+export interface VersionOption {
+  id: string;
+  label: string;
+  href: string;
+  tooltip?: string;
+  external?: boolean;
+}
+interface Props {
+  id: string;
+  value: string;
+  options: VersionOption[];
+  align?: 'start' | 'end';
+}
+const { id, value, options, align = 'start' } = Astro.props;
+---
+
+<div class="version-selector" data-version-selector data-align={align}>
+  <button
+    type="button"
+    class="version-trigger"
+    aria-expanded="false"
+    aria-controls={`${id}-options`}
+  >
+    <span class="sr-only">Koi version: </span>
+    {options.find((option) => option.id === value)?.label}
+    <svg
+      class="version-caret"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m7 9.5 5 5 5-5" />
+    </svg>
+  </button>
+  <div
+    id={`${id}-options`}
+    class="version-options"
+    aria-label="Koi versions"
+    hidden
+  >
+    {options.map((option, index) => (
+      <div class="version-option">
+        <a
+          href={option.href}
+          data-version-id={option.id}
+          aria-current={option.id === value ? 'true' : undefined}
+          target={option.external ? '_blank' : undefined}
+          rel={option.external ? 'noopener noreferrer' : undefined}
+        >
+          {option.label}
+          {option.external && <span aria-hidden="true"> ↗</span>}
+        </a>
+        {option.tooltip && (
+          <span class="version-info">
+            <button
+              type="button"
+              aria-label={`About ${option.label}`}
+              aria-describedby={`${id}-tip-${index}`}
+            >
+              ?
+            </button>
+            <span role="tooltip" id={`${id}-tip-${index}`}>
+              {option.tooltip}
+            </span>
+          </span>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
+<style>
+  .version-selector {
+    position: relative;
+    font: 12px/1.5 var(--mono);
+  }
+  .version-trigger {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .version-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 50;
+    width: 190px;
+    max-height: min(65vh, 440px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 8px 24px #0002;
+  }
+  .version-options[hidden] {
+    display: none;
+  }
+  .version-selector[data-align='end'] .version-options {
+    left: auto;
+    right: 0;
+  }
+  .version-option {
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+  }
+  .version-option + .version-option {
+    margin-top: 4px;
+  }
+  .version-caret {
+    display: block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .version-option a {
+    flex: 1;
+    padding: 8px;
+    border-radius: 4px;
+    text-decoration: none;
+  }
+  .version-option a[aria-current] {
+    color: var(--accent);
+  }
+  .version-option:has(a[aria-current]) {
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  }
+  .version-option:hover,
+  .version-option:focus-within {
+    background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  }
+  .version-info {
+    display: inline-flex;
+    margin-right: 6px;
+  }
+  .version-info button {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+  .version-info [role='tooltip'] {
+    display: none;
+    position: fixed;
+    z-index: 60;
+    width: max-content;
+    max-width: min(240px, calc(100vw - 24px));
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: 0 8px 24px #0002;
+    font: 12px/1.5 var(--sans);
+    pointer-events: none;
+  }
+  .version-info:hover [role='tooltip'],
+  .version-info:focus-within [role='tooltip'] {
+    display: block;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+<script>
+  import '../scripts/version-selector';
+</script>

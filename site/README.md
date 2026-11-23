@@ -79,3 +79,26 @@ We want koishell.com to be well optimized for agents and LLM access. It's not un
 * humans can also visit `/agents` for guidance
 * all markdown content from `/docs` pages can be viewed raw by agents by appending the `.md` ending, e.g. `/docs/install` (human docs) --> `/docs/install.md` (agent docs)
 * any docs content can be copied as markdown
+
+## Documentation versions
+Released docs come from Git tags and share the current site's layout and styling.
+
+* `/docs` shows **Unreleased**, using the current file state in your checkout
+* `/docs/v2.0.0` shows a specific release
+* `/docs/stable` follows the newest stable release, or Unreleased before the first release
+
+These paths also work for individual docs, such as `/docs/stable/quickstart`. v1 docs live on [the old site](https://old.willcarhart.dev/docs/koi).
+
+To load released versions locally:
+```bash
+pnpm docs:prepare
+pnpm dev
+```
+
+Run preparation again and restart the dev server to pick up new releases. Prepared versions are cached in `tmp/docs-versions/` and work offline. Use `pnpm test:versions` to check versioned docs in desktop and mobile browsers.
+
+When adding links, use `await docsUrl('quickstart')` from `src/lib/documentation.ts` to choose the default version. Inside docs, pass the selected version: `await docsUrl('quickstart', version)`. This makes sure the resolved URL always respects the latest stable release.
+
+When changing a builder's behavior, review the compatibility mapping in `src/lib/versions.ts` and profiles in `src/lib/builder-profiles.ts`. Older docs should keep working with their version of koi.
+
+Netlify runs `pnpm build:production` to refresh releases and update the default links and stable aliases. No version numbers need updating by hand. See [RELEASING.md](../RELEASING.md) for deployment setup.

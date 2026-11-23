@@ -78,3 +78,12 @@ jobs:
           done
           echo 'Formula push failed; check branch permissions and rerun this job.' >&2
           exit 1
+      - name: Deploy all documentation versions
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -z "$NETLIFY_BUILD_HOOK" ]; then
+              echo '::notice::Netlify release deployment is not configured. Set NETLIFY_BUILD_HOOK after connecting the site.'
+              exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --request POST "$NETLIFY_BUILD_HOOK" > /dev/null
