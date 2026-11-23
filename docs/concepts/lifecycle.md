@@ -100,6 +100,10 @@ Once registration starts:
 
 You can call other parsing functions during preparation, before registration starts, or in business logic after parsing completes. Repeated calls, nested calls, and recursion work this way because each invocation finishes its own block before the next one begins.
 
+> [!WARNING] Trap handlers
+>
+> Avoid calling koi declaration or parsing APIs from trap handlers that can interrupt registration, parsing, or the immediate parser guard. Trap handlers execute in the same shell and can overwrite the shared pending registration buffer or `koi_status`. The parser guard does not provide isolation against such reentrant calls. Ordinary cleanup traps that do not invoke koi are unaffected by this limitation.
+
 > [!NOTE] Conditional arguments
 >
 > In rare scenarios you may want to conditionally change a function's argument interface. Koi technically supports this, but be careful!
