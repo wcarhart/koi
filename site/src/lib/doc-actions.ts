@@ -12,14 +12,11 @@ export function docActionLinks(docPath: string) {
   const markdown = `${productionSite}${docPath}.md`;
   const prompt = `I'm using Koi, a Bash argument parsing library.
 
-Read the following documentation and help me understand
-or use the functionality it describes:
+Read the following documentation and help me understand or use the functionality it describes:
 
 ${markdown}
 
-Use the official Koi documentation at
-${index} for any additional context.
-Don't invent APIs or syntax that aren't documented.`;
+Use the official Koi documentation at ${index} for any additional context. Don't invent APIs or syntax that aren't documented.`;
   const chatgpt = new URL(newChatUrls.chatgpt);
   chatgpt.searchParams.set('q', prompt);
   const claude = new URL(newChatUrls.claude);
