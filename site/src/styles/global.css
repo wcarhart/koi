@@ -1929,6 +1929,13 @@ html:not(.js) [data-open-menu] {
 .cta-arrow {
   flex: 0 0 20px;
 }
+.button .cta-arrow {
+  /* Reserve only the idle chevron's 6px slot; let its extension use the padding. */
+  margin-right: -14px;
+  overflow: visible;
+  /* Move toward the label without changing the button's layout footprint. */
+  transform: translateX(-6px);
+}
 
 .api-code-trigger,
 .prose a.api-code-trigger {
@@ -1991,6 +1998,7 @@ html:not(.js) [data-open-menu] {
   border-radius: 50%;
 }
 .api-reference-card .button .cta-arrow {
+  margin-right: 0;
   /* Center the visible arrow, whose bounds run from x=5 to x=17. */
   transform: translateX(-1px);
 }
