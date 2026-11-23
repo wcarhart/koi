@@ -14,6 +14,8 @@ Once installed, just `source` koi to use it:
 source koi
 ```
 
+Nervous to source an unknown script? _[Review the source >](/review-source)_
+
 ## Agent skill
 
 Install the [Koi skill](/skill.md) to help your coding agent use koi:

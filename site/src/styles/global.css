@@ -2042,10 +2042,17 @@ html:not(.js) [data-open-menu] {
     opacity 180ms ease,
     stroke-dashoffset 180ms ease;
 }
-.button:is(:hover, :focus-visible) .cta-arrow-chevron {
+.text-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.button:is(:hover, :focus-visible) .cta-arrow-chevron,
+.text-cta:is(:hover, :focus-visible) .cta-arrow-chevron {
   transform: translateX(12px);
 }
-.button:is(:hover, :focus-visible) .cta-arrow-shaft {
+.button:is(:hover, :focus-visible) .cta-arrow-shaft,
+.text-cta:is(:hover, :focus-visible) .cta-arrow-shaft {
   opacity: 1;
   stroke-dashoffset: 0;
 }
@@ -2216,10 +2223,12 @@ html:not(.js) [data-open-menu] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .button:is(:hover, :focus-visible) .cta-arrow-chevron {
+  .button:is(:hover, :focus-visible) .cta-arrow-chevron,
+  .text-cta:is(:hover, :focus-visible) .cta-arrow-chevron {
     transform: none;
   }
-  .button:is(:hover, :focus-visible) .cta-arrow-shaft {
+  .button:is(:hover, :focus-visible) .cta-arrow-shaft,
+  .text-cta:is(:hover, :focus-visible) .cta-arrow-shaft {
     opacity: 0;
   }
 }

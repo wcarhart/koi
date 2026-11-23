@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { installationReviewLink } from './source-review';
 import {
   getDocs,
   expandIncludes,
@@ -94,7 +95,10 @@ export async function getStandaloneInstallation() {
   const { content } = matter(
     readFileSync(path.join(version.docsRoot, doc.file), 'utf8'),
   );
-  const body = expandIncludes(content, version.docsRoot);
+  const body = expandIncludes(
+    installationReviewLink(content, version.id),
+    version.docsRoot,
+  );
   const links = new Map(
     docs.flatMap((entry) => {
       const original = entry.slug ? `/docs/${entry.slug}` : '/docs';

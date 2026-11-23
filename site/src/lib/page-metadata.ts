@@ -10,6 +10,7 @@ export function publishedPagePaths(docs: readonly PublishedDoc[]): string[] {
     ...new Set([
       '/',
       '/install',
+      '/review-source',
       '/agents',
       '/docs',
       ...docs.map((doc) => doc.url),
@@ -33,7 +34,9 @@ export function pageMetadata(pathname: string, docs: readonly PublishedDoc[]) {
     canonical: `${siteOrigin}${path}`,
     describedBy: covered ? index : undefined,
     markdownUrl:
-      covered && path !== '/' ? `${siteOrigin}${path}.md` : undefined,
+      covered && path !== '/' && path !== '/review-source'
+        ? `${siteOrigin}${path}.md`
+        : undefined,
     noindex: path === '/playground' || path === '/404' || path === '/404.html',
   };
 }

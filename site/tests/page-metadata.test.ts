@@ -26,7 +26,10 @@ test('metadata treats documentation coverage separately from Markdown availabili
   for (const path of publishedPagePaths(docs).filter((path) => path !== '/')) {
     const metadata = pageMetadata(path, docs);
     assert.equal(metadata.canonical, `https://koishell.com${path}`);
-    assert.equal(metadata.markdownUrl, `${metadata.canonical}.md`);
+    assert.equal(
+      metadata.markdownUrl,
+      path === '/review-source' ? undefined : `${metadata.canonical}.md`,
+    );
     assert.equal(metadata.describedBy, home.describedBy);
     assert.equal(metadata.noindex, false);
   }
@@ -47,6 +50,7 @@ test('metadata treats documentation coverage separately from Markdown availabili
 });
 
 test('Markdown responses and deployment rules link back to the equivalent HTML pages', async () => {
+  const docs = await getDocs();
   const responses = [
     { path: '/docs', response: await introduction() },
     { path: '/install', response: await installation() },
@@ -59,7 +63,9 @@ test('Markdown responses and deployment rules link back to the equivalent HTML p
   const rules = await (await deploymentHeaders()).text();
   assert.equal(
     responses.length,
-    publishedPagePaths(await getDocs()).length - 1,
+    publishedPagePaths(docs).filter(
+      (path) => pageMetadata(path, docs).markdownUrl,
+    ).length,
   );
   for (const { path, response } of responses) {
     assert.equal(response.headers.get('link'), markdownLink(path));

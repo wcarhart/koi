@@ -8,7 +8,8 @@ import GithubSlugger from 'github-slugger';
 import { createHighlighter } from 'shiki';
 import { usageLanguage } from './usage-language';
 import { shellLanguage } from './shell-language';
-import { copyIcon, escapeHtml } from './html';
+import { copyIcon, escapeHtml, ctaArrow } from './html';
+import { installationReviewLink } from './source-review';
 import {
   versionInstallMethods,
   renderInstallBox,
@@ -217,6 +218,9 @@ export async function renderMarkdown(
         const external =
           ['http:', 'https:'].includes(destination.protocol) &&
           destination.origin !== 'https://koishell.com';
+        if (destination.pathname === '/review-source' && !external) {
+          return `<a class="text-cta" href="${escapeHtml(target)}">${this.parser.parseInline(tokens).replace(/(?:&gt;|>)$/, '')}${ctaArrow}</a>`;
+        }
         return `<a href="${escapeHtml(target)}"${title ? ` title="${escapeHtml(title)}"` : ''}${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${this.parser.parseInline(tokens)}</a>`;
       },
     },
@@ -280,7 +284,12 @@ async function loadDocs(version: KoiVersion): Promise<Doc[]> {
     )
       throw new Error(`Invalid frontmatter: ${entry.file}`);
     if (data.draft) continue;
-    const body = expandIncludes(content, docsRoot);
+    const body = expandIncludes(
+      entry.slug === 'install'
+        ? installationReviewLink(content, version.id)
+        : content,
+      docsRoot,
+    );
     const pieces = body.split(exampleMarker);
     if (
       pieces.length > 2 ||
@@ -367,6 +376,7 @@ export function validateLinks(docs: Doc[], version = getVersion()): void {
   const standalone = new Set([
     '/',
     '/install',
+    '/review-source',
     '/playground',
     '/agents',
     '/llms.txt',
@@ -387,7 +397,9 @@ export function validateLinks(docs: Doc[], version = getVersion()): void {
           throw new Error(`Broken heading link ${href} in ${doc.file}`);
         return;
       }
-      const [route, hash] = href.split('#');
+      const destination = new URL(href, 'https://koishell.com');
+      const route = destination.pathname;
+      const hash = destination.hash.slice(1);
       if (routes.has(route)) {
         if (hash && !routes.get(route)!.has(hash))
           throw new Error(`Broken heading link ${href} in ${doc.file}`);

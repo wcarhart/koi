@@ -59,6 +59,8 @@ test('authorship card supports keyboard access and Escape without closing the me
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
+  await expect(card.getByRole('link', { name: 'February 2020' })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(card).toBeHidden();
 });
 
@@ -92,6 +94,13 @@ test('authorship card fits the viewport and uses the permanent portrait in both 
     'https://github.com/wcarhart/koi/issues/new',
   );
   await expect(issue).toHaveAttribute('target', '_blank');
+  await expect(card.locator(':scope > p')).toHaveCount(2);
+  await expect(
+    card.getByRole('link', { name: 'February 2020' }),
+  ).toHaveAttribute(
+    'href',
+    'https://github.com/wcarhart/koi/commit/f7384d5015055dc76416bc12664680c912351ae6',
+  );
   const portrait = card.getByRole('img', { name: 'Will Carhart' });
   await expect(portrait).toHaveAttribute('src', '/images/wcarhart.png');
   await expect

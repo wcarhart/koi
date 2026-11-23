@@ -10,6 +10,7 @@ test('initial HTML publishes self canonicals, discovery, and only real Markdown 
     ...new Set([
       '/',
       '/install',
+      '/review-source',
       '/agents',
       '/docs',
       ...docsIndexes.map((index) => index.url),
@@ -56,7 +57,9 @@ test('initial HTML publishes self canonicals, discovery, and only real Markdown 
     expect(metadata.ogTitle, path).toBeTruthy();
     expect(metadata.noindex, path).toBeUndefined();
     expect(metadata.markdown, path).toEqual(
-      path === '/' ? [] : [`https://koishell.com${path}.md`],
+      path === '/' || path === '/review-source'
+        ? []
+        : [`https://koishell.com${path}.md`],
     );
     for (const alternate of metadata.markdown) {
       const markdownPath = new URL(alternate!).pathname;

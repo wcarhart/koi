@@ -30,6 +30,20 @@ try {
       recursive: true,
     });
     cpSync(path.join(repository, 'koi'), path.join(snapshot, 'koi'));
+    const library = path.join(snapshot, 'koi');
+    writeFileSync(
+      library,
+      readFileSync(library, 'utf8') + `\n# Source fixture for ${id}\n`,
+    );
+    // Exercise the shared rendering overlay against docs published before it existed.
+    const installation = path.join(snapshot, 'docs/getting-started/install.md');
+    writeFileSync(
+      installation,
+      readFileSync(installation, 'utf8').replace(
+        /^\*\*Nervous to source an unknown script\?\*\*.*\n\n/m,
+        '',
+      ),
+    );
     const introduction = path.join(snapshot, 'docs/introduction.md');
     writeFileSync(
       introduction,
@@ -86,6 +100,7 @@ try {
       'playwright',
       'test',
       'versions.spec.ts',
+      'review-source.spec.ts',
       ...process.argv.slice(2),
     ],
     {

@@ -23,7 +23,9 @@ const { id, value, options, align = 'start' } = Astro.props;
     aria-controls={`${id}-options`}
   >
     <span class="sr-only">Koi version: </span>
-    {options.find((option) => option.id === value)?.label}
+    <span class="version-label">
+      {options.find((option) => option.id === value)?.label}
+    </span>
     <svg
       class="version-caret"
       viewBox="0 0 24 24"

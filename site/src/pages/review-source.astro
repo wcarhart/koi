@@ -1,0 +1,150 @@
+---
+import { readFileSync } from 'node:fs';
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import VersionSelector from '../components/VersionSelector.astro';
+import { copyIcon } from '../lib/html';
+import { getDefaultVersion, getVersions } from '../lib/versions';
+import { sourceReviewPrompt, sourceReviewUrl } from '../lib/source-review';
+
+const version = getDefaultVersion();
+const versions = getVersions().map(({ id, label, sourceUrl }) => ({
+  id,
+  label,
+  sourceUrl,
+  href: sourceReviewUrl(id),
+}));
+const prompt = sourceReviewPrompt(readFileSync(version.sourceFile, 'utf8'));
+---
+
+<Base
+  title="Review the source"
+  description="Read koi before sourcing it, or copy a prompt to ask an agent to review it."
+>
+  <Header />
+  <main
+    id="main"
+    class="standalone prose review-source"
+    data-default-version={version.id}
+  >
+    <h1>Review the source</h1>
+    <p>
+      <strong>Nervous to source an unknown script?</strong> Great instincts.{' '}
+      <code>koi</code> is a single file you source that includes the library
+      functions necessary for powering the <code>koi::*</code> API functions.
+      You can manually review the file{' '}
+      <a
+        href="https://github.com/wcarhart/koi/blob/master/koi"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        in GitHub
+      </a>
+      .
+    </p>
+    <p>
+      Or, if you're lazy like me, ask an agent to do it for you with the prompt
+      below. The entirety of <code>koi</code> is included in the prompt.{' '}
+      <em>Note that AI review is not a safety guarantee.</em>
+    </p>
+    <div class="review-version-row">
+      <VersionSelector
+        id="review-version"
+        value={version.id}
+        options={versions}
+        align="end"
+      />
+    </div>
+    <p
+      class="review-status"
+      role="status"
+      aria-live="polite"
+      data-review-status
+    ></p>
+    <button type="button" class="button review-retry" data-review-retry hidden>
+      Retry
+    </button>
+    <div class="code-block review-prompt">
+      <div class="code-label">
+        <span>Text</span>
+        <div class="review-actions">
+          <button
+            type="button"
+            class="copy-button"
+            data-review-provider="chatgpt"
+            aria-label="Open ChatGPT"
+            title="Open ChatGPT"
+          >
+            <Icon name="openai" />
+          </button>
+          <button
+            type="button"
+            class="copy-button"
+            data-review-provider="claude"
+            aria-label="Open Claude"
+            title="Open Claude"
+          >
+            <Icon name="claude" />
+          </button>
+          <button
+            type="button"
+            class="copy-button"
+            data-copy-code
+            aria-label="Copy review prompt"
+          >
+            <Fragment set:html={copyIcon} />
+          </button>
+        </div>
+      </div>
+      <pre
+        tabindex="0"
+        aria-label="Source review prompt"
+      ><code>{prompt}</code></pre>
+    </div>
+    <script
+      type="application/json"
+      id="review-versions"
+      set:html={JSON.stringify(versions).replaceAll('<', '\\u003c')}
+    />
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .review-version-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 28px;
+  }
+  .review-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .review-actions button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .review-actions button:disabled {
+    opacity: 0.5;
+  }
+  .review-prompt pre {
+    max-height: 70vh;
+    white-space: pre;
+  }
+  .review-status:empty {
+    display: none;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  :global(html:not(.js)) .review-actions,
+  :global(html:not(.js)) .review-version-row {
+    display: none;
+  }
+</style>
+
+<script>
+  import '../scripts/review-source';
+</script>
