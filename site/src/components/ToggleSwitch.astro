@@ -3,24 +3,59 @@ interface Props {
   id: string;
   name: string;
   label: string;
+  checked?: boolean;
+  disabled?: boolean;
+  changeHook?: string;
+  labelFirst?: boolean;
+  hint?: string;
 }
-const { id, name, label } = Astro.props;
+const {
+  id,
+  name,
+  label,
+  checked = false,
+  disabled = false,
+  changeHook,
+  labelFirst = false,
+  hint,
+} = Astro.props;
 ---
 
-<label class="toggle-label" for={id}>
+<div class:list={['toggle-label', { 'switch-label': labelFirst }]}>
   <button
     {id}
     {name}
     type="button"
     class="argument-switch"
     role="switch"
-    aria-checked="false"
+    aria-checked={checked}
+    disabled={disabled}
+    data-switch={changeHook}
     aria-labelledby={`${id}-label`}
   >
     <span aria-hidden="true"></span>
   </button>
-  <span id={`${id}-label`}>{label}</span>
-</label>
+  <span class="toggle-copy">
+    <label id={`${id}-label`} for={id}>
+      <slot name="label">{label}</slot>
+    </label>
+    {hint && (
+      <span class="toggle-hint" data-tooltip>
+        <button
+          type="button"
+          class="toggle-hint-button"
+          aria-label={`About ${label}`}
+          aria-describedby={`${id}-hint`}
+        >
+          ?
+        </button>
+        <span class="toggle-hint-text" id={`${id}-hint`} role="tooltip">
+          <slot name="hint">{hint}</slot>
+        </span>
+      </span>
+    )}
+  </span>
+</div>
 
 <style>
   .toggle-label {
@@ -28,7 +63,61 @@ const { id, name, label } = Astro.props;
     align-items: center;
     gap: 12px;
     font-size: 13px;
+  }
+  .toggle-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toggle-copy label {
+    font: inherit;
+    margin: 0;
     cursor: pointer;
+  }
+  .toggle-hint {
+    position: relative;
+    display: inline-flex;
+  }
+  .toggle-hint-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--muted);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    font: 10px/1 var(--sans);
+    color: var(--muted);
+  }
+  .toggle-hint-text {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: -80px;
+    width: 240px;
+    max-width: 65vw;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    font: 11px/1.6 var(--sans);
+    visibility: hidden;
+    opacity: 0;
+    z-index: 4;
+  }
+  .toggle-hint:not([data-tooltip-dismissed]):is(:hover, :focus-within)
+    .toggle-hint-text {
+    visibility: visible;
+    opacity: 1;
+  }
+  .switch-label {
+    justify-content: space-between;
+    margin-top: 18px;
+  }
+  .switch-label button {
+    order: 1;
   }
   button:focus-visible {
     outline: 2px solid var(--accent);

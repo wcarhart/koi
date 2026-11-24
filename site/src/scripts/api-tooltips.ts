@@ -67,6 +67,8 @@ function open(trigger: HTMLElement) {
   if (!reference) return;
   close();
   active = trigger;
+  const host = trigger.closest('dialog[open]') || document.body;
+  if (card.parentElement !== host) host.append(card, bridge);
   title.textContent = reference.title;
   description.textContent = reference.description;
   usage.innerHTML = reference.usageHtml;
@@ -90,19 +92,26 @@ function positionCard() {
     return;
   }
   const bounds = card.getBoundingClientRect();
+  const host = active.closest('dialog[open]')?.getBoundingClientRect();
+  const area = host ?? {
+    left: 0,
+    top: 0,
+    right: window.innerWidth,
+    bottom: window.innerHeight,
+  };
   const margin = 12;
   const below = rect.bottom + 8;
   const top =
-    below + bounds.height <= window.innerHeight - margin
+    below + bounds.height <= area.bottom - margin
       ? below
       : rect.top - bounds.height - 8;
   const left = Math.max(
-    margin,
-    Math.min(rect.left, window.innerWidth - bounds.width - margin),
+    area.left + margin,
+    Math.min(rect.left, area.right - bounds.width - margin),
   );
   const cardTop = Math.max(
-    margin,
-    Math.min(top, window.innerHeight - bounds.height - margin),
+    area.top + margin,
+    Math.min(top, area.bottom - bounds.height - margin),
   );
   card.style.left = `${left}px`;
   card.style.top = `${cardTop}px`;
@@ -210,3 +219,18 @@ document.addEventListener(
   true,
 );
 window.addEventListener('resize', () => close());
+
+// A tooltip belongs to its trigger's native modal while that modal is open.
+document.addEventListener(
+  'close',
+  (event) => {
+    if (
+      event.target instanceof HTMLDialogElement &&
+      card.parentElement === event.target
+    ) {
+      close();
+      document.body.append(card, bridge);
+    }
+  },
+  true,
+);

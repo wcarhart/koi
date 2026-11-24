@@ -2,6 +2,8 @@
 import DocToolbar from './DocToolbar.astro';
 import DocsShell from './DocsShell.astro';
 import Builder from './Builder.astro';
+import TryItDialog from './TryItDialog.astro';
+import { ctaArrow } from '../lib/html';
 import InstallationContent from './InstallationContent.astro';
 import KoiMark from './KoiMark.astro';
 import { getDocs } from '../lib/content';
@@ -13,46 +15,97 @@ interface Props {
 const { slug = '', version = getVersion() } = Astro.props;
 const docs = await getDocs(version);
 const selected = docs.find((d) => d.slug === slug)!;
+const demoProfiles = {
+  addarg: { id: 'try-addarg', api: 'koi::add_arg' },
+  addcommand: { id: 'try-addcommand', api: 'koi::add_command' },
+  addgroup: { id: 'try-addgroup', api: 'koi::add_group' },
+  adddependency: { id: 'try-adddependency', api: 'koi::add_dependency' },
+};
+const demoFor = (doc: (typeof docs)[number]) => {
+  if (
+    (doc.interactive !== 'addarg' &&
+      doc.interactive !== 'addcommand' &&
+      doc.interactive !== 'addgroup' &&
+      doc.interactive !== 'adddependency') ||
+    !version.builderProfile ||
+    !doc.prose.includes('data-try-it-callout')
+  )
+    return undefined;
+  return { ...demoProfiles[doc.interactive], kind: doc.interactive };
+};
+// Legacy example anchors belong to the page, not its modal copy.
+const modalExample = (html: string) =>
+  html.replace(
+    /(?:<p>)?<span\b[^>]*data-example-alias[^>]*><\/span>(?:<\/p>)?\s*/g,
+    '',
+  );
 ---
 
 <DocsShell selected={selected} version={version}>
-  {docs.map((doc, index) => (
-    <section
-      id={doc.id}
-      class={`doc-section ${doc.layout}`}
-      data-doc-section
-      data-url={doc.url}
-      data-title={doc.title}
-    >
-      <DocToolbar doc={doc} index={index} />
-      <div class="doc-grid">
-        <div class="doc-prose prose">
-          <h1>{doc.title}</h1>
-          <p class="doc-description">{doc.description}</p>
-          {doc.slug === 'install' ? (
-            <InstallationContent html={doc.prose} version={version} />
-          ) : (
-            <Fragment set:html={doc.prose} />
-          )}
-          {doc.slug === '' && (
-            <KoiMark variant="filled" class="intro-signoff" />
-          )}
-          {doc.interactive && (
-            <Builder kind={doc.interactive} profile={version.builderProfile} />
+  {docs.map((doc, index) => {
+    const demo = demoFor(doc);
+    return (
+      <section
+        id={doc.id}
+        class={`doc-section ${doc.layout}`}
+        data-doc-section
+        data-url={doc.url}
+        data-title={doc.title}
+      >
+        <DocToolbar doc={doc} index={index} />
+        <div class="doc-grid">
+          <div class="doc-prose prose">
+            <h1>{doc.title}</h1>
+            <p class="doc-description">{doc.description}</p>
+            {doc.slug === 'install' ? (
+              <InstallationContent html={doc.prose} version={version} />
+            ) : (
+              <Fragment set:html={doc.prose} />
+            )}
+            {doc.slug === '' && (
+              <KoiMark variant="filled" class="intro-signoff" />
+            )}
+            {doc.interactive && !demo && (
+              <Builder
+                kind={doc.interactive}
+                profile={version.builderProfile}
+              />
+            )}
+          </div>
+          {doc.example && (
+            <aside class="doc-example" aria-label={`${doc.title} examples`}>
+              <div class="example-sticky prose">
+                <Fragment set:html={doc.example} />
+              </div>
+            </aside>
           )}
         </div>
-        {doc.example && (
-          <aside class="doc-example" aria-label={`${doc.title} examples`}>
-            <div class="example-sticky prose">
-              <Fragment set:html={doc.example} />
-            </div>
-          </aside>
+        {demo && (
+          <TryItDialog id={demo.id} api={demo.api}>
+            <Builder
+              slot="controller"
+              kind={demo.kind}
+              profile={version.builderProfile}
+            />
+            <p slot="note">
+              This is a live demo of <code>{demo.api}</code>. Use the controls
+              above to play with the API and modify the sample script to the
+              right in real time. Want to play with more koi APIs? Check out{' '}
+              <a class="text-cta" href="/playground">
+                the terminal <Fragment set:html={ctaArrow} />
+              </a>
+            </p>
+            <Fragment slot="preview" set:html={modalExample(doc.example)} />
+          </TryItDialog>
         )}
-      </div>
-    </section>
-  ))}
+      </section>
+    );
+  })}
 </DocsShell>
 <script>
   import '../scripts/builders';
   import '../scripts/argument-explorer';
+  import '../scripts/relationship-explorer';
+  import '../scripts/command-explorer';
+  import '../scripts/try-it';
 </script>

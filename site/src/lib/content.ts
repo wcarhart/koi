@@ -32,7 +32,7 @@ export interface ManifestEntry {
   file: string;
   slug: string;
   group: string;
-  interactive?: 'addarg' | 'help';
+  interactive?: 'addarg' | 'addgroup' | 'addcommand' | 'adddependency' | 'help';
 }
 export interface Doc extends ManifestEntry {
   title: string;
@@ -86,7 +86,12 @@ export function validateManifest(entries: ManifestEntry[]): void {
       throw new Error(`Duplicate or invalid source: ${entry.file}`);
     if (!entry.group?.trim())
       throw new Error(`Missing navigation group: ${entry.file}`);
-    if (entry.interactive && !['addarg', 'help'].includes(entry.interactive))
+    if (
+      entry.interactive &&
+      !['addarg', 'addgroup', 'addcommand', 'adddependency', 'help'].includes(
+        entry.interactive,
+      )
+    )
       throw new Error(`Unknown interactive component: ${entry.interactive}`);
     slugs.add(entry.slug);
     files.add(entry.file);

@@ -1,3 +1,4 @@
+import { openArgumentTryIt } from '../fixtures/try-it';
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -6,6 +7,7 @@ test('argument collection adds all kinds, validates drafts, and keeps highlighte
 }, testInfo) => {
   await page.goto('/docs/reference/add_arg#explore');
   const section = page.locator('#doc-reference-add_arg');
+  await openArgumentTryIt(page);
   const explorer = section.locator('[data-argument-explorer]');
   const code = section.locator('.doc-example code').first();
   const help = section.locator('.doc-example code').nth(1);
@@ -241,6 +243,7 @@ test('editing either spelling clears their paired errors without clearing unrela
   page,
 }) => {
   await page.goto('/docs/reference/add_arg#explore');
+  await openArgumentTryIt(page);
   const explorer = page.locator('[data-argument-explorer]');
   await explorer
     .getByRole('button', { name: 'Register an argument', exact: true })

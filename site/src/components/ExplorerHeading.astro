@@ -1,0 +1,47 @@
+---
+import ExplorerAction from './ExplorerAction.astro';
+interface Props {
+  title: string;
+  resetLabel: string;
+  subtitle?: string;
+}
+const { title, resetLabel, subtitle } = Astro.props;
+---
+
+<div
+  class:list={[
+    'builder-heading',
+    { 'explorer-heading-with-subtitle': subtitle },
+  ]}
+>
+  {subtitle ? (
+    <div class="explorer-heading-copy">
+      <span class="argument-subtitle">{title}</span>
+      <p class="builder-note explorer-heading-subtitle">{subtitle}</p>
+    </div>
+  ) : (
+    <span class="argument-subtitle">{title}</span>
+  )}
+  <ExplorerAction label={resetLabel} action="reset" icon="reset" />
+</div>
+
+<style>
+  .explorer-heading-with-subtitle {
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .explorer-heading-copy {
+    flex: 1;
+    min-width: 0;
+  }
+  .explorer-heading-with-subtitle :global(.argument-action) {
+    flex-shrink: 0;
+  }
+  .explorer-heading-copy .argument-subtitle {
+    display: block;
+  }
+  .explorer-heading-subtitle {
+    margin: 4px 0 0 !important;
+  }
+</style>

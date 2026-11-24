@@ -1,6 +1,6 @@
 import { type ArgumentSettings } from '../lib/builders';
 import { getBuilderProfile } from '../lib/builder-profiles';
-import { highlightScript } from './highlight';
+import { explorerPreview, clearFieldError, showFieldErrors } from './explorer';
 import { initDropdown } from './dropdown';
 
 for (const explorer of document.querySelectorAll<HTMLElement>(
@@ -15,24 +15,21 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     argumentCollectionErrors,
     defaultArgument,
   } = profile;
-  const section = explorer.closest('[data-doc-section]')!;
-  const outputs = section.querySelectorAll<HTMLElement>(
-    '.doc-example [data-argument-sample] .code-block code',
+  const dialog = explorer.closest<HTMLDialogElement>('[data-try-dialog]');
+  const updatePreview = explorerPreview(
+    explorer,
+    'argument',
+    dialog
+      ? {
+          previews: [
+            ...explorer
+              .closest('[data-doc-section]')!
+              .querySelectorAll<HTMLElement>('[data-argument-sample]'),
+          ],
+          reserveSpace: false,
+        }
+      : undefined,
   );
-  const prose = section.querySelector<HTMLElement>('.doc-prose')!;
-  const demo = section.querySelector<HTMLElement>('.example-sticky')!;
-  // Keep the demo pinned until the editor reaches the top, even when the demo is taller.
-  const reserveDemoSpace = () => {
-    const inset = parseFloat(getComputedStyle(demo).top) || 0;
-    const space = Math.max(
-      0,
-      demo.offsetHeight - explorer.offsetHeight + inset,
-    );
-    prose.style.setProperty('--argument-demo-space', `${space}px`);
-  };
-  const demoResize = new ResizeObserver(reserveDemoSpace);
-  demoResize.observe(demo);
-  demoResize.observe(explorer);
   const list = explorer.querySelector<HTMLElement>('[data-argument-list]')!;
   const rows = explorer.querySelector<HTMLUListElement>('.argument-rows')!;
   const form = explorer.querySelector<HTMLFormElement>('form')!;
@@ -103,11 +100,11 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
   const closeChoices = () => {
     for (const { control } of dropdowns) control.close();
   };
-  const close = () => {
+  const close = (restoreFocus = true) => {
     form.hidden = true;
     list.hidden = false;
     closeChoices();
-    invoker?.focus({ preventScroll: true });
+    if (restoreFocus) invoker?.focus({ preventScroll: true });
   };
   const open = (index: number, button: HTMLElement) => {
     editing = index;
@@ -135,9 +132,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     ] as const)
       input(name).value = draft[name];
     form.querySelectorAll('[aria-invalid]').forEach((field) => {
-      field.removeAttribute('aria-invalid');
-      field.removeAttribute('aria-description');
-      field.classList.remove('argument-invalid-shake');
+      clearFieldError(field);
     });
     form.querySelector('[data-editor-title]')!.textContent =
       index < 0 ? 'Register an argument' : 'Edit argument';
@@ -191,8 +186,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       item.append(button, remove);
       rows.append(item);
     });
-    void highlightScript(outputs[0], argumentScript(args));
-    outputs[1].textContent = argumentHelp(args).trimEnd();
+    updatePreview(argumentScript(args), argumentHelp(args));
   };
   explorer
     .querySelector<HTMLButtonElement>('[data-add]')!
@@ -203,7 +197,8 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     args = [{ ...defaultArgument }];
     render();
   });
-  form.querySelector('[data-cancel]')!.addEventListener('click', close);
+  form.querySelector('[data-cancel]')!.addEventListener('click', () => close());
+  dialog?.addEventListener('try-it-close', () => close(false));
   form.querySelectorAll<HTMLButtonElement>('[data-switch]').forEach((button) =>
     button.addEventListener('click', () => {
       const key = button.dataset.switch as 'required' | 'useDefault';
@@ -225,9 +220,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
       input('long').getAttribute('aria-invalid') === 'true';
     const fields = pairedSpellings ? [input('short'), input('long')] : [field];
     for (const edited of fields) {
-      edited.removeAttribute('aria-invalid');
-      edited.removeAttribute('aria-description');
-      edited.classList.remove('argument-invalid-shake');
+      clearFieldError(edited);
     }
   });
   form.addEventListener('submit', (event) => {
@@ -273,21 +266,7 @@ for (const explorer of document.querySelectorAll<HTMLElement>(
     }
     if (draft.useDefault && !draft.defaultValue)
       errors.defaultValue = 'Provide a default value.';
-    const invalid = Object.entries(errors);
-    for (const [name, message] of invalid) {
-      const field = input(name);
-      field.setAttribute('aria-invalid', 'true');
-      field.setAttribute('aria-description', message);
-      field.classList.remove('argument-invalid-shake');
-      // Restart feedback on every unsuccessful submission.
-      void field.offsetWidth;
-      field.classList.add('argument-invalid-shake');
-    }
-    if (invalid.length) {
-      input(invalid[0][0]).focus({ preventScroll: true });
-      input(invalid[0][0]).scrollIntoView({ block: 'nearest' });
-      return;
-    }
+    if (showFieldErrors(form, errors)) return;
     args = next;
     close();
     render();

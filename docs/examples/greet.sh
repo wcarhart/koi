@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source ./koi
+source koi
 
 # Print the parsed value
 # Usage: main "$@"

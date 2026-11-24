@@ -1,0 +1,49 @@
+---
+interface Props {
+  id: string;
+  label: string;
+  members: { destination: string }[];
+  selected: string[];
+  description?: string;
+  excluded?: string;
+}
+const { id, label, members, selected, description, excluded } = Astro.props;
+---
+
+<fieldset
+  class="explorer-members"
+  id={id}
+  aria-describedby={description ? `${id}-description` : undefined}
+>
+  <legend>{label}</legend>
+  {description && (
+    <p
+      class="explorer-description explorer-members-description"
+      id={`${id}-description`}
+    >
+      {description}
+    </p>
+  )}
+  {members.map((member) => (
+    <label
+      class="explorer-member"
+      for={`${id}-${member.destination}`}
+      hidden={member.destination === excluded}
+    >
+      <input
+        id={`${id}-${member.destination}`}
+        type="checkbox"
+        name="members"
+        value={member.destination}
+        checked={selected.includes(member.destination)}
+      />
+      <span class="argument-spelling">--{member.destination}</span>
+    </label>
+  ))}
+  <p
+    class="explorer-field-error"
+    data-member-error
+    role="status"
+    aria-live="polite"
+  ></p>
+</fieldset>

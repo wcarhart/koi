@@ -1,0 +1,9 @@
+Usage: app [-h] COMMAND
+
+Commands:
+  deploy  Deploy services
+  config  Manage configuration
+  help    Show this help
+
+Options:
+  -h, --help  Show this help

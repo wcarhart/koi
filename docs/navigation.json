@@ -86,17 +86,20 @@
   {
     "file": "reference/add_command.md",
     "slug": "reference/add_command",
-    "group": "Reference"
+    "group": "Reference",
+    "interactive": "addcommand"
   },
   {
     "file": "reference/add_group.md",
     "slug": "reference/add_group",
-    "group": "Reference"
+    "group": "Reference",
+    "interactive": "addgroup"
   },
   {
     "file": "reference/add_dependency.md",
     "slug": "reference/add_dependency",
-    "group": "Reference"
+    "group": "Reference",
+    "interactive": "adddependency"
   },
   {
     "file": "reference/add_validator.md",

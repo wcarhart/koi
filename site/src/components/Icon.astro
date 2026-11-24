@@ -22,6 +22,7 @@ interface Props {
     | 'moon'
     | 'pause'
     | 'play'
+    | 'play-solid'
     | 'reset'
     | 'search'
     | 'menu'
@@ -46,6 +47,7 @@ const { name } = Astro.props;
 const paths = {
   pause: 'M8 5v14M16 5v14',
   play: 'M8 5l11 7-11 7Z',
+  'play-solid': 'M8 5l11 7-11 7Z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   warning: 'm12 3 10 18H2ZM12 9v5m0 3h.01',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
@@ -84,8 +86,10 @@ const iconPath = name in paths ? paths[name as keyof typeof paths] : undefined;
     width="20"
     height="20"
     viewBox={name === 'github' ? '0 0 16 16' : '0 0 24 24'}
-    fill={name === 'github' ? 'currentColor' : 'none'}
-    stroke={name === 'github' ? 'none' : 'currentColor'}
+    fill={name === 'github' || name === 'play-solid' ? 'currentColor' : 'none'}
+    stroke={
+      name === 'github' || name === 'play-solid' ? 'none' : 'currentColor'
+    }
     stroke-width={name === 'more' ? '3' : '1.5'}
     stroke-linecap="round"
     stroke-linejoin="round"

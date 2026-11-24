@@ -1,0 +1,56 @@
+---
+import Icon from './Icon.astro';
+import KoiMark from './KoiMark.astro';
+import TryItButton from './TryItButton.astro';
+interface Props {
+  id: string;
+  api: string;
+}
+const { id, api } = Astro.props;
+---
+
+<template data-try-button={id}>
+  <TryItButton dialogId={id} />
+</template>
+<dialog
+  id={id}
+  class="try-dialog"
+  data-try-dialog
+  aria-labelledby={`${id}-title`}
+  aria-describedby={`${id}-subtitle`}
+>
+  <header class="try-dialog-header">
+    <div class="try-dialog-title">
+      <h2 id={`${id}-title`} tabindex="-1">
+        Demo
+      </h2>
+      <p id={`${id}-subtitle`}>
+        <code>{api}</code>
+      </p>
+    </div>
+    <button
+      type="button"
+      class="icon-button try-dialog-close"
+      data-close-try
+      aria-label="Close editor"
+    >
+      <Icon name="close" />
+    </button>
+  </header>
+  <div class="try-dialog-body">
+    <div class="try-dialog-controller prose">
+      <slot name="controller" />
+      {Astro.slots.has('note') && (
+        <footer class="try-dialog-note">
+          <KoiMark variant="grid" class="try-dialog-mark" />
+          <div>
+            <slot name="note" />
+          </div>
+        </footer>
+      )}
+    </div>
+    <div class="try-dialog-preview prose">
+      <slot name="preview" />
+    </div>
+  </div>
+</dialog>

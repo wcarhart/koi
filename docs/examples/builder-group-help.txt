@@ -1,0 +1,7 @@
+Usage: app.sh [-h] [--json | --yaml | --toml]
+
+Options:
+  -h, --help  Show this help
+  --json      Output JSON
+  --yaml      Output YAML
+  --toml      Output TOML

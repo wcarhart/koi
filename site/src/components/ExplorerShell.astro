@@ -1,0 +1,76 @@
+---
+interface Props {
+  command: string;
+  output: string;
+  valid: boolean;
+}
+const { command, output, valid } = Astro.props;
+---
+
+<div
+  class="explorer-shell"
+  data-explorer-shell
+  data-valid={String(valid)}
+  role="region"
+  aria-label="Sample shell"
+>
+  <div class="explorer-shell-command">
+    <span class="explorer-shell-prompt" aria-hidden="true">
+      ${' '}
+    </span>
+    <span data-invocation>{command}</span>
+  </div>
+  <pre
+    class="explorer-shell-output"
+    data-presence-result
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >{output}</pre>
+</div>
+
+<style>
+  .explorer-shell[data-valid] {
+    margin-top: 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--shell-border);
+    border-radius: 16px;
+    background: var(--code);
+    color: var(--terminal-input);
+    font: 11px/1.8 var(--mono);
+  }
+  .explorer-shell[data-valid='true'] {
+    --shell-border: #23734a;
+  }
+  .explorer-shell[data-valid='false'] {
+    --shell-border: #b73a35;
+  }
+  :global([data-theme='dark']) .explorer-shell[data-valid='true'] {
+    --shell-border: #85d7aa;
+  }
+  :global([data-theme='dark']) .explorer-shell[data-valid='false'] {
+    --shell-border: #f4aa91;
+  }
+  .explorer-shell-command {
+    display: flex;
+    white-space: pre-wrap;
+  }
+  .explorer-shell-prompt {
+    flex: none;
+  }
+  [data-invocation] {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .explorer-shell-output {
+    margin: 8px 0 0;
+    padding: 0;
+    color: var(--terminal-text);
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .explorer-shell[data-valid='false'] .explorer-shell-output {
+    color: var(--warning);
+  }
+</style>

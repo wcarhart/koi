@@ -101,7 +101,7 @@ export function argumentFieldErrors(
 export function argumentErrors(s: ArgumentSettings): string[] {
   return [...new Set(Object.values(argumentFieldErrors(s)))];
 }
-function argumentDeclaration(s: ArgumentSettings): string {
+export function argumentDeclaration(s: ArgumentSettings): string {
   const errors = argumentErrors(s);
   if (errors.length) throw new Error(errors.join(' '));
   const parts = [
@@ -154,18 +154,20 @@ export function argumentCollectionErrors(args: ArgumentSettings[]): string[] {
 
 export function argumentScript(
   settings: ArgumentSettings | ArgumentSettings[],
+  registrations: string[] = [],
+  scriptName?: string,
 ): string {
   const args = Array.isArray(settings) ? settings : [settings];
   const errors = argumentCollectionErrors(args);
   if (errors.length) throw new Error(errors.join(' '));
   return `#!/usr/bin/env bash
-source ./koi
+source koi
 
-# Print the parsed value
+${scriptName ? `koi::config name ${shellQuote(scriptName)}\n\n` : ''}# Print the parsed value
 # Usage: main "$@"
 #   $@  arguments forwarded to koi
 main() {
-${args.length ? (args.every((arg) => arg.cardinality !== 'array') ? '    local ' + args.map((arg) => arg.destination).join(' ') : args.map((arg) => '    local ' + (arg.cardinality === 'array' ? '-a ' : '') + arg.destination).join('\n')) + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}    koi::parse "$@" || return "$koi_status"
+${args.length ? (args.every((arg) => arg.cardinality !== 'array') ? '    local ' + args.map((arg) => arg.destination).join(' ') : args.map((arg) => '    local ' + (arg.cardinality === 'array' ? '-a ' : '') + arg.destination).join('\n')) + '\n' + args.map((arg) => '    ' + argumentDeclaration(arg)).join('\n') + '\n' : ''}${registrations.map((line) => '    ' + line + '\n').join('')}    koi::parse "$@" || return "$koi_status"
 ${
   args.length
     ? '\n' +
@@ -191,7 +193,10 @@ main "$@"
 `;
 }
 
-export function argumentHelp(args: ArgumentSettings[]): string {
+export function argumentHelp(
+  args: ArgumentSettings[],
+  presentation: { name?: string; usage?: string[] } = {},
+): string {
   const ordered = [
     ...args.filter((arg) => arg.kind !== 'positional'),
     ...args.filter((arg) => arg.kind === 'positional'),
@@ -211,7 +216,18 @@ export function argumentHelp(args: ArgumentSettings[]): string {
       ? value(arg) + (arg.cardinality === 'array' ? '...' : '')
       : spelling(arg) + (arg.kind === 'option' ? ` ${value(arg)}` : ''),
   );
-  const width = Math.max(10, ...labels.map((label) => label.length));
+  const width = Math.max(
+    10,
+    ...labels
+      .filter((_, index) => ordered[index].kind !== 'positional')
+      .map((label) => label.length),
+  );
+  const positionalWidth = Math.max(
+    0,
+    ...labels
+      .filter((_, index) => ordered[index].kind === 'positional')
+      .map((label) => label.length),
+  );
   const usage = ordered.map((arg) => {
     const label =
       arg.kind === 'positional'
@@ -222,7 +238,8 @@ export function argumentHelp(args: ArgumentSettings[]): string {
       return arg.required ? `${label} [${label}]...` : `[${label}]...`;
     return arg.required ? label : `[${label}]`;
   });
-  let text = `Usage: greet.sh [-h]${usage.length ? ' ' + usage.join(' ') : ''}\n\nOptions:\n  ${'-h, --help'.padEnd(width)}  Show this help\n`;
+  const usageParts = presentation.usage ?? usage;
+  let text = `Usage: ${presentation.name ?? 'greet.sh'} [-h]${usageParts.length ? ' ' + usageParts.join(' ') : ''}\n\nOptions:\n  ${'-h, --help'.padEnd(width)}  Show this help\n`;
   let positional = false;
   ordered.forEach((arg, index) => {
     if (arg.kind === 'positional' && !positional) {
@@ -235,26 +252,40 @@ export function argumentHelp(args: ArgumentSettings[]): string {
       (arg.kind !== 'flag' && !arg.required && arg.useDefault
         ? ` (default: ${arg.defaultValue})`
         : '');
-    const indent = ' '.repeat(width + 4);
-    let prefix = `  ${labels[index].padEnd(width)}  `;
-    for (const explicitLine of description.split('\n')) {
-      let line = prefix;
-      for (const word of explicitLine.split(/[ \t]+/).filter(Boolean)) {
-        if (line !== prefix) {
-          if ([...line].length + 1 + [...word].length > 100) {
-            text += line + '\n';
-            prefix = indent;
-            line = prefix;
-          } else line += ' ';
-        }
-        line += word;
-      }
-      text += line + '\n';
-      prefix = indent;
-    }
+    const rowWidth = arg.kind === 'positional' ? positionalWidth : width;
+    text += helpText(
+      description,
+      `  ${labels[index].padEnd(rowWidth)}  `,
+      ' '.repeat(rowWidth + 4),
+    );
   });
   return text;
 }
+// Match koi's word wrapping and explicit description line breaks.
+export function helpText(
+  description: string,
+  prefix = '',
+  indent = '',
+): string {
+  let text = '';
+  for (const explicitLine of description.split('\n')) {
+    let line = prefix;
+    for (const word of explicitLine.split(/[ \t]+/).filter(Boolean)) {
+      if (line !== prefix) {
+        if ([...line].length + 1 + [...word].length > 100) {
+          text += line + '\n';
+          prefix = indent;
+          line = prefix;
+        } else line += ' ';
+      }
+      line += word;
+    }
+    text += line + '\n';
+    prefix = indent;
+  }
+  return text;
+}
+
 export function helpErrors(s: HelpSettings): string[] {
   const errors: string[] = [];
   if (!s.name || !s.description)

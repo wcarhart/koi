@@ -2,7 +2,7 @@
 interface Props {
   id: string;
   label: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   value?: string;
   disabled?: boolean;
 }
@@ -10,7 +10,7 @@ const {
   id,
   label,
   options,
-  value = options[0].value,
+  value = options.find((option) => !option.disabled)?.value ?? '',
   disabled = false,
 } = Astro.props;
 ---
@@ -44,6 +44,7 @@ const {
         <button
           type="button"
           role="option"
+          disabled={option.disabled}
           aria-selected={option.value === value ? 'true' : 'false'}
           data-value={option.value}
           tabindex="-1"
@@ -104,8 +105,13 @@ const {
     background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   }
   .dropdown-trigger:hover,
-  .dropdown [role='option']:hover {
+  .dropdown [role='option']:enabled:hover {
     background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  }
+  .dropdown [role='option']:disabled {
+    color: var(--muted);
+    opacity: 0.5;
+    cursor: default;
   }
   .dropdown [role='option'] + [role='option'] {
     margin-top: 4px;

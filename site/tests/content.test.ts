@@ -446,3 +446,60 @@ test('canonical API routes, exports, signatures, examples, and search links agre
     );
   }
 });
+
+test('command reference keeps one canonical sample and help pair outside its prose', async () => {
+  const doc = (await getDocs()).find(
+    (doc) => doc.slug === 'reference/add_command',
+  )!;
+  assert.doesNotMatch(
+    doc.prose,
+    /Sample CLI script|Generated help via|data-command-sample/,
+  );
+  assert.match(doc.prose, /See it in action/);
+  assert.match(
+    doc.prose,
+    /Experiment with commands, handlers, and nested subcommands/,
+  );
+  assert.equal((doc.example.match(/class="code-block"/g) || []).length, 2);
+  assert.equal((doc.markdown.match(/^## Sample script$/gm) || []).length, 1);
+  assert.equal(
+    (doc.markdown.match(/^## Generated help via -h\/--help$/gm) || []).length,
+    1,
+  );
+  assert.match(doc.markdown, /koi::add_command deploy/);
+  assert.match(doc.example, /data-try-sample-heading/);
+});
+
+test('group reference keeps its canonical sample outside the prose and preserves legacy anchors', async () => {
+  const doc = (await getDocs()).find(
+    (doc) => doc.slug === 'reference/add_group',
+  )!;
+  assert.doesNotMatch(
+    doc.prose,
+    /<h2[^>]*>Example|data-group-sample|Running <code>\.\/script\.sh/,
+  );
+  assert.match(doc.prose, /data-try-it-callout/);
+  assert.match(
+    doc.prose,
+    /Experiment with argument groups and accepted combinations/,
+  );
+  assert.match(doc.prose, /data-fragment="explore"/);
+  assert.match(doc.example, /data-fragment="example" data-example-alias/);
+  assert.match(doc.example, /data-try-sample-heading/);
+  assert.equal((doc.example.match(/class="code-block"/g) || []).length, 2);
+});
+
+test('dependency reference uses the shared callout and one canonical sample', async () => {
+  const doc = (await getDocs()).find(
+    (doc) => doc.slug === 'reference/add_dependency',
+  )!;
+  assert.doesNotMatch(doc.prose, /data-dependency-sample|<h2[^>]*>Explore/);
+  assert.match(doc.prose, /data-try-it-callout/);
+  assert.match(
+    doc.prose,
+    /Experiment with dependent arguments and prerequisites/,
+  );
+  assert.match(doc.prose, /data-fragment="explore"/);
+  assert.match(doc.example, /data-try-sample-heading/);
+  assert.equal((doc.example.match(/class="code-block"/g) || []).length, 2);
+});

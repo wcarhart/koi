@@ -9,46 +9,23 @@ interface Props {
 const { profile = 'v2-initial' } = Astro.props;
 const settings = getBuilderProfile(profile)!;
 import Dropdown from './Dropdown.astro';
-import resetIcon from '../assets/icons/reset.svg?raw';
+import ExplorerPanel from './ExplorerPanel.astro';
+import ExplorerHeading from './ExplorerHeading.astro';
+import ExplorerAction from './ExplorerAction.astro';
+import ExplorerEditorActions from './ExplorerEditorActions.astro';
+import ToggleSwitch from './ToggleSwitch.astro';
 ---
 
-<div
-  class="builder argument-explorer"
-  data-argument-explorer
-  data-builder-profile={profile}
->
+<ExplorerPanel kind="argument" profile={profile}>
   <div data-argument-list>
-    <div class="builder-heading">
-      <span class="argument-subtitle">Registered arguments</span>
-      <button
-        type="button"
-        class="argument-action destructive"
-        data-reset
-        aria-label="Reset arguments"
-        title="Reset arguments"
-      >
-        <Fragment set:html={resetIcon} />
-      </button>
-    </div>
+    <ExplorerHeading
+      title="Register arguments"
+      resetLabel="Reset arguments"
+      subtitle="Configure flags, options, and positional arguments."
+    />
     <ul class="argument-rows" aria-label="Registered arguments"></ul>
     <div class="argument-actions">
-      <button
-        type="button"
-        class="argument-action"
-        data-add
-        aria-label="Register an argument"
-        title="Register an argument"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          aria-hidden="true"
-        >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
+      <ExplorerAction label="Register an argument" action="add" icon="add" />
     </div>
   </div>
   <form
@@ -95,19 +72,13 @@ import resetIcon from '../assets/icons/reset.svg?raw';
       </div>
     </div>
     <div data-default-control>
-      <label class="switch-label" for="argument-use-default">
-        Use a default{' '}
-        <button
-          id="argument-use-default"
-          type="button"
-          class="argument-switch"
-          role="switch"
-          aria-checked="false"
-          data-switch="useDefault"
-        >
-          <span></span>
-        </button>
-      </label>
+      <ToggleSwitch
+        id="argument-use-default"
+        name="useDefault"
+        label="Use a default"
+        changeHook="useDefault"
+        labelFirst
+      />
       <div data-default-value hidden>
         <label for="argument-default">Default value</label>
         <input id="argument-default" name="defaultValue" />
@@ -126,53 +97,13 @@ import resetIcon from '../assets/icons/reset.svg?raw';
       rows="2"
       required
     ></textarea>
-    <label class="switch-label" for="argument-required">
-      Required{' '}
-      <button
-        id="argument-required"
-        type="button"
-        class="argument-switch"
-        role="switch"
-        aria-checked="false"
-        data-switch="required"
-      >
-        <span></span>
-      </button>
-    </label>
-    <div class="argument-actions">
-      <button
-        type="button"
-        class="argument-action"
-        data-cancel
-        aria-label="Cancel"
-        title="Cancel"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          aria-hidden="true"
-        >
-          <path d="m6 6 12 12M6 18 18 6" />
-        </svg>
-      </button>
-      <button
-        type="submit"
-        class="argument-action success"
-        aria-label="Save argument"
-        title="Save argument"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          aria-hidden="true"
-        >
-          <path d="m5 12 4 4L19 6" />
-        </svg>
-      </button>
-    </div>
+    <ToggleSwitch
+      id="argument-required"
+      name="required"
+      label="Required"
+      changeHook="required"
+      labelFirst
+    />
+    <ExplorerEditorActions saveLabel="Save argument" />
   </form>
-</div>
+</ExplorerPanel>

@@ -1,0 +1,17 @@
+---
+import Dropdown from './Dropdown.astro';
+---
+
+<div class="command-parent-picker">
+  <Dropdown
+    id="command-parent"
+    label="Parent command"
+    options={[{ value: 'root', label: 'app' }]}
+  />
+  <p
+    class="explorer-field-error"
+    data-parent-error
+    role="status"
+    aria-live="polite"
+  ></p>
+</div>

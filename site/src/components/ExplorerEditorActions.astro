@@ -1,0 +1,12 @@
+---
+import ExplorerAction from './ExplorerAction.astro';
+interface Props {
+  saveLabel: string;
+}
+const { saveLabel } = Astro.props;
+---
+
+<div class="argument-actions">
+  <ExplorerAction label="Cancel" action="cancel" icon="cancel" />
+  <ExplorerAction label={saveLabel} icon="save" type="submit" />
+</div>

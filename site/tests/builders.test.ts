@@ -77,6 +77,7 @@ test('generated scripts run against koi and preserve hostile-looking data', () =
     const out = spawnSync('bash', ['-s'], {
       input: script,
       cwd: root,
+      env: { ...process.env, PATH: root + ':' + process.env.PATH },
       encoding: 'utf8',
     });
     assert.equal(out.status, 0, out.stderr);
@@ -104,6 +105,7 @@ test('generated help configurations are accepted by koi', () => {
   for (const settings of variants) {
     const result = spawnSync('bash', ['-s', '--', '--help'], {
       cwd: root,
+      env: { ...process.env, PATH: root + ':' + process.env.PATH },
       input: helpScript(settings),
       encoding: 'utf8',
     });
@@ -159,7 +161,11 @@ test('argument collections preserve order, detect collisions, and generate match
     const result = spawnSync(
       'bash',
       ['-c', argumentScript(collection), 'greet.sh', '--help'],
-      { cwd: root, encoding: 'utf8' },
+      {
+        cwd: root,
+        env: { ...process.env, PATH: root + ':' + process.env.PATH },
+        encoding: 'utf8',
+      },
     );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(argumentHelp(collection), result.stdout);
@@ -216,6 +222,7 @@ test('array builders preserve elements, omit empty rows, and match runtime help'
         kind === 'option' ? values.flatMap((value) => ['-n', value]) : values;
       const result = spawnSync('bash', ['-c', script, 'greet.sh', ...tokens], {
         cwd: root,
+        env: { ...process.env, PATH: root + ':' + process.env.PATH },
         encoding: 'utf8',
       });
       assert.equal(result.status, 0, result.stderr);
@@ -225,6 +232,7 @@ test('array builders preserve elements, omit empty rows, and match runtime help'
       );
       const help = spawnSync('bash', ['-c', script, 'greet.sh', '--help'], {
         cwd: root,
+        env: { ...process.env, PATH: root + ':' + process.env.PATH },
         encoding: 'utf8',
       });
       assert.equal(help.status, 0, help.stderr);
@@ -233,6 +241,7 @@ test('array builders preserve elements, omit empty rows, and match runtime help'
       assert.equal(help.stdout.includes('(required)'), required);
       const omitted = spawnSync('bash', ['-c', script, 'greet.sh'], {
         cwd: root,
+        env: { ...process.env, PATH: root + ':' + process.env.PATH },
         encoding: 'utf8',
       });
       assert.equal(omitted.status, required ? 2 : 0);
@@ -287,7 +296,11 @@ test('multiple array loops share locals, reset indices, and preserve destination
       '--items1',
       'two',
     ],
-    { cwd: root, encoding: 'utf8' },
+    {
+      cwd: root,
+      env: { ...process.env, PATH: root + ':' + process.env.PATH },
+      encoding: 'utf8',
+    },
   );
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, 'i[0]: one\ni[1]: \nvalue[0]: two\n');
@@ -297,7 +310,11 @@ test('runtime and builder reserve only the built-in help long name', () => {
   const out = spawnSync(
     'bash',
     ['-c', 'source ./koi; printf "%s\\n" "${__koi_reserved_longs[@]}"'],
-    { cwd: root, encoding: 'utf8' },
+    {
+      cwd: root,
+      env: { ...process.env, PATH: root + ':' + process.env.PATH },
+      encoding: 'utf8',
+    },
   );
   assert.equal(out.status, 0, out.stderr);
   const names = out.stdout.trim().split('\n');

@@ -1,0 +1,16 @@
+---
+interface Props {
+  kind: string;
+  profile: string;
+}
+const { kind, profile } = Astro.props;
+---
+
+<div
+  class="builder argument-explorer"
+  data-explorer={kind}
+  data-argument-explorer={kind === 'argument' ? '' : undefined}
+  data-builder-profile={profile}
+>
+  <slot />
+</div>

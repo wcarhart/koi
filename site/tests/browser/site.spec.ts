@@ -1,3 +1,4 @@
+import { openArgumentTryIt } from '../fixtures/try-it';
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import matter from 'gray-matter';
@@ -169,11 +170,13 @@ test('keyboard search navigates, closes, and ignores editable inputs', async ({
   await search.press('Enter');
   await expect(dialog).not.toBeVisible();
   await expect(page).toHaveURL(/\/docs\/reference\/add_arg$/);
+  await openArgumentTryIt(page);
   await page.getByRole('button', { name: 'Edit name argument' }).click();
   const dest = page.getByLabel('Destination variable');
   await dest.fill('name');
   await dest.press('/');
   await expect(dialog).not.toBeVisible();
+  await page.locator('#try-addarg [data-close-try]').click();
   await page.locator('h1').filter({ hasText: 'koi::add_arg' }).click();
   await page.keyboard.press('/');
   await expect(dialog).toBeVisible();
@@ -194,6 +197,7 @@ test('code builders update, constrain fields, and reset to documented defaults',
   const section = page.locator('#doc-reference-add_arg');
   const code = section.locator('.doc-example code').first();
   const initial = await code.textContent();
+  await openArgumentTryIt(page);
   await section.getByRole('button', { name: 'Edit name argument' }).click();
   await section.getByLabel('Destination variable').fill('recipient');
   await section.getByRole('button', { name: 'Save argument' }).click();
@@ -1160,7 +1164,9 @@ test('simple docs and install buttons change only fill and arrow on hover and ke
       await page.evaluate((theme) => {
         document.documentElement.dataset.theme = theme;
       }, theme);
-      for (const button of await page.locator('.button:visible').all()) {
+      for (const button of await page
+        .locator('.button:visible:has(.cta-arrow)')
+        .all()) {
         await page.mouse.move(0, 0);
         await button.evaluate((node) => (node as HTMLElement).blur());
         const initial = await button.evaluate((node) => {

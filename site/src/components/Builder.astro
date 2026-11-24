@@ -1,11 +1,13 @@
 ---
 import ArgumentExplorer from './ArgumentExplorer.astro';
+import RelationshipExplorer from './RelationshipExplorer.astro';
+import CommandExplorer from './CommandExplorer.astro';
 import {
   getBuilderProfile,
   type BuilderProfileId,
 } from '../lib/builder-profiles';
 interface Props {
-  kind: 'addarg' | 'help';
+  kind: 'addarg' | 'addgroup' | 'adddependency' | 'addcommand' | 'help';
   profile?: BuilderProfileId;
 }
 const { kind, profile } = Astro.props;
@@ -18,6 +20,13 @@ const prefix = `builder-${kind}`;
   help &&
   (kind === 'addarg' ? (
     <ArgumentExplorer profile={profile!} />
+  ) : kind === 'addcommand' ? (
+    <CommandExplorer profile={profile!} />
+  ) : kind === 'addgroup' || kind === 'adddependency' ? (
+    <RelationshipExplorer
+      kind={kind === 'addgroup' ? 'group' : 'dependency'}
+      profile={profile!}
+    />
   ) : (
     <form
       class="builder"

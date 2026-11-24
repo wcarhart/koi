@@ -1,7 +1,7 @@
 ---
 title: "koi::add_group"
 description: "Constrain which flags and options can be supplied together."
-layout: article
+layout: split
 ---
 
 `koi::add_group` registers a relationship between arguments already declared with [koi::add_arg](/docs/reference/add_arg) in the current [registration block](/docs/concepts/lifecycle). Groups can be at most one (`XOR`), at least one (`OR`), or all (`AND`).
@@ -78,14 +78,40 @@ Invocation checks run after individual requiredness and before [dependencies](/d
 
 See [parsing steps](/docs/concepts/control-flow#parsing-steps) for the full order.
 
-## Example
+<aside class="try-it-callout" data-try-it-callout>
 
-<!-- koi:include group.sh -->
+<span id="doc-reference-add_group-explore" data-fragment="explore"></span>
 
-Running `./script.sh --name Ada --token demo` prints:
+## See it in action
 
-<!-- koi:include group.txt -->
+Experiment with argument groups and accepted combinations using `koi::add_group`.
 
-Generated help via `-h`/`--help`:
+</aside>
 
-<!-- koi:include group-help.txt -->
+<!-- koi:example -->
+
+<div class="argument-demo" data-group-sample>
+
+<span id="doc-reference-add_group-example" data-fragment="example" data-example-alias></span>
+
+<div class="try-sample-heading" data-try-sample-heading>
+
+## Sample script
+
+</div>
+
+<div data-explorer-output="script">
+
+<!-- koi:include builder-group.sh -->
+
+</div>
+
+## Generated help via -h/--help
+
+<div data-explorer-output="help">
+
+<!-- koi:include builder-group-help.txt -->
+
+</div>
+
+</div>

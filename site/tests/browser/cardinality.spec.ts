@@ -1,9 +1,11 @@
+import { openArgumentTryIt } from '../fixtures/try-it';
 import { test, expect } from '@playwright/test';
 
 test('array editor generates typed locals and ellipsis help, resets flags, and rejects invalid layouts', async ({
   page,
 }) => {
   await page.goto('/docs/reference/add_arg');
+  const dialog = await openArgumentTryIt(page);
   const explorer = page.locator('[data-argument-explorer]');
   const section = explorer.locator('xpath=ancestor::*[@data-doc-section][1]');
   await expect(explorer.locator('.argument-cardinality')).toHaveText('SCALAR');
@@ -38,7 +40,7 @@ test('array editor generates typed locals and ellipsis help, resets flags, and r
   );
   await expect(explorer.locator('.argument-cardinality')).toHaveText('ARRAY');
   await expect(section.locator('[data-argument-array]')).toHaveCount(0);
-  await expect(section.locator('[data-argument-sample]')).toContainText(
+  await expect(dialog.locator('[data-argument-sample]')).toContainText(
     'name[$__koi_example_index]: $__koi_example_value',
   );
   await page.evaluate(() => {
@@ -51,7 +53,7 @@ test('array editor generates typed locals and ellipsis help, resets flags, and r
       },
     });
   });
-  await section.locator('.doc-example [data-copy-code]').first().click();
+  await dialog.locator('[data-copy-code]').first().click();
   await expect
     .poll(() => page.evaluate(() => document.body.dataset.copiedArray))
     .toContain('"${name[@]}"');
@@ -132,6 +134,7 @@ test('array cardinality hides the complete default row and scalar restores it', 
   page,
 }) => {
   await page.goto('/docs/reference/add_arg');
+  await openArgumentTryIt(page);
   const explorer = page.locator('[data-argument-explorer]');
   await explorer.getByRole('button', { name: 'Edit name argument' }).click();
   await expect(explorer.locator('[data-default-control]')).toBeVisible();
@@ -145,56 +148,4 @@ test('array cardinality hides the complete default row and scalar restores it', 
   await expect(
     explorer.getByRole('switch', { name: 'Use a default' }),
   ).toHaveAttribute('aria-checked', 'false');
-});
-
-test('sample and help remain pinned until the argument card reaches the top', async ({
-  page,
-  isMobile,
-}) => {
-  test.skip(isMobile, 'Stacked examples do not use sticky positioning.');
-  await page.goto('/docs/reference/add_arg');
-  const explorer = page.locator('[data-argument-explorer]');
-  const demo = page.locator('#doc-reference-add_arg .example-sticky');
-  await expect
-    .poll(() =>
-      page
-        .locator('#doc-reference-add_arg .doc-prose')
-        .evaluate((node) => parseFloat(getComputedStyle(node).paddingBottom)),
-    )
-    .toBeGreaterThan(0);
-  for (const cardinality of ['scalar', 'array']) {
-    if (cardinality === 'array') {
-      await explorer
-        .getByRole('button', { name: 'Edit name argument' })
-        .click();
-      await explorer.getByRole('button', { name: /^Cardinality/ }).click();
-      await explorer
-        .getByRole('option', { name: 'Array', exact: true })
-        .click();
-      await explorer.getByRole('button', { name: 'Save argument' }).click();
-      await expect(demo).toContainText('for __koi_example_value');
-    }
-    await page.evaluate(() => document.fonts.ready);
-    for (const top of [120, 0]) {
-      await explorer.evaluate(
-        (node, target) =>
-          window.scrollBy({
-            top: node.getBoundingClientRect().top - target,
-            behavior: 'instant',
-          }),
-        top,
-      );
-      await expect
-        .poll(() =>
-          demo.evaluate((node) => Math.round(node.getBoundingClientRect().top)),
-        )
-        .toBe(96);
-    }
-    await page.evaluate(() =>
-      window.scrollBy({ top: 160, behavior: 'instant' }),
-    );
-    await expect
-      .poll(() => demo.evaluate((node) => node.getBoundingClientRect().top))
-      .toBeLessThan(96);
-  }
 });

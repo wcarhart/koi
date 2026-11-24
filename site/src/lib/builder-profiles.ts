@@ -1,3 +1,4 @@
+import { interfaceBuilders } from './interface-builders';
 import {
   defaultArgument,
   defaultHelp,
@@ -9,6 +10,7 @@ import {
   helpErrors,
 } from './builders';
 export interface BuilderProfile {
+  interfaces: typeof interfaceBuilders;
   argumentKinds: { value: string; label: string }[];
   cardinalities: { value: string; label: string }[];
   defaultArgument: typeof defaultArgument;
@@ -23,6 +25,7 @@ export interface BuilderProfile {
 export type BuilderProfileId = 'v2-initial';
 const profiles: Record<BuilderProfileId, BuilderProfile> = {
   'v2-initial': {
+    interfaces: interfaceBuilders,
     argumentKinds: [
       { value: 'flag', label: 'Flag' },
       { value: 'option', label: 'Option' },

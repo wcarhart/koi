@@ -2729,7 +2729,7 @@ html:not(.js) [data-open-menu] {
 [data-theme='dark'] .argument-action.success {
   color: #85d7aa;
 }
-.argument-explorer label.switch-label {
+.argument-explorer .switch-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2828,7 +2828,7 @@ html:not(.js) [data-open-menu] {
 }
 
 @media screen and (min-width: 1151px) {
-  #doc-reference-add_arg .doc-prose {
+  .has-explorer .doc-prose {
     padding-bottom: var(--argument-demo-space, 0px);
   }
 }
@@ -3331,4 +3331,377 @@ html:not(.js)
 
 html:has(.docs-page) {
   scroll-padding-top: 0;
+}
+
+/* Explorers share the argument builder's controls and feedback. */
+.argument-explorer .explorer-description {
+  font: 11px/1.6 var(--sans);
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.argument-explorer .explorer-members-description {
+  margin: 0 0 12px;
+}
+.explorer-members {
+  border: 0;
+  padding: 0;
+  margin: 22px 0;
+  min-width: 0;
+}
+.explorer-members legend {
+  font: 600 12px/1.5 var(--sans);
+  padding: 0;
+  margin-bottom: 8px;
+}
+.argument-explorer label.explorer-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.explorer-member:hover {
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.explorer-member input {
+  accent-color: var(--ink);
+}
+.argument-explorer label.explorer-member:has(:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.explorer-field-error {
+  color: var(--warning);
+  font-size: 12px;
+}
+.explorer-field-error:empty {
+  display: none;
+}
+.explorer-table {
+  overflow-x: auto;
+  margin-top: 14px;
+}
+.explorer-table table {
+  width: 100%;
+  font-size: 12px;
+  margin: 0;
+}
+.explorer-table caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 12px;
+  font-size: 12px;
+}
+[data-valid='true'] {
+  color: #23734a;
+}
+[data-valid='false'] {
+  color: #b73a35;
+}
+[data-theme='dark'] [data-valid='true'] {
+  color: #85d7aa;
+}
+[data-theme='dark'] [data-valid='false'] {
+  color: #f4aa91;
+}
+/* Tree connectors share one renderer with the parent picker. */
+.command-tree-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.command-tree-list li {
+  margin: 0;
+  padding: 0;
+}
+.command-tree-list li::before {
+  display: none;
+}
+.command-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  padding: 4px;
+}
+.command-row:has(.command-select)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.command-row:has(.command-select):is(:hover, :focus-within):not(
+    :has(.argument-remove:is(:hover, :focus-visible))
+  )::before {
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.command-row > :is(.command-select, .argument-remove) {
+  position: relative;
+  z-index: 1;
+}
+.command-select,
+.command-root {
+  font: 12px/1.8 var(--mono);
+  color: var(--muted);
+  padding: 8px 4px;
+  min-width: 0;
+}
+.command-select {
+  display: block;
+  flex: 1;
+  border: 0;
+  text-align: left;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.command-branch-prefix {
+  white-space: pre;
+}
+.command-row:is(:hover, :focus-within):not(
+    :has(.argument-remove:is(:hover, :focus-visible))
+  )
+  .command-select {
+  color: var(--ink);
+}
+.command-select:hover {
+  background: transparent;
+}
+.command-parent-picker .dropdown [role='option'][aria-selected] {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.command-parent-picker
+  .dropdown
+  [role='option'][aria-selected]:is(:hover, :focus-visible) {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.dropdown [role='listbox'] {
+  max-height: 320px;
+  overflow: auto;
+}
+.dropdown-trigger > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.dropdown-trigger svg {
+  flex: none;
+}
+[data-command-help-selector] {
+  margin-bottom: 12px;
+}
+.argument-explorer button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Only add_arg opts into the Try it dialog. */
+.prose .try-it-callout {
+  display: flow-root;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  corner-shape: squircle;
+  background: var(--accent-soft);
+  padding: 22px;
+  margin: 28px 0 0;
+}
+.prose .try-it-callout h2 {
+  margin: 0 0 10px;
+  font: 600 16px/1.5 var(--sans);
+}
+.prose .try-it-callout p {
+  margin: 0;
+}
+.try-it-callout .try-edit-button {
+  float: right;
+  margin-top: 20px;
+}
+.try-edit-button {
+  gap: 8px;
+  white-space: nowrap;
+}
+.try-edit-button svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.try-sample-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.try-sample-heading h2 {
+  margin: 0 !important;
+}
+.try-sample-heading .try-edit-button {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+html.try-dialog-open,
+html.try-dialog-open body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.try-dialog {
+  width: calc(100% - 32px);
+  height: calc(100dvh - 32px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  corner-shape: squircle;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.try-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.try-dialog::backdrop {
+  background: #15071d77;
+  backdrop-filter: blur(5px);
+}
+.try-dialog-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.try-dialog-header h2 {
+  font: 600 20px/1.5 var(--sans);
+  margin: 0;
+}
+.try-dialog-title p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font: 12px/1.5 var(--mono);
+}
+.try-dialog-header h2:focus {
+  outline: none;
+}
+.try-dialog-header code {
+  font: inherit;
+  font-family: var(--mono);
+}
+.try-dialog-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex: none;
+}
+.try-dialog-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 35fr) minmax(0, 65fr);
+  flex: 1;
+  min-height: 0;
+}
+.try-dialog-controller,
+.try-dialog-preview {
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+}
+.try-dialog-controller {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+}
+.try-dialog-controller .argument-explorer {
+  flex: none;
+}
+.try-dialog-note {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 32px;
+  color: var(--muted);
+  font: 12px/1.7 var(--sans);
+}
+.try-dialog-note .try-dialog-mark {
+  width: 100%;
+  height: 100%;
+  min-height: 32px;
+}
+.try-dialog-note .try-dialog-mark img {
+  object-fit: contain;
+}
+.try-dialog-note p {
+  margin: 0;
+}
+.try-dialog-note code {
+  font-size: 11px;
+}
+.try-dialog-note .text-cta {
+  white-space: nowrap;
+}
+
+.try-dialog-controller .argument-explorer {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+.try-dialog-preview h2 {
+  font: 500 11px/1.5 var(--mono);
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.try-dialog-preview .code-block {
+  margin-top: 12px;
+}
+.try-dialog-preview pre {
+  white-space: pre;
+}
+@media (max-width: 799px) {
+  .try-dialog {
+    width: calc(100% - 16px);
+    height: calc(100dvh - 16px);
+    border-radius: 24px;
+  }
+  .try-dialog-header {
+    padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .try-dialog-header h2 {
+    font-size: 16px;
+  }
+  .try-dialog-body {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .try-dialog-controller,
+  .try-dialog-preview {
+    overflow: visible;
+    padding: 20px 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .try-dialog-controller {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.builder .toggle-copy label {
+  display: inline;
+  margin: 0;
 }

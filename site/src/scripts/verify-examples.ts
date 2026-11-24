@@ -16,13 +16,14 @@ import {
   helpScript,
   defaultHelp,
 } from '../lib/builders';
+import * as interfaces from '../lib/interface-builders';
 
 // Only these reviewed scripts and argument vectors may be executed by this check.
 const fixtures = [
   {
-    script: 'relationships',
+    script: 'group',
     args: ['--name', 'Ada', '--token', 'demo'],
-    output: 'relationships',
+    output: 'group',
   },
   {
     script: 'validators',
@@ -101,6 +102,42 @@ assert.equal(
   readFileSync(path.join(docsRoot, 'examples/help.sh'), 'utf8'),
   'Help builder default must match its documented source.',
 );
+for (const [name, script, help] of [
+  [
+    'group',
+    interfaces.groupScript(interfaces.defaultGroup),
+    interfaces.groupHelp(interfaces.defaultGroup),
+  ],
+  [
+    'dependency',
+    interfaces.dependencyScript(interfaces.defaultDependency),
+    interfaces.dependencyHelp(interfaces.defaultDependency),
+  ],
+  [
+    'command',
+    interfaces.commandScript(interfaces.defaultCommands),
+    interfaces.commandHelp(interfaces.defaultCommands),
+  ],
+]) {
+  assert.equal(
+    script,
+    readFileSync(path.join(docsRoot, `examples/builder-${name}.sh`), 'utf8'),
+  );
+  assert.equal(
+    help,
+    readFileSync(
+      path.join(docsRoot, `examples/builder-${name}-help.txt`),
+      'utf8',
+    ),
+  );
+  const result = spawnSync('bash', ['-c', script, 'app.sh', '--help'], {
+    cwd: root,
+    env: { ...process.env, PATH: root + ':' + process.env.PATH },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, help);
+}
 for (const fixture of fixtures) {
   const filename = path.join(docsRoot, 'examples', fixture.script + '.sh');
   const syntax = spawnSync('bash', ['-n', filename], { encoding: 'utf8' });
@@ -162,5 +199,5 @@ for (const fixture of fixtures) {
   }
 }
 console.log(
-  `Verified ${fixtures.length} documentation invocations and both builder defaults against real koi.`,
+  `Verified ${fixtures.length} documentation invocations and all five builder defaults against real koi.`,
 );

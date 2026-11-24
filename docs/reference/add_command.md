@@ -59,14 +59,44 @@ The leaf command `app` would still support `-h`/`--help`, but `./cli.sh infra de
 
 To register your own command named `help`, use `koi::config help-subcommand false` (see [koi::config](/docs/reference/config)). Otherwise, the declaration conflicts with built-in help and fails when its context parses. Automatic `-h`/`--help` remains available with this setting. See [customizing the generated help](/docs/guides/help) for more help configuration.
 
+<aside class="try-it-callout" data-try-it-callout>
+
+<span id="doc-reference-add_command-explore" data-fragment="explore"></span>
+
+## See it in action
+
+Experiment with commands, handlers, and nested subcommands using `koi::add_command`.
+
+</aside>
+
 <!-- koi:example -->
 
-## Sample CLI script
+<div class="argument-demo" data-command-sample>
 
-<!-- koi:include commands.sh -->
+<span id="doc-reference-add_command-sample-cli-script" data-fragment="sample-cli-script" data-example-alias></span>
+
+<div class="try-sample-heading" data-try-sample-heading>
+
+## Sample script
+
+</div>
+
+<div data-explorer-output="script">
+
+<!-- koi:include builder-command.sh -->
+
+</div>
+
+<span id="doc-reference-add_command-generated-help-via--h--help" data-fragment="generated-help-via--h--help" data-example-alias></span>
 
 ## Generated help via -h/--help
 
-<!-- koi:include commands-help.txt -->
+<div data-command-help-selector></div>
 
-<!-- koi:include commands-deploy-service-help.txt -->
+<div data-explorer-output="help">
+
+<!-- koi:include builder-command-help.txt -->
+
+</div>
+
+</div>

@@ -1,0 +1,140 @@
+---
+import ExplorerPanel from './ExplorerPanel.astro';
+import ExplorerHeading from './ExplorerHeading.astro';
+import Dropdown from './Dropdown.astro';
+import ToggleSwitch from './ToggleSwitch.astro';
+import MemberSelector from './MemberSelector.astro';
+import ExplorerShell from './ExplorerShell.astro';
+import {
+  getBuilderProfile,
+  type BuilderProfileId,
+} from '../lib/builder-profiles';
+interface Props {
+  kind: 'group' | 'dependency';
+  profile: BuilderProfileId;
+}
+const { kind, profile } = Astro.props;
+const settings = getBuilderProfile(profile)!.interfaces;
+const group = kind === 'group';
+const args = group ? settings.groupArguments : settings.dependencyArguments;
+const prefix = `explorer-${kind}`;
+---
+
+<ExplorerPanel kind={kind} profile={profile}>
+  <ExplorerHeading
+    title={group ? 'Argument group' : 'Argument dependency'}
+    resetLabel={`Reset ${kind}`}
+    subtitle={
+      group
+        ? 'Choose which output flags may be supplied together.'
+        : 'Choose which arguments require other arguments.'
+    }
+  />
+  {group ? (
+    <>
+      <Dropdown
+        id={`${prefix}-type`}
+        label="Group type"
+        options={[
+          { value: 'xor', label: 'XOR — at most one' },
+          { value: 'or', label: 'OR — at least one' },
+          { value: 'and', label: 'AND — all together' },
+        ]}
+      />
+      <ToggleSwitch
+        id={`${prefix}-required`}
+        name="required"
+        label="Required"
+        changeHook="required"
+        labelFirst
+      />
+      <p class="explorer-description" data-required-note hidden>
+        OR groups are always required
+      </p>
+    </>
+  ) : (
+    <Dropdown
+      id={`${prefix}-dependent`}
+      label="Dependent argument"
+      value={settings.defaultDependency.dependent}
+      options={args.map((arg) => ({
+        value: arg.destination,
+        label: '--' + arg.long,
+      }))}
+    />
+  )}
+  <MemberSelector
+    id={`${prefix}-members`}
+    label={group ? 'Group members' : 'Required arguments'}
+    description={
+      group
+        ? 'Groups must have at least two members'
+        : 'Dependencies must have at least one prerequisite'
+    }
+    members={args}
+    excluded={group ? undefined : settings.defaultDependency.dependent}
+    selected={
+      group
+        ? settings.defaultGroup.members
+        : settings.defaultDependency.prerequisites
+    }
+  />
+  <h3 class="argument-subtitle">Preview</h3>
+  {group ? (
+    <>
+      <div
+        class="explorer-table"
+        tabindex="0"
+        role="region"
+        aria-label="Allowed argument combinations"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Supplied flags</th>
+              <th scope="col">Result</th>
+            </tr>
+          </thead>
+          <tbody data-combinations></tbody>
+        </table>
+      </div>
+      <ToggleSwitch
+        id={`${prefix}-single-pipe`}
+        name="singlePipeForOr"
+        label="Use | for OR groups"
+        changeHook="singlePipeForOr"
+        labelFirst
+      >
+        <Fragment slot="label">
+          Use <code>|</code> for OR groups
+        </Fragment>
+      </ToggleSwitch>
+    </>
+  ) : (
+    <>
+      <p class="explorer-description">
+        Toggle which arguments are explicitly supplied
+      </p>
+      {args.map((arg) => (
+        <ToggleSwitch
+          id={`${prefix}-present-${arg.destination}`}
+          name={arg.destination}
+          label={`Supply --${arg.long}`}
+          changeHook={`present-${arg.destination}`}
+          labelFirst
+        >
+          <Fragment slot="label">
+            Supply <span class="argument-spelling">--{arg.long}</span>
+          </Fragment>
+        </ToggleSwitch>
+      ))}
+      <ExplorerShell
+        command="app.sh"
+        output={
+          settings.dependencyOutcome(settings.defaultDependency, []).stdout
+        }
+        valid
+      />
+    </>
+  )}
+</ExplorerPanel>

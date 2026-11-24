@@ -1,0 +1,69 @@
+---
+import ExplorerPanel from './ExplorerPanel.astro';
+import ExplorerAction from './ExplorerAction.astro';
+import CommandParentSelect from './CommandParentSelect.astro';
+import CommandHelpSelect from './CommandHelpSelect.astro';
+import ToggleSwitch from './ToggleSwitch.astro';
+import ExplorerHeading from './ExplorerHeading.astro';
+import ExplorerEditorActions from './ExplorerEditorActions.astro';
+import type { BuilderProfileId } from '../lib/builder-profiles';
+interface Props {
+  profile: BuilderProfileId;
+}
+const { profile } = Astro.props;
+---
+
+<ExplorerPanel kind="command" profile={profile}>
+  <div data-command-list>
+    <ExplorerHeading
+      title="Register commands"
+      resetLabel="Reset commands"
+      subtitle="Build a command tree with handlers and subcommands."
+    />
+    <div data-command-tree></div>
+    <div class="argument-actions">
+      <ExplorerAction label="Register a command" action="add" icon="add" />
+    </div>
+    <template data-command-help-template>
+      <CommandHelpSelect />
+    </template>
+  </div>
+  <form data-command-editor aria-label="Command code builder" hidden novalidate>
+    <h3 class="argument-subtitle" data-editor-title>
+      Register a command
+    </h3>
+    <label for="explorer-command-name">Command name</label>
+    <input
+      id="explorer-command-name"
+      name="name"
+      required
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <CommandParentSelect />
+    <label for="explorer-command-handler">Handler function</label>
+    <input
+      id="explorer-command-handler"
+      name="handler"
+      required
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <label for="explorer-command-description">Description</label>
+    <textarea
+      id="explorer-command-description"
+      name="description"
+      required
+      rows="2"
+    ></textarea>
+    <ToggleSwitch
+      id="command-demo-arguments"
+      name="demoArguments"
+      label="Include demo arguments"
+      hint="Configure a few random flag arguments with this command so you can see how the generated help changes."
+      changeHook="demoArguments"
+      labelFirst
+    />
+    <ExplorerEditorActions saveLabel="Save command" />
+  </form>
+</ExplorerPanel>

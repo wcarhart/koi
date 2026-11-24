@@ -127,7 +127,7 @@ document.addEventListener('keydown', (event) => {
     !event.ctrlKey &&
     !event.metaKey &&
     !event.altKey &&
-    !dialog.open &&
+    !document.querySelector('dialog[open]') &&
     !target.closest('input,textarea,select,[contenteditable="true"]')
   ) {
     event.preventDefault();

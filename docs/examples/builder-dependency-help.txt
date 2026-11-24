@@ -1,0 +1,10 @@
+Usage: app.sh [-h] [--upload] [--token TOKEN] [--account ACCOUNT]
+
+Options:
+  -h, --help         Show this help
+  --upload           Upload files
+  --token TOKEN      Authentication token
+  --account ACCOUNT  Account name
+
+Dependencies:
+  --upload requires --token and --account

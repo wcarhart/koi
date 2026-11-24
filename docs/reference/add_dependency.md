@@ -1,7 +1,7 @@
 ---
 title: "koi::add_dependency"
 description: "Declare an argument as dependent on another."
-layout: article
+layout: split
 ---
 
 `koi::add_dependency` adds direct prerequisites to a flag or option already declared in the current [registration block](/docs/concepts/lifecycle). For example, this make it possible for a flag `-a` to only be present when another flag `-b` is also present.
@@ -55,3 +55,39 @@ Dependencies:
 ## Return and enforcement
 
 Valid registration returns `0`. Invalid registration returns `2`, reports an [author error](/docs/concepts/errors), and invalidates the block. Destinations are not assigned unless group and dependency enforcement passes. See [parsing steps](/docs/concepts/control-flow#parsing-steps) for the full order.
+
+<aside class="try-it-callout" data-try-it-callout>
+
+<span id="doc-reference-add_dependency-explore" data-fragment="explore"></span>
+
+## See it in action
+
+Experiment with dependent arguments and prerequisites using `koi::add_dependency`.
+
+</aside>
+
+<!-- koi:example -->
+
+<div class="argument-demo" data-dependency-sample>
+
+<div class="try-sample-heading" data-try-sample-heading>
+
+## Sample script
+
+</div>
+
+<div data-explorer-output="script">
+
+<!-- koi:include builder-dependency.sh -->
+
+</div>
+
+## Generated help via -h/--help
+
+<div data-explorer-output="help">
+
+<!-- koi:include builder-dependency-help.txt -->
+
+</div>
+
+</div>

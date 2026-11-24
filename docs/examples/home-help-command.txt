@@ -7,4 +7,4 @@ Options:
   -o, --output OUTPUT  Archive path (default: backup.tar.gz)
 
 Positionals:
-  DIRECTORY            Directory to archive (required)
+  DIRECTORY  Directory to archive (required)

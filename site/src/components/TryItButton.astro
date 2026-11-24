@@ -1,0 +1,17 @@
+---
+import Icon from './Icon.astro';
+interface Props {
+  dialogId: string;
+}
+const { dialogId } = Astro.props;
+---
+
+<button
+  type="button"
+  class="button try-edit-button"
+  data-open-try={dialogId}
+  aria-haspopup="dialog"
+  aria-controls={dialogId}
+>
+  Edit <Icon name="play-solid" />
+</button>

@@ -110,19 +110,33 @@ Use [koi::add_validator](/docs/reference/add_validator) after declaring an optio
 
 You can also organize of two or more arguments into relationships such as _groups_ (like mutually exclusive groups) or _dependencies_ (like one flag requiring another). Use [koi::add_group](/docs/reference/add_group) or [koi::add_dependency](/docs/reference/add_dependency) after declaring the participating flags and options. Relationships use explicit presence. Defaults still apply to omitted options after relationship checks pass. When registered in a group, an individual argument cannot be marked as `--required`.
 
-## Explore
+<aside class="try-it-callout" data-try-it-callout>
 
-Use the controls below to update the `koi::add_arg` calls in the sample koi script.
+<span id="doc-reference-add_arg-explore" data-fragment="explore"></span>
+
+<span id="doc-reference-add_arg-try-it" data-fragment="try-it"></span>
+
+## See it in action
+
+Experiment with flags, options, and positionals using `koi::add_arg`.
+
+</aside>
 
 <!-- koi:example -->
 
 <div class="argument-demo" data-argument-sample>
 
+<div class="try-sample-heading" data-try-sample-heading>
+
 ## Sample script
+
+</div>
+
+<div data-explorer-output="script">
 
 ```bash
 #!/usr/bin/env bash
-source ./koi
+source koi
 
 main() {
     local name
@@ -135,9 +149,15 @@ main() {
 main "$@"
 ```
 
+</div>
+
 ## Generated help via -h/--help
 
+<div data-explorer-output="help">
+
 <!-- koi:include greet-help.txt -->
+
+</div>
 
 
 </div>
